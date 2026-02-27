@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS events (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title         TEXT NOT NULL,
   description   TEXT,
-  event_type    TEXT NOT NULL CHECK (event_type IN ('bootcamp', 'workshop', 'hackathon', 'meetup')),
+  event_type    TEXT NOT NULL,
   date          TIMESTAMPTZ NOT NULL,
   end_date      TIMESTAMPTZ,
   location      TEXT,
@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS events (
   theme_style   TEXT NOT NULL DEFAULT 'modern',
   theme_color   TEXT NOT NULL DEFAULT 'zinc',
   theme_font    TEXT NOT NULL DEFAULT 'inter',
+  theme_mode    TEXT NOT NULL DEFAULT 'light',
   require_approval BOOLEAN NOT NULL DEFAULT FALSE,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -82,6 +83,41 @@ CREATE POLICY "Public can view staff allowlist"
 CREATE POLICY "Staff can manage events"
   ON events
   FOR ALL
+  USING (
+    auth.jwt() ->> 'email' IN (SELECT email FROM staff_allowlist)
+  );
+
+-- =============================================================
+-- Registrations table (Sprint 1B)
+-- =============================================================
+
+CREATE TABLE IF NOT EXISTS registrations (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id   UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  name       TEXT NOT NULL,
+  email      TEXT NOT NULL,
+  phone      TEXT,
+  status     TEXT NOT NULL DEFAULT 'confirmed' CHECK (status IN ('confirmed', 'pending', 'cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE(event_id, email)
+);
+
+-- Index for fast lookups by event
+CREATE INDEX IF NOT EXISTS idx_registrations_event_id ON registrations (event_id);
+
+-- RLS
+ALTER TABLE registrations ENABLE ROW LEVEL SECURITY;
+
+-- Public can insert registrations (for the registration form)
+CREATE POLICY "Anyone can register for events"
+  ON registrations
+  FOR INSERT
+  WITH CHECK (true);
+
+-- Staff can view all registrations
+CREATE POLICY "Staff can view registrations"
+  ON registrations
+  FOR SELECT
   USING (
     auth.jwt() ->> 'email' IN (SELECT email FROM staff_allowlist)
   );

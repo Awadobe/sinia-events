@@ -29,9 +29,9 @@ export default function AdminLayout({
                         className="flex items-center gap-2 font-semibold tracking-tight text-foreground"
                     >
                         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-                            S
+                            R
                         </span>
-                        <span className="hidden sm:inline">Sinia Events</span>
+                        <span className="hidden sm:inline">Radius</span>
                     </Link>
 
                     {/* Nav links */}

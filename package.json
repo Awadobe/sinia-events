@@ -1,5 +1,5 @@
 {
-  "name": "sinia-events",
+  "name": "radius",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -14,14 +14,17 @@
     "@radix-ui/react-select": "^2.2.6",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.97.0",
+    "@vercel/og": "^0.9.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.575.0",
     "next": "14.2.35",
+    "pg": "^8.19.0",
     "react": "^18",
     "react-day-picker": "^9.13.2",
     "react-dom": "^18",
+    "resend": "^6.9.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss-animate": "^1.0.7"

@@ -9,7 +9,7 @@ export type Event = {
   id: string;
   title: string;
   description: string | null;
-  event_type: 'bootcamp' | 'workshop' | 'hackathon' | 'meetup';
+  event_type: string;
   date: string;
   end_date: string | null;
   location: string | null;
@@ -23,6 +23,7 @@ export type Event = {
   theme_style: string;
   theme_color: string;
   theme_font: string;
+  theme_mode: string;
   require_approval: boolean;
   created_at: string;
   updated_at: string;

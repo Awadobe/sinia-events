@@ -15,7 +15,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Sinia Events — Christex Foundation",
+  title: "Radius — Christex Foundation",
   description:
     "Discover and register for bootcamps, workshops, hackathons, and meetups hosted by Christex Foundation.",
 };
