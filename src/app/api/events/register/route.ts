@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
                 eventLocation: event.location,
                 eventSlug: event.slug,
                 status: status as 'confirmed' | 'pending',
+                registrationId: registration.id,
             }).catch(err => console.error('Failed to send async email:', err));
         });
 

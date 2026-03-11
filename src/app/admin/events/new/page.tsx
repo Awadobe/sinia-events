@@ -4,7 +4,6 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
-    CalendarIcon,
     ArrowLeft,
     Loader2,
     Upload,
@@ -15,22 +14,16 @@ import {
     MapPin,
     Pencil,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+
 import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+
 import {
     Select,
     SelectContent,
@@ -163,7 +156,7 @@ export default function CreateEventPage() {
     const [activeFont, setActiveFont] = useState(themeFonts[0]);
     const [activeDisplay, setActiveDisplay] = useState<"light" | "dark">("light");
     const [showPersonalize, setShowPersonalize] = useState(false);
-    const [showMapPicker, setShowMapPicker] = useState(false);
+    // Map picker state reserved for future use
 
     // Cover state
     const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -226,32 +219,6 @@ export default function CreateEventPage() {
         // NOTE: Auth/staff check skipped here – access control is enforced at the DB level via RLS.
         // When a proper login flow is added, re-enable this check.
 
-        let finalImageUrl = coverImage;
-
-        // 1. Upload file if source is "upload" and we have a coverFile
-        if (coverSource === "upload" && coverFile) {
-            const fileExt = coverFile.name.split('.').pop();
-            const fileName = `${formData.slug}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const filePath = `covers/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('event-covers')
-                .upload(filePath, coverFile);
-
-            if (uploadError) {
-                console.error("❌ Storage upload error:", uploadError);
-                toast.error(`Image upload failed: ${uploadError.message}`);
-                setIsSubmitting(false);
-                return;
-            }
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('event-covers')
-                .getPublicUrl(filePath);
-
-            finalImageUrl = publicUrl;
-        }
-
         const payload = {
             title: formData.title,
             description: formData.description || null,
@@ -261,7 +228,7 @@ export default function CreateEventPage() {
             location: formData.location || null,
             is_virtual: formData.is_virtual,
             virtual_link: formData.virtual_link || null,
-            image_url: finalImageUrl,
+            image_url: coverSource === "preset" ? coverImage : null, // Preset images are URLs already
             max_attendees: formData.max_attendees
                 ? parseInt(formData.max_attendees.toString())
                 : null,
@@ -274,11 +241,19 @@ export default function CreateEventPage() {
             require_approval: formData.require_approval,
         };
 
-        // 2. Call server-side API route (bypasses RLS using service role key)
+        // Build FormData to send both the payload and the file
+        const submitData = new FormData();
+        submitData.append('payload', JSON.stringify(payload));
+
+        // Attach cover file if user uploaded one (not a preset)
+        if (coverSource === "upload" && coverFile) {
+            submitData.append('coverFile', coverFile);
+        }
+
+        // Call server-side API route (handles storage upload + DB insert)
         const res = await fetch('/api/events/create', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
+            body: submitData,
         });
 
         const result = await res.json();

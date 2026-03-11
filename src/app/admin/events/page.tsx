@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+
 import { PlusCircle, Calendar, MapPin, Users, Search } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -114,7 +114,7 @@ export default function AdminEventsPage() {
                         {filtered.map((event) => (
                             <button
                                 key={event.id}
-                                onClick={() => router.push(`/admin/events/${event.slug}`)}
+                                onClick={() => router.push(`/events/${event.slug}`)}
                                 className="group text-left rounded-3xl bg-white/70 border border-black/5 shadow-sm overflow-hidden hover:shadow-md hover:translate-y-[-2px] transition-all duration-300"
                             >
                                 {/* Cover */}

@@ -18,7 +18,8 @@ const getBaseUrl = () => {
 
 export async function generateMetadata(
     { params }: Props,
-    parent: ResolvingMetadata
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _parent: ResolvingMetadata
 ): Promise<Metadata> {
     const { slug } = params;
 
@@ -31,7 +32,7 @@ export async function generateMetadata(
 
     if (!event) {
         return {
-            title: 'Event Not Found | Sinia Events',
+            title: 'Event Not Found | Radius',
         };
     }
 
@@ -53,13 +54,13 @@ export async function generateMetadata(
         : `Join us for ${event.title} hosted by Christex Foundation`;
 
     return {
-        title: `${event.title} | Sinia Events`,
+        title: `${event.title} | Radius`,
         description,
         openGraph: {
             title: event.title,
             description,
             url: `${appUrl}/events/${slug}`,
-            siteName: 'Sinia Events',
+            siteName: 'Radius',
             images: [
                 {
                     url: ogUrl.toString(),

@@ -11,6 +11,8 @@ interface SendConfirmationEmailProps {
   eventLocation: string | null;
   eventSlug: string;
   status: 'confirmed' | 'pending';
+  registrationId?: string;
+  isInvite?: boolean;
 }
 
 export async function sendConfirmationEmail({
@@ -21,6 +23,8 @@ export async function sendConfirmationEmail({
   eventLocation,
   eventSlug,
   status,
+  registrationId,
+  isInvite,
 }: SendConfirmationEmailProps) {
   // If no API key is set, silently skip email sending but log it
   if (!process.env.RESEND_API_KEY) {
@@ -33,10 +37,32 @@ export async function sendConfirmationEmail({
 
   const subject = status === 'pending'
     ? `Registration Request Received: ${eventTitle}`
-    : `You're registered for ${eventTitle}!`;
+    : isInvite 
+      ? `You've been invited to ${eventTitle}!` 
+      : `You're registered for ${eventTitle}!`;
 
-  // Determine sender email. Resend allows 'onboarding@resend.dev' for testing if you don't have a domain yet
+  // Determine sender email. Resend allows 'onboarding@resend.dev' for testing
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  // Generate a QR code that links to the admin check-in endpoint for this specific registration
+  // We need the registration ID to do this, so we'll add it to the props.
+  let qrCodeDataUrl = '';
+  if (status === 'confirmed' && registrationId) {
+     const checkInUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/scan?id=${registrationId}`;
+     try {
+       const QRCode = (await import('qrcode')).default;
+       qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
+         width: 250,
+         margin: 2,
+         color: {
+           dark: '#111827',
+           light: '#ffffff'
+         }
+       });
+     } catch (err) {
+       console.error('Failed to generate QR code for email:', err);
+     }
+  }
 
   try {
     const { data, error } = await resend.emails.send({
@@ -56,6 +82,14 @@ export async function sendConfirmationEmail({
             <p style="margin: 0 0 10px 0;"><strong>📅 When:</strong> ${formattedDate}</p>
             ${eventLocation ? `<p style="margin: 0 0 10px 0;"><strong>📍 Where:</strong> ${eventLocation}</p>` : ''}
           </div>
+
+          ${qrCodeDataUrl ? `
+          <div style="text-align: center; margin: 30px 0; padding: 20px; border: 2px dashed #e5e7eb; border-radius: 12px;">
+            <p style="margin-top: 0; color: #111827; font-weight: bold;">Your Event Ticket</p>
+            <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Present this QR code at the door to check in.</p>
+            <img src="${qrCodeDataUrl}" alt="Check-in QR Code" style="width: 200px; height: 200px; display: inline-block;" />
+          </div>
+          ` : ''}
 
           <p style="margin-top: 30px;">
             <a href="${eventUrl}" style="background-color: #111827; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Event Details</a>

@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import {
     Calendar,
     MapPin,
-    Clock,
     Users,
     Share2,
     Copy,
@@ -207,8 +206,8 @@ export default function PublicEventPage() {
             <div className="border-b border-black/5 bg-white/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="mx-auto max-w-5xl flex items-center justify-between px-4 py-3">
                     <a href="/" className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
-                        <div className="h-7 w-7 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-xs font-bold">S</div>
-                        Sinia Events
+                        <div className="h-7 w-7 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-xs font-bold">R</div>
+                        Radius
                     </a>
                     <div className="flex items-center gap-6">
                         <a
@@ -379,7 +378,7 @@ export default function PublicEventPage() {
                                 {registered ? (
                                     <div className="text-center py-6 space-y-3">
                                         <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
-                                        <h4 className="text-lg font-semibold text-zinc-800">You're in!</h4>
+                                        <h4 className="text-lg font-semibold text-zinc-800">You&apos;re in!</h4>
                                         <p className="text-sm text-zinc-400">
                                             Check your email for the confirmation.
                                         </p>
