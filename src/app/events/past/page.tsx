@@ -2,9 +2,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Calendar, MapPin, ArrowRight, ArrowLeft, Clock } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 
-const supabaseAdmin = createClient(
+const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -32,11 +33,15 @@ async function getAllPastEvents() {
 export default async function PastEventsPage() {
   const pastEvents = await getAllPastEvents();
 
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = user?.email ? true : false;
+
   return (
     <div className="min-h-screen bg-[#faf9f7]">
       {/* Header */}
       <header className="border-b border-black/5 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
+        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 py-4">
           <Link
             href="/"
             className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900"
@@ -46,22 +51,36 @@ export default async function PastEventsPage() {
             </div>
             Radius
           </Link>
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="hidden md:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
               By Christex Foundation
             </div>
-            <Link
-              href="/admin/events"
-              className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-            >
-              Admin
-            </Link>
-            <Link
-              href="/admin/events/new"
-              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
-            >
-              Create Event
-            </Link>
+            
+            {user ? (
+              <Link href={isAdmin ? "/admin/events" : "/profile"} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                {isAdmin ? "Admin" : "My Profile"}
+              </Link>
+            ) : (
+              <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                Log In
+              </Link>
+            )}
+
+            {isAdmin ? (
+              <Link
+                href="/admin/events/new"
+                className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
+              >
+                Create Event
+              </Link>
+            ) : (
+              <Link
+                href={user ? "/profile" : "/login"}
+                className="rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/20 transition-colors"
+              >
+                Get Alerts
+              </Link>
+            )}
           </div>
         </div>
       </header>

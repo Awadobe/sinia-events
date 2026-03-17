@@ -2,10 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Calendar, MapPin, ArrowRight, Clock } from "lucide-react";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 
 // Initialize Supabase admin client for server-side fetching
-const supabaseAdmin = createClient(
+const supabaseAdmin = createAdminClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -51,33 +52,64 @@ export default async function HomePage() {
   const hasMorePastEvents = pastEventsRaw.length > 4;
   const pastEvents = pastEventsRaw.slice(0, 4);
 
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = user?.email ? true : false;
+
+  let userLocation = null;
+  if (user && !isAdmin) {
+      const { data: profile } = await supabase.from("profiles").select("location").eq("id", user.id).single();
+      if (profile?.location) {
+          userLocation = profile.location.toLowerCase();
+      }
+  }
+
+  // Determine which events are "near me"
+  const nearMeEvents = userLocation 
+      ? upcomingEvents.filter(e => !e.is_virtual && e.location?.toLowerCase().includes(userLocation))
+      : [];
+
   return (
     <div className="min-h-screen bg-[#faf9f7]">
       {/* Header */}
       <header className="border-b border-black/5 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-        <div className="mx-auto max-w-6xl flex items-center justify-between px-6 py-4">
+        <div className="mx-auto max-w-6xl flex items-center justify-between px-4 sm:px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900">
             <div className="h-8 w-8 rounded-xl bg-zinc-900 flex items-center justify-center text-white text-sm font-bold shadow-sm">
               R
             </div>
             Radius
           </Link>
-          <div className="flex items-center gap-6">
-            <div className="hidden sm:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="hidden md:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
               By Christex Foundation
             </div>
-            <Link
-              href="/admin/events"
-              className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-            >
-              Admin
-            </Link>
-            <Link
-              href="/admin/events/new"
-              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
-            >
-              Create Event
-            </Link>
+            
+            {user ? (
+              <Link href={isAdmin ? "/admin/events" : "/profile"} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                {isAdmin ? "Admin" : "My Profile"}
+              </Link>
+            ) : (
+              <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                Log In
+              </Link>
+            )}
+
+            {isAdmin ? (
+              <Link
+                href="/admin/events/new"
+                className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
+              >
+                Create Event
+              </Link>
+            ) : (
+              <Link
+                href={user ? "/profile" : "/login"}
+                className="rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/20 transition-colors"
+              >
+                Get Alerts
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -95,9 +127,17 @@ export default async function HomePage() {
       </section>
 
       {/* Upcoming Events Grid */}
-      <section className="mx-auto max-w-6xl px-6 pb-16">
+      <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
+          <div className="flex items-center gap-3">
+             <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
+             {userLocation && nearMeEvents.length > 0 && (
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 flex items-center gap-1 rounded-full px-2.5 py-1">
+                   <MapPin className="h-3 w-3" />
+                   Near Me
+                </span>
+             )}
+          </div>
           {upcomingEvents.length > 0 && (
             <span className="text-sm font-medium text-zinc-400 bg-white border border-black/5 rounded-full px-3 py-1 shadow-sm">
               {upcomingEvents.length} event{upcomingEvents.length === 1 ? "" : "s"}
@@ -149,14 +189,19 @@ export default async function HomePage() {
                     </span>
                   </div>
 
-                  {/* Event Type / Tag */}
-                  {event.event_type && (
-                    <div className="absolute top-4 right-4">
-                      <span className="bg-black/40 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full">
+                  {/* Near Me Badge & Event Type */}
+                  <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+                    {userLocation && event.location?.toLowerCase().includes(userLocation) && (
+                      <span className="bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
+                        <MapPin className="h-3 w-3" /> Near Me
+                      </span>
+                    )}
+                    {event.event_type && (
+                      <span className="bg-black/40 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
                         {event.event_type}
                       </span>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
 
                 {/* Content Area */}

@@ -1,0 +1,335 @@
+Product Requirements Document: CF Events & Community Platform
+Project Code: Sinia-Events
+Version: 1.0
+Date: February 20, 2026
+Owner: Mahawa Sandy
+Status: Planning
+
+
+1. Executive Summary
+What: An open-source events and community management platform built for Christex Foundation to replace Luma and create a unified hub for bootcamps, workshops, hackathons, and community talent discovery.
+
+Why: Current tools (Luma + Google Forms + spreadsheets) are fragmented, costly, lack data ownership, and don't integrate with CF's community (WhatsApp, Airtable, Notion). Many African community organizers face the same problem - sharing events via flyers and Google Forms with no centralized system.
+
+Who: CF team, FBC students, bootcamp participants, community members across Sierra Leone. Future: Open source for community organizers globally.
+
+Impact:
+
+Replace $X/month Luma subscription
+Own all event + community data
+Build talent database of skills/interests
+50%+ improvement in event attendance via better reminders
+Ship open source tool for African tech communities
+
+
+2. Problem Statement
+Current Pain Points
+For CF Team:
+
+Paying for Luma with limited customization
+Manual attendee management (spreadsheets, check-ins)
+No integration with existing tools (Airtable, Notion, WhatsApp)
+No community database - hard to find students with specific skills
+Data locked in Luma's platform
+
+For Community Members:
+
+Discovering CF events requires checking multiple channels (WhatsApp groups, Discord, social media)
+Registration via Google Forms = boring, disconnected experience
+No reminders → people forget to attend
+No way to showcase skills or get matched to opportunities
+
+For Broader Ecosystem:
+
+Most African community organizers still share events via flyers + Google Forms
+No affordable, self-hosted alternative to Luma/Eventbrite
+Data privacy concerns with US-based platforms
+
+
+3. Goals & Success Metrics
+Primary Goals
+Replace Luma completely by end of Sprint 6 (Q2 2026)
+Launch 15+ events on the platform in first 3 months
+Build community database of 200+ profiles with skills/interests
+Improve attendance rates by 30% via automated reminders
+Success Metrics
+
+
+4. User Personas
+Primary Users
+Persona 1: CF Team Member (Event Organizer)
+
+Role: Operations, Program Manager
+Goals: Create events quickly, track registrations, manage check-ins, export attendee data
+Pain Points: Manual work, scattered tools, no analytics
+Tech Comfort: Medium
+
+Persona 2: Community Member (Attendee)
+
+Role: Student, early-career professional, entrepreneur
+Goals: Discover relevant events, register easily, get reminders, showcase skills to CF
+Pain Points: Missing events, hard to find what's happening, no recognition for participation
+Tech Comfort: Low to medium (mobile-first)
+
+Persona 3: Open Source User (Future)
+
+Role: Community organizer in Nigeria, Kenya, Ghana, etc.
+Goals: Self-host for their community, customize branding, avoid Eventbrite fees
+Pain Points: No affordable alternatives, data privacy concerns
+Tech Comfort: Medium to high
+
+
+5. Sprint Breakdown (6 Sprints)
+Sprint 1: Event Creation + Registration (2 weeks)
+User Stories:
+
+As a CF team member, I can create an event with title, description, date, location, registration form
+As a community member, I can view an event page and register with my name, email, phone
+As a registrant, I receive a confirmation email/WhatsApp message
+
+Acceptance Criteria:
+
+Event creation form with rich text editor
+Public event page with shareable URL (e.g., cf.events/hackathon-2026)
+Registration form (name, email, phone, custom questions)
+Email confirmation sent via SendGrid/Resend
+WhatsApp confirmation sent via WhatsApp Business API
+Registrations stored in database with timestamps
+
+Tech Requirements:
+
+Next.js frontend (clean, modern UI - NO purple/orange/green gradients)
+PostgreSQL database
+WhatsApp Business API integration
+Email service (SendGrid or Resend)
+
+
+Sprint 2: Event Discovery + Sharing (2 weeks)
+User Stories:
+
+As a community member, I can browse all upcoming CF events on one page
+As a community member, I can share event links on WhatsApp/Twitter/LinkedIn with one click
+As a team member, I can mark events as "Featured" to highlight them
+
+Acceptance Criteria:
+
+Homepage with upcoming events list (grid view)
+Filter by event type (bootcamp, workshop, hackathon, meetup)
+Search by keyword
+Pre-filled share buttons (WhatsApp, Twitter, LinkedIn, copy link)
+Add to Google Calendar / iCal download
+Featured events section
+
+Tech Requirements:
+
+SEO optimization (OpenGraph tags for social sharing)
+Google Calendar API integration
+Social share link generation
+
+
+Sprint 3: Attendee Management + Check-In (2 weeks)
+User Stories:
+
+As a team member, I can view all registrants for an event
+As a team member, I can check in attendees via QR code at the venue
+As a team member, I can export attendee list to CSV or sync to Airtable
+
+Acceptance Criteria:
+
+Attendee dashboard per event (list view, search, filter by status)
+QR code generated for each registrant (sent in confirmation message)
+Mobile-friendly check-in scanner (PWA or simple web app)
+Mark attendee as "checked in" with timestamp
+Export to CSV
+Airtable sync (one-way: events → Airtable)
+
+Tech Requirements:
+
+QR code generation library
+QR scanner (web-based, camera access)
+Airtable API integration
+CSV export endpoint
+
+
+Sprint 4: Community Profiles + Talent Database (3 weeks)
+User Stories:
+
+As a community member, I can create a profile with my skills, interests, projects
+As a CF team member, I can search for community members by skill (e.g., "React developers")
+As a community member, I can see my event attendance history and badges
+
+Acceptance Criteria:
+
+User profile page (name, bio, skills, interests, social links, portfolio)
+Profile editing form
+Skill tagging (autocomplete, multi-select)
+Team dashboard to search profiles by skill/interest
+Attendance history on profile ("Attended 5 events")
+Badges for milestones (e.g., "Attended 3 hackathons")
+
+Tech Requirements:
+
+User authentication (email + password, or WhatsApp login)
+Profile database schema
+Search/filter functionality (Algolia or PostgreSQL full-text search)
+
+
+Sprint 5: Notifications + Reminders (2 weeks)
+User Stories:
+
+As a registrant, I receive a reminder 24 hours before the event via WhatsApp + email
+As a registrant, I receive a "event starting in 1 hour" reminder
+As a team member, I can send custom messages to all registrants
+As an attendee, I receive a post-event feedback survey
+
+Acceptance Criteria:
+
+Automated reminders: 24 hours before, 1 hour before
+Delivery via WhatsApp + email
+Team can send custom broadcast messages
+Post-event survey link sent 1 day after event
+Survey responses stored in database
+
+Tech Requirements:
+
+Background job scheduler (cron or BullMQ)
+WhatsApp API for broadcasts
+Email templates
+Survey form (embedded or link to Typeform/Tally)
+
+
+Sprint 6: Analytics + Open Source Prep (3 weeks)
+User Stories:
+
+As a team member, I can see event analytics: signups over time, attendance rate, popular event types
+As a team member, I can see community growth metrics: new profiles, top skills
+As an open source user, I can self-host this platform with my own branding
+
+Acceptance Criteria:
+
+Analytics dashboard with charts:
+Event signups over time
+Attendance rate per event
+Most popular event types
+Community growth (new profiles/month)
+Top skills in database
+Privacy-first analytics (self-hosted, no Google Analytics)
+Multi-tenant support (orgs can customize branding, domain)
+Documentation for self-hosting (Docker Compose setup)
+Open source license (MIT or Apache 2.0)
+GitHub repo with README, contributing guide
+
+Tech Requirements:
+
+Chart library (Recharts or Chart.js)
+Multi-tenancy schema (org ID, custom domains)
+Docker setup
+Documentation site (Docusaurus or Nextra)
+
+
+6. Technical Architecture
+Tech Stack
+Frontend:
+
+Framework: Next.js 14 (App Router)
+Styling: Tailwind CSS (clean, modern, NO AI gradients)
+UI Components: Shadcn/ui or custom components
+Deployment: Vercel or self-hosted (Docker)
+
+Backend:
+
+API: Next.js API routes (or separate Node/Express API)
+Database: PostgreSQL (hosted on Supabase, Railway, or self-hosted)
+Authentication: NextAuth.js or Supabase Auth
+File Storage: S3-compatible (for event images, QR codes)
+
+Integrations:
+
+WhatsApp: WhatsApp Business API (official or via 360Dialog)
+Email: SendGrid, Resend, or Postmark
+Payments (future): Stripe or Paystack (for paid events)
+Calendar: Google Calendar API, iCal generation
+Analytics: Plausible (self-hosted) or custom
+
+DevOps:
+
+Hosting: Vercel + Supabase (easiest) OR Docker + VPS (full control)
+CI/CD: GitHub Actions
+Monitoring: Sentry (errors), Uptime Robot (availability)
+
+
+7. Integrations (Product Expert View)
+Must-Have (MVP)
+WhatsApp Business API - Confirmations, reminders, broadcasts
+Email (SendGrid/Resend) - Transactional emails
+QR Code Generation - Check-in at events
+Airtable API - Sync event data to CF's current workflow
+High-Value Additions
+Google Calendar / iCal - One-click add to calendar (huge for attendance)
+Social Sharing - Pre-filled WhatsApp/Twitter/LinkedIn share links with OG images
+Zapier Webhooks - Let others extend without coding (e.g., new registration → Slack notification)
+Notion API - Two-way sync with CF's Notion databases
+Future (Open Source / SaaS)
+Stripe/Paystack - Paid event ticketing
+Zoom/Google Meet API - Auto-generate meeting links for virtual events
+Custom domains - Each org can use their own domain (events.yourorg.com)
+Mobile app - React Native for iOS/Android (check-in scanner, push notifications)
+
+
+8. Design Principles
+Visual Identity
+Clean, modern, minimal - think Linear, Vercel, Stripe (not typical AI tools)
+Typography: Inter or Geist (clean sans-serif)
+Colors:
+Primary: Deep blue or teal (professional, trustworthy)
+Accent: Warm orange or green (energy, growth)
+Background: White + light gray (clean, readable)
+NO purple/orange/green gradients
+Spacing: Generous whitespace, clear hierarchy
+Imagery: Real photos from CF events (not stock photos)
+UX Principles
+Mobile-first: 70%+ users will access via phone
+Fast: Pages load in <2 seconds
+Accessible: WCAG AA compliance (color contrast, keyboard navigation)
+Simple: Grandma can register for an event in 3 clicks
+
+
+9. Open Source Strategy
+Why Open Source?
+Mission alignment: CF's values include transparency, community empowerment
+Ecosystem impact: Help other African community organizers
+Talent attraction: Contributors become part of CF's talent pool
+Marketing: GitHub stars, Product Hunt launch
+Launch Plan
+Sprint 1-5: Build as private repo for CF
+Sprint 6: Refactor for multi-tenancy, add documentation
+Public launch: GitHub repo + Product Hunt + Hacker News post
+Community building: Discord for contributors, monthly demos
+Monetization (Future)
+Free: Self-hosted (open source)
+Paid (SaaS): Hosted version with custom domains, priority support, extra features ($20-50/month per org)
+
+
+10. Dependencies & Risks
+Dependencies
+WhatsApp Business API approval (can take 2-4 weeks)
+Team availability (who's coding? Eugene? External dev?)
+Hosting costs (Supabase free tier → paid after X users)
+Risks & Mitigation
+
+
+11. Timeline
+
+Total: 14 weeks (~3.5 months)
+
+
+12. Next Steps
+Decision: Approve PRD + allocate budget/team
+Kickoff: Assign developer (Eugene? External? Both?)
+Design: Create wireframes + visual mockups for Sprint 1
+Setup: Provision database, domain, WhatsApp API
+Sprint 1 start: Mar 10 (or sooner if ready)
+
+
+
+END OF PRD

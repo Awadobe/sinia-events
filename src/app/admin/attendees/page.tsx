@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { format } from "date-fns";
-import { Search } from "lucide-react";
+import { Search, Download } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -64,6 +64,14 @@ export default async function AttendeesPage() {
                disabled // Searching would require client-side state or URL params, which we can add later
              />
            </div>
+           <a 
+             href="/api/admin/export"
+             className="flex h-10 items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground"
+             title="Download all as CSV"
+           >
+             <Download className="h-4 w-4" />
+             <span className="hidden sm:inline">Export CSV</span>
+           </a>
            <InviteUserModal events={eventsList || []} />
         </div>
       </div>

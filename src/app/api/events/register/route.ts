@@ -75,6 +75,18 @@ export async function POST(req: NextRequest) {
             }).catch(err => console.error('Failed to send async email:', err));
         });
 
+        // Sync to Airtable
+        import('@/lib/airtable').then(({ syncRegistrationToAirtable }) => {
+            syncRegistrationToAirtable({
+                Name: name,
+                Email: email,
+                Phone: phone || null,
+                EventTitle: event.title,
+                Status: status,
+                DateRegistered: new Date().toISOString()
+            }).catch(err => console.error('Failed to sync to Airtable:', err));
+        });
+
         return NextResponse.json({
             registration,
             message: status === 'pending'

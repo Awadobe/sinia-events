@@ -42,7 +42,8 @@ export async function sendInvite(eventId: string, email: string, name: string) {
         .single();
 
     if (insertError) {
-        return { error: "Failed to create registration instance" };
+        console.error("Supabase Insert Error:", insertError);
+        return { error: insertError.message || "Failed to create registration instance" };
     }
 
     // 4. Send the Invite / Confirmation Email with QR Ticket
@@ -63,6 +64,20 @@ export async function sendInvite(eventId: string, email: string, name: string) {
     } catch (err) {
         console.error("Failed to send invite email:", err);
         // We handle email error silently so the registration doesn't appear as a 500
+    }
+
+    try {
+        const { syncRegistrationToAirtable } = await import('@/lib/airtable');
+        await syncRegistrationToAirtable({
+            Name: name,
+            Email: email,
+            Phone: null, // Admin invite currently doesn't collect phone
+            EventTitle: event.title,
+            Status: 'confirmed',
+            DateRegistered: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error("Failed to sync admin invite to Airtable:", err);
     }
 
     revalidatePath('/admin/attendees');

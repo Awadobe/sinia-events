@@ -4,7 +4,8 @@ import {
     LayoutDashboard,
     Plus,
     Users,
-    LogOut
+    LogOut,
+    UserSquare2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/admin/login/actions";
@@ -15,6 +16,7 @@ const navItems = [
     { label: "Events", href: "/admin/events", icon: Calendar },
     { label: "Create Event", href: "/admin/events/new", icon: Plus },
     { label: "Attendees", href: "/admin/attendees", icon: Users },
+    { label: "Talent DB", href: "/admin/talent", icon: UserSquare2 },
 ];
 
 export default async function AdminLayout({
