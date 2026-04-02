@@ -20,7 +20,7 @@ type Profile = {
     location?: string | null;
 };
 
-export function ProfileForm({ profile, phone }: { profile?: Profile | null, phone: string }) {
+export function ProfileForm({ profile, email }: { profile?: Profile | null, email: string }) {
     const [loading, setLoading] = useState(false);
     
     // Skills management
@@ -66,8 +66,8 @@ export function ProfileForm({ profile, phone }: { profile?: Profile | null, phon
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number (Login)</Label>
-                <Input id="phone" value={phone} disabled className="bg-zinc-50" />
+                <Label htmlFor="email-login">Email (Login)</Label>
+                <Input id="email-login" value={email} disabled className="bg-zinc-50" />
             </div>
 
             <div className="space-y-2">

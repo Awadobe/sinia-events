@@ -88,6 +88,9 @@ export async function POST(req: NextRequest) {
             payload.image_url = publicUrl;
         }
 
+        // Link event to the organizer who created it
+        payload.organizer_id = user.id;
+
         const { data, error } = await supabaseAdmin
             .from('events')
             .insert([payload])

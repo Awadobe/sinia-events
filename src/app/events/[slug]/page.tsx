@@ -1,11 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
+import { resolveTheme } from "@/lib/theme";
 import {
     Calendar,
     MapPin,
@@ -15,7 +18,17 @@ import {
     CheckCircle2,
     Loader2,
     ExternalLink,
+    X,
+    Globe,
+    Settings,
 } from "lucide-react";
+
+type OrganizerData = {
+    id: string;
+    org_name: string | null;
+    name: string | null;
+    avatar_url: string | null;
+};
 
 type EventData = {
     id: string;
@@ -36,6 +49,7 @@ type EventData = {
     theme_font: string;
     theme_mode: string;
     require_approval: boolean;
+    organizer: OrganizerData | null;
 };
 
 /* ───── Helper: Generate Google Calendar URL ───── */
@@ -107,8 +121,176 @@ async function copyLink(slug: string) {
     toast.success("Link copied!");
 }
 
+/* ───── Organizer display name helper ───── */
+function getOrganizerName(organizer: OrganizerData | null): string {
+    if (!organizer) return "Radius Events";
+    return organizer.org_name || organizer.name || "Radius Events";
+}
+
+function getOrganizerInitials(organizer: OrganizerData | null): string {
+    const name = getOrganizerName(organizer);
+    return name
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+}
+
 /* ═══════════════════════════════════════════ */
-/*                PAGE COMPONENT               */
+/*           REGISTRATION MODAL               */
+/* ═══════════════════════════════════════════ */
+
+function RegistrationModal({
+    event,
+    onClose,
+    onSuccess,
+}: {
+    event: EventData;
+    onClose: () => void;
+    onSuccess: (regId?: string) => void;
+}) {
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+    const overlayRef = useRef<HTMLDivElement>(null);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setSubmitting(true);
+
+        try {
+            const res = await fetch("/api/events/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    event_id: event.id,
+                    name,
+                    email,
+                    phone: null,
+                }),
+            });
+            const result = await res.json();
+            if (!res.ok) {
+                toast.error(result.error || "Registration failed");
+            } else {
+                toast.success(
+                    event.require_approval
+                        ? "Your request has been submitted!"
+                        : "You're registered! Check your email for confirmation."
+                );
+                // Save registration to localStorage so page remembers on reload
+                try {
+                    localStorage.setItem(`registered_${event.slug}`, JSON.stringify({
+                        email,
+                        name,
+                        registrationId: result.registration?.id,
+                    }));
+                } catch {}
+                onSuccess(result.registration?.id);
+            }
+        } catch {
+            toast.error("Something went wrong. Please try again.");
+        }
+        setSubmitting(false);
+    };
+
+    return (
+        <div
+            ref={overlayRef}
+            onClick={(e) => {
+                if (e.target === overlayRef.current) onClose();
+            }}
+            className="fixed inset-0 z-[100] flex items-center justify-center"
+            style={{ animation: "modalFadeIn 0.25s ease-out" }}
+        >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-white/70 backdrop-blur-xl" />
+
+            {/* Modal */}
+            <div
+                className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white border border-black/5 shadow-2xl"
+                style={{ animation: "modalSlideUp 0.3s ease-out" }}
+            >
+                {/* Close button */}
+                <button
+                    onClick={onClose}
+                    className="absolute top-4 right-4 h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 hover:text-zinc-600 hover:bg-zinc-200 transition-all"
+                    aria-label="Close"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+
+                <div className="p-8">
+                    <h2 className="text-xl font-bold text-zinc-900 mb-6">Your Info</h2>
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-2">
+                                Name <span className="text-zinc-400">*</span>
+                            </label>
+                            <input
+                                required
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                                placeholder="Your Name"
+                                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-transparent transition-all"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-zinc-700 mb-2">
+                                Email <span className="text-zinc-400">*</span>
+                            </label>
+                            <input
+                                required
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="you@email.com"
+                                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-transparent transition-all"
+                            />
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={submitting || !name || !email}
+                            className={cn(
+                                "w-full rounded-xl py-3.5 text-sm font-bold text-white transition-all duration-200 shadow-sm mt-2",
+                                submitting || !name || !email
+                                    ? "bg-zinc-300 cursor-not-allowed"
+                                    : "bg-zinc-900 hover:bg-zinc-800 hover:shadow-md active:scale-[0.98]"
+                            )}
+                        >
+                            {submitting ? (
+                                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            ) : event.require_approval ? (
+                                "Request to Join"
+                            ) : (
+                                "Register"
+                            )}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {/* Inline animation keyframes */}
+            <style jsx>{`
+                @keyframes modalFadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes modalSlideUp {
+                    from { opacity: 0; transform: translateY(16px) scale(0.97); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+            `}</style>
+        </div>
+    );
+}
+
+/* ═══════════════════════════════════════════ */
+/*               PAGE COMPONENT               */
 /* ═══════════════════════════════════════════ */
 
 export default function PublicEventPage() {
@@ -120,19 +302,26 @@ export default function PublicEventPage() {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
-    // Registration form
-    const [regName, setRegName] = useState("");
-    const [regEmail, setRegEmail] = useState("");
-    const [regPhone, setRegPhone] = useState("");
-    const [registering, setRegistering] = useState(false);
+    // Auth — check if user is logged in
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            setIsLoggedIn(!!user);
+        });
+    }, []);
+
+    // Modal
+    const [showModal, setShowModal] = useState(false);
     const [registered, setRegistered] = useState(false);
+    const [registrationId, setRegistrationId] = useState<string | null>(null);
 
     // Share dropdown
     const [showShare, setShowShare] = useState(false);
 
     useEffect(() => {
         async function load() {
-            const res = await fetch(`/api/events/${slug}`);
+            const res = await fetch(`/api/events/${slug}?t=${Date.now()}`);
             if (!res.ok) {
                 setNotFound(true);
                 setLoading(false);
@@ -142,44 +331,45 @@ export default function PublicEventPage() {
             setEvent(data.event);
             setAttendeeCount(data.attendee_count ?? 0);
             setLoading(false);
+
+            // Check if user already registered (from localStorage)
+            try {
+                const stored = localStorage.getItem(`registered_${slug}`);
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.email) {
+                        // Verify against the registrations API
+                        const regRes = await fetch(`/api/events/${slug}/registrations?t=${Date.now()}`);
+                        if (regRes.ok) {
+                            const regData = await regRes.json();
+                            const found = regData.registrations?.find(
+                                (r: { email: string; id: string }) => r.email.toLowerCase() === parsed.email.toLowerCase()
+                            );
+                            if (found) {
+                                setRegistered(true);
+                                setRegistrationId(found.id);
+                            }
+                        }
+                    }
+                }
+            } catch {}
         }
         load();
     }, [slug]);
 
-    const handleRegister = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!event) return;
-        setRegistering(true);
-
-        try {
-            const res = await fetch("/api/events/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    event_id: event.id,
-                    name: regName,
-                    email: regEmail,
-                    phone: regPhone || null,
-                }),
-            });
-            const result = await res.json();
-            if (!res.ok) {
-                toast.error(result.error || "Registration failed");
-            } else {
-                toast.success("You're registered! Check your email for confirmation.");
-                setRegistered(true);
-                setAttendeeCount((c) => c + 1);
-            }
-        } catch {
-            toast.error("Something went wrong. Please try again.");
+    // Close share dropdown when clicking outside
+    useEffect(() => {
+        const handler = () => setShowShare(false);
+        if (showShare) {
+            document.addEventListener("click", handler);
+            return () => document.removeEventListener("click", handler);
         }
-        setRegistering(false);
-    };
+    }, [showShare]);
 
     /* ───── Loading / Not found states ───── */
     if (loading) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-[#faf9f7]">
+            <div className="min-h-screen flex items-center justify-center bg-[#f8f7f4]">
                 <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
             </div>
         );
@@ -187,7 +377,7 @@ export default function PublicEventPage() {
 
     if (notFound || !event) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-[#faf9f7] gap-4">
+            <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f7f4] gap-4">
                 <div className="text-5xl">🔍</div>
                 <h1 className="text-2xl font-semibold text-zinc-700">Event not found</h1>
                 <p className="text-zinc-400">This event may have been removed or the link is incorrect.</p>
@@ -199,33 +389,59 @@ export default function PublicEventPage() {
     const isPast = eventDate.getTime() < Date.now();
     const spotsLeft = event.max_attendees ? event.max_attendees - attendeeCount : null;
     const isFull = spotsLeft !== null && spotsLeft <= 0;
+    const organizerName = getOrganizerName(event.organizer);
+    const organizerInitials = getOrganizerInitials(event.organizer);
+
+    /* ───── Date display helpers ───── */
+    const monthAbbr = format(eventDate, "MMM").toUpperCase();
+    const dayNum = format(eventDate, "d");
+    const dayOfWeek = format(eventDate, "EEEE");
+    const fullDate = format(eventDate, "MMMM d");
+    const startTime = format(eventDate, "h:mm a");
+    const endTime = event.end_date ? format(new Date(event.end_date), "h:mm a") : null;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop()?.replace(/_/g, " ") || "GMT";
+
+    const theme = resolveTheme({
+        color: event.theme_color,
+        style: event.theme_style,
+        font: event.theme_font,
+        mode: event.theme_mode,
+    });
 
     return (
-        <div className="min-h-screen bg-[#faf9f7]">
-            {/* Top bar */}
-            <div className="border-b border-black/5 bg-white/80 backdrop-blur-md sticky top-0 z-50">
-                <div className="mx-auto max-w-5xl flex items-center justify-between px-4 py-3">
-                    <a href="/" className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
-                        <div className="h-7 w-7 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-xs font-bold">R</div>
+        <div className="min-h-screen" style={{ background: theme.pageBackground, fontFamily: theme.fontFamily }}>
+            {/* ───── Top Navigation Bar ───── */}
+            <header className="border-b border-black/[0.04] backdrop-blur-xl sticky top-0 z-50" style={{ backgroundColor: theme.headerBackground }}>
+                <div className="mx-auto max-w-6xl flex items-center justify-between px-5 py-3.5">
+                    <a href="/" className="flex items-center gap-2.5 text-sm font-semibold transition-colors" style={{ color: theme.text }}>
+                        <div className="h-7 w-7 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: theme.primary }}>R</div>
                         Radius
                     </a>
-                    <div className="flex items-center gap-6">
-                        <a
-                            href="/admin/events"
-                            className="hidden sm:block text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors"
-                        >
-                            Admin
-                        </a>
-                        <div className="relative">
+
+                    <div className="flex items-center gap-3">
+                        {/* Manage Event — visible to logged-in users */}
+                        {isLoggedIn && (
+                            <Link
+                                href={`/events/${slug}/manage`}
+                                className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
+                            >
+                                <Settings className="h-4 w-4" />
+                                Manage
+                            </Link>
+                        )}
+
+                        {/* Share button */}
+                        <div className="relative" onClick={(e) => e.stopPropagation()}>
                             <button
                                 onClick={() => setShowShare(!showShare)}
-                                className="flex items-center gap-2 rounded-xl bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
+                                className="flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5', color: theme.textMuted }}
                             >
                                 <Share2 className="h-4 w-4" />
                                 Share
                             </button>
                             {showShare && (
-                                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-white border border-black/5 shadow-xl p-2 z-50">
+                                <div className="absolute right-0 top-full mt-2 w-48 rounded-2xl bg-white border border-black/5 shadow-xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                                     <button onClick={() => { shareWhatsApp(event); setShowShare(false); }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm hover:bg-zinc-50 flex items-center gap-2.5 transition-colors">
                                         💬 WhatsApp
                                     </button>
@@ -244,17 +460,17 @@ export default function PublicEventPage() {
                         </div>
                     </div>
                 </div>
-            </div>
+            </header>
 
-            {/* Main content */}
-            <div className="mx-auto max-w-5xl px-4 py-10">
-                <div className="grid gap-10 lg:grid-cols-[1fr_380px]">
+            {/* ───── Main Content ───── */}
+            <main className="mx-auto max-w-6xl px-5 py-10">
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(400px,480px)]">
 
-                    {/* ─── LEFT COLUMN ─── */}
-                    <div className="space-y-8">
+                    {/* ═══════ LEFT COLUMN ═══════ */}
+                    <div className="space-y-8 order-2 lg:order-1">
                         {/* Cover image */}
                         {event.image_url && (
-                            <div className="relative aspect-[16/9] rounded-3xl overflow-hidden shadow-lg">
+                            <div className="relative aspect-[16/9] rounded-2xl overflow-hidden shadow-md">
                                 <Image
                                     src={event.image_url}
                                     alt={event.title}
@@ -266,201 +482,248 @@ export default function PublicEventPage() {
                             </div>
                         )}
 
-                        {/* Tag */}
-                        {event.event_type && (
-                            <span className="inline-block rounded-full bg-zinc-100 px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
-                                #{event.event_type}
-                            </span>
-                        )}
+                        {/* Organizer section */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-3">
+                                {event.organizer?.avatar_url ? (
+                                    <Image
+                                        src={event.organizer.avatar_url}
+                                        alt={organizerName}
+                                        width={40}
+                                        height={40}
+                                        className="rounded-full object-cover"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: theme.primary }}>
+                                        {organizerInitials}
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: theme.textMuted }}>Presented by</p>
+                                    <p className="font-semibold" style={{ color: theme.text }}>{organizerName}</p>
+                                </div>
+                            </div>
+                        </div>
 
-                        {/* Title */}
-                        <h1 className="text-4xl sm:text-5xl font-semibold tracking-tight text-zinc-900 leading-tight">
+                        {/* Hosted By card */}
+                        <div className="rounded-2xl p-6" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
+                            <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.textMuted }}>Hosted by</p>
+                            <div className="flex items-center gap-3">
+                                {event.organizer?.avatar_url ? (
+                                    <Image
+                                        src={event.organizer.avatar_url}
+                                        alt={organizerName}
+                                        width={44}
+                                        height={44}
+                                        className="rounded-full object-cover"
+                                        unoptimized
+                                    />
+                                ) : (
+                                    <div className="h-11 w-11 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: theme.primary }}>
+                                        {organizerInitials}
+                                    </div>
+                                )}
+                                <div>
+                                    <p className="font-semibold" style={{ color: theme.text }}>{organizerName}</p>
+                                    <p className="text-xs" style={{ color: theme.textMuted }}>Event Organizer</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* ═══════ RIGHT COLUMN ═══════ */}
+                    <div className="space-y-6 order-1 lg:order-2">
+                        {/* Event title */}
+                        <h1 className="text-3xl sm:text-4xl lg:text-[2.5rem] font-semibold tracking-tight leading-[1.15]" style={{ color: theme.text }}>
                             {event.title}
                         </h1>
 
-                        {/* Date / Time / Location */}
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-3 text-zinc-600">
-                                <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center">
-                                    <Calendar className="h-5 w-5 text-zinc-400" />
+                        {/* Date & Time */}
+                        <div className="flex items-start gap-4">
+                            {/* Calendar icon block */}
+                            <div className="flex-shrink-0 h-14 w-14 rounded-xl flex flex-col items-center justify-center overflow-hidden shadow-sm" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
+                                <span className="text-[10px] font-bold uppercase leading-none pt-1" style={{ color: theme.primary }}>{monthAbbr}</span>
+                                <span className="text-xl font-bold leading-none" style={{ color: theme.text }}>{dayNum}</span>
+                            </div>
+                            <div>
+                                <p className="font-semibold" style={{ color: theme.text }}>{dayOfWeek}, {fullDate}</p>
+                                <p className="text-sm mt-0.5" style={{ color: theme.textMuted }}>
+                                    {startTime}{endTime && ` - ${endTime}`} {timeZone}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Location */}
+                        {event.location && (
+                            <div className="flex items-start gap-4">
+                                <div className="flex-shrink-0 h-14 w-14 rounded-xl flex items-center justify-center shadow-sm" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
+                                    {event.is_virtual ? (
+                                        <Globe className="h-5 w-5" style={{ color: theme.primary }} />
+                                    ) : (
+                                        <MapPin className="h-5 w-5" style={{ color: theme.primary }} />
+                                    )}
                                 </div>
                                 <div>
-                                    <p className="font-medium">{format(eventDate, "EEEE, MMMM d, yyyy")}</p>
-                                    <p className="text-sm text-zinc-400">
-                                        {format(eventDate, "h:mm a")}
-                                        {event.end_date && ` – ${format(new Date(event.end_date), "h:mm a")}`}
+                                    <p className="font-semibold" style={{ color: theme.text }}>{event.location}</p>
+                                    <p className="text-sm mt-0.5" style={{ color: theme.textMuted }}>
+                                        {event.is_virtual ? "Virtual Event" : "In-person"}
                                     </p>
                                 </div>
                             </div>
+                        )}
 
-                            {event.location && (
-                                <div className="flex items-center gap-3 text-zinc-600">
-                                    <div className="h-10 w-10 rounded-xl bg-zinc-100 flex items-center justify-center">
-                                        <MapPin className="h-5 w-5 text-zinc-400" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">{event.location}</p>
-                                        <p className="text-sm text-zinc-400">
-                                            {event.is_virtual ? "Virtual Event" : "In-person"}
+                        {/* ─── Registration Card ─── */}
+                        <div className="rounded-2xl shadow-sm overflow-hidden" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
+                            {/* Header */}
+                            <div className="px-6 pt-5 pb-3">
+                                <p className="text-sm font-semibold" style={{ color: theme.textMuted }}>Registration</p>
+                            </div>
+
+                            <div className="px-6 pb-6">
+                                {registered ? (
+                                    /* ── Success state ── */
+                                    <div className="text-center py-6 space-y-3">
+                                        <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
+                                        <h4 className="text-lg font-semibold" style={{ color: theme.text }}>You&apos;re in!</h4>
+                                        <p className="text-sm" style={{ color: theme.textMuted }}>
+                                            Check your email for the confirmation.
                                         </p>
+                                        <div className="flex flex-col gap-2 pt-2">
+                                            {registrationId && (
+                                                <a
+                                                    href={`/events/${slug}/ticket?id=${registrationId}`}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-colors hover:opacity-90"
+                                                    style={{ backgroundColor: theme.primary }}
+                                                >
+                                                    🎫 My Ticket
+                                                </a>
+                                            )}
+                                            <a
+                                                href={googleCalendarUrl(event)}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors"
+                                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5', color: theme.textMuted }}
+                                            >
+                                                <Calendar className="h-3.5 w-3.5" />
+                                                Add to Calendar
+                                            </a>
+                                        </div>
                                     </div>
-                                </div>
-                            )}
+                                ) : isPast ? (
+                                    /* ── Past event state ── */
+                                    <div className="flex items-center gap-3 py-3">
+                                        <div className="h-10 w-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : '#f4f4f5' }}>
+                                            <Calendar className="h-5 w-5" style={{ color: theme.textMuted }} />
+                                        </div>
+                                        <div>
+                                            <p className="font-medium" style={{ color: theme.text }}>Past Event</p>
+                                            <p className="text-sm" style={{ color: theme.textMuted }}>This event has ended.</p>
+                                        </div>
+                                    </div>
+                                ) : isFull ? (
+                                    /* ── Full capacity state ── */
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3 py-2">
+                                            <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center">
+                                                <Users className="h-5 w-5 text-amber-500" />
+                                            </div>
+                                            <div>
+                                                <p className="font-medium" style={{ color: theme.text }}>Sold Out</p>
+                                                <p className="text-sm" style={{ color: theme.textMuted }}>This event is at full capacity.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    /* ── Active registration state ── */
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-sm">
+                                            <Users className="h-4 w-4" style={{ color: theme.textMuted }} />
+                                            <span style={{ color: theme.text }} className="font-medium">{attendeeCount} going</span>
+                                            {spotsLeft !== null && (
+                                                <span className={cn(
+                                                    "font-medium",
+                                                    spotsLeft <= 10 ? "text-amber-500" : ""
+                                                )} style={spotsLeft > 10 ? { color: theme.textMuted } : undefined}>
+                                                    · {spotsLeft} spots left
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <p className="text-sm" style={{ color: theme.textMuted }}>
+                                            Welcome! To join the event, please register below.
+                                        </p>
+
+                                        <button
+                                            onClick={() => setShowModal(true)}
+                                            className="w-full rounded-xl py-3.5 text-sm font-bold text-white hover:shadow-md active:scale-[0.98] transition-all duration-200 shadow-sm hover:opacity-90"
+                                            style={{ backgroundColor: theme.primary }}
+                                        >
+                                            {event.require_approval ? "Request to Join" : "Register"}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Add to Calendar */}
+                        {/* ─── About Event Section ─── */}
+                        {event.description && (
+                            <div className="space-y-3">
+                                <h2 className="text-sm font-semibold uppercase tracking-wider" style={{ color: theme.textMuted }}>About Event</h2>
+                                <p className="leading-relaxed whitespace-pre-wrap text-[15px]" style={{ color: theme.isDark ? theme.textMuted : '#52525b' }}>
+                                    {event.description}
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Tag */}
+                        {event.event_type && (
+                            <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest" style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.textMuted }}>
+                                    #{event.event_type}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Add to Calendar row */}
                         <div className="flex gap-3">
                             <a
                                 href={googleCalendarUrl(event)}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center gap-2 rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
+                                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:opacity-80"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.textMuted }}
                             >
                                 <ExternalLink className="h-3.5 w-3.5" />
                                 Google Calendar
                             </a>
                             <button
                                 onClick={() => downloadIcal(event)}
-                                className="flex items-center gap-2 rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
+                                className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors hover:opacity-80"
+                                style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)', color: theme.textMuted }}
                             >
                                 <Calendar className="h-3.5 w-3.5" />
                                 Download .ics
                             </button>
                         </div>
-
-                        {/* Description */}
-                        {event.description && (
-                            <div className="space-y-3">
-                                <h2 className="text-lg font-semibold text-zinc-800">About this event</h2>
-                                <p className="text-zinc-600 leading-relaxed whitespace-pre-wrap">
-                                    {event.description}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Hosted by */}
-                        <div className="rounded-2xl border border-black/5 bg-white/60 p-6">
-                            <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-3">Hosted by</p>
-                            <div className="flex items-center gap-3">
-                                <div className="h-10 w-10 rounded-full bg-zinc-900 flex items-center justify-center text-white font-bold text-sm">CF</div>
-                                <div>
-                                    <p className="font-semibold text-zinc-800">Christex Foundation</p>
-                                    <p className="text-xs text-zinc-400">Sierra Leone · Tech Community</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ─── RIGHT COLUMN (Registration) ─── */}
-                    <div className="lg:sticky lg:top-24 h-fit">
-                        <div className="rounded-3xl border border-black/5 bg-white shadow-sm overflow-hidden">
-                            {/* Header */}
-                            <div className="px-6 pt-6 pb-4 border-b border-black/5">
-                                <h3 className="font-semibold text-zinc-800 text-lg">Registration</h3>
-                                <div className="flex items-center gap-3 mt-2 text-sm text-zinc-400">
-                                    <div className="flex items-center gap-1.5">
-                                        <Users className="h-4 w-4" />
-                                        <span>{attendeeCount} going</span>
-                                    </div>
-                                    {spotsLeft !== null && (
-                                        <span className={cn(
-                                            "font-medium",
-                                            spotsLeft <= 5 ? "text-amber-500" : "text-zinc-400"
-                                        )}>
-                                            · {spotsLeft > 0 ? `${spotsLeft} spots left` : "Sold out"}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Form or Confirmation */}
-                            <div className="p-6">
-                                {registered ? (
-                                    <div className="text-center py-6 space-y-3">
-                                        <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
-                                        <h4 className="text-lg font-semibold text-zinc-800">You&apos;re in!</h4>
-                                        <p className="text-sm text-zinc-400">
-                                            Check your email for the confirmation.
-                                        </p>
-                                        <a
-                                            href={googleCalendarUrl(event)}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-600 hover:bg-zinc-200 transition-colors mt-2"
-                                        >
-                                            <Calendar className="h-3.5 w-3.5" />
-                                            Add to Calendar
-                                        </a>
-                                    </div>
-                                ) : isPast ? (
-                                    <div className="text-center py-6">
-                                        <p className="text-zinc-400 font-medium">This event has ended</p>
-                                    </div>
-                                ) : isFull ? (
-                                    <div className="text-center py-6">
-                                        <p className="text-zinc-400 font-medium">This event is at full capacity</p>
-                                    </div>
-                                ) : (
-                                    <form onSubmit={handleRegister} className="space-y-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Full Name *</label>
-                                            <input
-                                                required
-                                                value={regName}
-                                                onChange={(e) => setRegName(e.target.value)}
-                                                placeholder="Your name"
-                                                className="w-full rounded-xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-200 transition-shadow"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Email *</label>
-                                            <input
-                                                required
-                                                type="email"
-                                                value={regEmail}
-                                                onChange={(e) => setRegEmail(e.target.value)}
-                                                placeholder="you@example.com"
-                                                className="w-full rounded-xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-200 transition-shadow"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-zinc-500 mb-1.5">Phone (optional)</label>
-                                            <input
-                                                type="tel"
-                                                value={regPhone}
-                                                onChange={(e) => setRegPhone(e.target.value)}
-                                                placeholder="+232 XXX XXXX"
-                                                className="w-full rounded-xl border border-black/10 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-300 focus:outline-none focus:ring-2 focus:ring-zinc-200 transition-shadow"
-                                            />
-                                        </div>
-                                        <button
-                                            type="submit"
-                                            disabled={registering || !regName || !regEmail}
-                                            className={cn(
-                                                "w-full rounded-2xl py-4 text-sm font-bold text-white transition-all duration-300 shadow-sm",
-                                                registering || !regName || !regEmail
-                                                    ? "bg-zinc-300 cursor-not-allowed"
-                                                    : "bg-zinc-900 hover:bg-zinc-800 hover:shadow-md active:scale-[0.98]"
-                                            )}
-                                        >
-                                            {registering ? (
-                                                <Loader2 className="h-4 w-4 animate-spin mx-auto" />
-                                            ) : event.require_approval ? (
-                                                "Request to Join"
-                                            ) : (
-                                                "Register"
-                                            )}
-                                        </button>
-                                        <p className="text-[11px] text-center text-zinc-300">
-                                            Free · No credit card required
-                                        </p>
-                                    </form>
-                                )}
-                            </div>
-                        </div>
                     </div>
                 </div>
-            </div>
+            </main>
+
+            {/* ───── Registration Modal ───── */}
+            {showModal && (
+                <RegistrationModal
+                    event={event}
+                    onClose={() => setShowModal(false)}
+                    onSuccess={(regId) => {
+                        setShowModal(false);
+                        setRegistered(true);
+                        if (regId) setRegistrationId(regId);
+                        setAttendeeCount((c) => c + 1);
+                    }}
+                />
+            )}
         </div>
     );
 }

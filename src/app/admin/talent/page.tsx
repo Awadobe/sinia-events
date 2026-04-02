@@ -23,7 +23,8 @@ export default async function TalentDatabasePage({
     const query = searchParams.q?.toLowerCase() || "";
 
     // Fetch all profiles
-    let { data: profiles, error } = await supabase
+    // eslint-disable-next-line prefer-const
+    let { data: profiles } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });

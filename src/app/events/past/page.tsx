@@ -68,7 +68,7 @@ export default async function PastEventsPage() {
 
             {isAdmin ? (
               <Link
-                href="/admin/events/new"
+                href="/events/new"
                 className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
               >
                 Create Event

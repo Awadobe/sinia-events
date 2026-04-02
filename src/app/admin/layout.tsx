@@ -2,10 +2,7 @@ import Link from "next/link";
 import {
     Calendar,
     LayoutDashboard,
-    Plus,
-    Users,
     LogOut,
-    UserSquare2
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/admin/login/actions";
@@ -14,9 +11,6 @@ import { Button } from "@/components/ui/button";
 const navItems = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Events", href: "/admin/events", icon: Calendar },
-    { label: "Create Event", href: "/admin/events/new", icon: Plus },
-    { label: "Attendees", href: "/admin/attendees", icon: Users },
-    { label: "Talent DB", href: "/admin/talent", icon: UserSquare2 },
 ];
 
 export default async function AdminLayout({
@@ -29,7 +23,7 @@ export default async function AdminLayout({
 
     return (
         <div className="min-h-screen bg-secondary/40">
-            {/* Top navigation bar - Only show full nav if logged in */}
+            {/* Top navigation bar */}
             <header className="sticky top-0 z-50 border-b bg-background/80 backdrop-blur-sm">
                 <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
                     {/* Logo */}
@@ -37,13 +31,13 @@ export default async function AdminLayout({
                         href="/"
                         className="flex items-center gap-2 font-semibold tracking-tight text-foreground"
                     >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-xs font-bold text-white max-sm:hidden">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-md bg-zinc-900 text-xs font-bold text-white">
                             R
                         </span>
                         <span className="hidden sm:inline">Radius</span>
                     </Link>
 
-                    {/* Nav links */}
+                    {/* Nav links — only for logged-in admin */}
                     {user && (
                         <div className="flex items-center gap-2">
                             <nav className="flex items-center gap-1 mr-2">

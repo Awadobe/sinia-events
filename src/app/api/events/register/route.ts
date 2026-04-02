@@ -18,10 +18,10 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // Check if event exists and get details
+        // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, max_attendees, require_approval, date, location, slug')
+            .select('id, title, max_attendees, require_approval, date, location, slug, organizer_id, organizer:profiles!organizer_id(email, name, org_name)')
             .eq('id', event_id)
             .single();
 
@@ -60,6 +60,9 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: regError.message }, { status: 500 });
         }
 
+        // Extract organizer info for email
+        const organizer = event.organizer as { email?: string; name?: string; org_name?: string } | null;
+
         // Send confirmation email via Resend
         // Fire-and-forget so we don't slow down the response
         import('@/lib/email').then(({ sendConfirmationEmail }) => {
@@ -72,6 +75,7 @@ export async function POST(req: NextRequest) {
                 eventSlug: event.slug,
                 status: status as 'confirmed' | 'pending',
                 registrationId: registration.id,
+                organizerName: organizer?.org_name || organizer?.name || undefined,
             }).catch(err => console.error('Failed to send async email:', err));
         });
 
@@ -86,6 +90,21 @@ export async function POST(req: NextRequest) {
                 DateRegistered: new Date().toISOString()
             }).catch(err => console.error('Failed to sync to Airtable:', err));
         });
+
+        // Notify event organizer
+        if (organizer?.email) {
+            import('@/lib/email').then(({ sendOrganizerNotificationEmail }) => {
+                sendOrganizerNotificationEmail({
+                    organizerEmail: organizer.email!,
+                    organizerName: organizer.name || organizer.org_name || '',
+                    attendeeName: name,
+                    attendeeEmail: email,
+                    eventTitle: event.title,
+                    eventSlug: event.slug,
+                    registrationStatus: status as 'confirmed' | 'pending',
+                }).catch(err => console.error('Failed to send organizer notification:', err));
+            });
+        }
 
         return NextResponse.json({
             registration,

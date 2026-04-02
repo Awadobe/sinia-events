@@ -17,7 +17,6 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // If the cookie is updated, update the cookies for the request and response
           request.cookies.set({
             name,
             value,
@@ -35,7 +34,6 @@ export async function updateSession(request: NextRequest) {
           });
         },
         remove(name: string, options: CookieOptions) {
-          // If the cookie is removed, update the cookies for the request and response
           request.cookies.set({
             name,
             value: '',
@@ -56,17 +54,28 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
-  // This will refresh the session if expired.
-  // We only care about ensuring the session is completely valid.
+  // Refresh the session
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // If the user tries to go to an admin route and isn't logged in, redirect them.
-  // We exclude /admin/login so they can actually sign in
+  const pathname = request.nextUrl.pathname;
+
+  // Event creation and management require any logged-in user
+  // If not logged in, send them to the /login page (magic link)
   if (
-    request.nextUrl.pathname.startsWith('/admin') &&
-    request.nextUrl.pathname !== '/admin/login' &&
+    (pathname === '/events/new' || pathname.includes('/manage')) &&
+    !user
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
+  }
+
+  // /admin routes require admin login — if not logged in, go to /admin/login
+  if (
+    pathname.startsWith('/admin') &&
+    pathname !== '/admin/login' &&
     !user
   ) {
     const url = request.nextUrl.clone();
@@ -74,8 +83,8 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If the user is logged in and tries to go to the login page, redirect them to the dashboard
-  if (request.nextUrl.pathname === '/admin/login' && user) {
+  // If logged in and visiting /admin/login, redirect to dashboard
+  if (pathname === '/admin/login' && user) {
     const url = request.nextUrl.clone();
     url.pathname = '/admin';
     return NextResponse.redirect(url);
@@ -83,3 +92,4 @@ export async function updateSession(request: NextRequest) {
 
   return response;
 }
+

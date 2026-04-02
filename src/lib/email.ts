@@ -13,6 +13,7 @@ interface SendConfirmationEmailProps {
   status: 'confirmed' | 'pending';
   registrationId?: string;
   isInvite?: boolean;
+  organizerName?: string;
 }
 
 export async function sendConfirmationEmail({
@@ -25,6 +26,7 @@ export async function sendConfirmationEmail({
   status,
   registrationId,
   isInvite,
+  organizerName,
 }: SendConfirmationEmailProps) {
   // If no API key is set, silently skip email sending but log it
   if (!process.env.RESEND_API_KEY) {
@@ -32,7 +34,9 @@ export async function sendConfirmationEmail({
     return { success: true, skipped: true };
   }
 
-  const eventUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/events/${eventSlug}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const eventUrl = `${appUrl}/events/${eventSlug}`;
+  const ticketUrl = registrationId ? `${appUrl}/events/${eventSlug}/ticket?id=${registrationId}` : eventUrl;
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d, yyyy 'at' h:mm a");
 
   const subject = status === 'pending'
@@ -41,28 +45,9 @@ export async function sendConfirmationEmail({
       ? `You've been invited to ${eventTitle}!` 
       : `You're registered for ${eventTitle}!`;
 
-  // Determine sender email. Resend allows 'onboarding@resend.dev' for testing
+  // Determine sender email
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-
-  // Generate a QR code that links to the admin check-in endpoint for this specific registration
-  // We need the registration ID to do this, so we'll add it to the props.
-  let qrCodeDataUrl = '';
-  if (status === 'confirmed' && registrationId) {
-     const checkInUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/scan?id=${registrationId}`;
-     try {
-       const QRCode = (await import('qrcode')).default;
-       qrCodeDataUrl = await QRCode.toDataURL(checkInUrl, {
-         width: 250,
-         margin: 2,
-         color: {
-           dark: '#111827',
-           light: '#ffffff'
-         }
-       });
-     } catch (err) {
-       console.error('Failed to generate QR code for email:', err);
-     }
-  }
+  const hostLabel = organizerName || 'the organizer';
 
   try {
     const { data, error } = await resend.emails.send({
@@ -70,35 +55,82 @@ export async function sendConfirmationEmail({
       to: [toEmail],
       subject,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #111827;">Hi ${attendeeName},</h2>
-          
-          ${status === 'pending'
-          ? `<p style="color: #4b5563; line-height: 1.6;">We've received your request to join <strong>${eventTitle}</strong>. The host will review your registration and you'll receive another email once approved.</p>`
-          : `<p style="color: #4b5563; line-height: 1.6;">You are officially registered for <strong>${eventTitle}</strong>!</p>`
-        }
-          
-          <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
-            <p style="margin: 0 0 10px 0;"><strong>📅 When:</strong> ${formattedDate}</p>
-            ${eventLocation ? `<p style="margin: 0 0 10px 0;"><strong>📍 Where:</strong> ${eventLocation}</p>` : ''}
-          </div>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="margin: 0; padding: 0; background-color: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f4f5; padding: 40px 20px;">
+            <tr>
+              <td align="center">
+                <table width="100%" cellpadding="0" cellspacing="0" style="max-width: 480px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08);">
+                  
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color: #18181b; padding: 24px 32px; text-align: center;">
+                      <span style="color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: 1px;">RADIUS</span>
+                    </td>
+                  </tr>
 
-          ${qrCodeDataUrl ? `
-          <div style="text-align: center; margin: 30px 0; padding: 20px; border: 2px dashed #e5e7eb; border-radius: 12px;">
-            <p style="margin-top: 0; color: #111827; font-weight: bold;">Your Event Ticket</p>
-            <p style="color: #6b7280; font-size: 14px; margin-bottom: 20px;">Present this QR code at the door to check in.</p>
-            <img src="${qrCodeDataUrl}" alt="Check-in QR Code" style="width: 200px; height: 200px; display: inline-block;" />
-          </div>
-          ` : ''}
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding: 40px 32px 32px;">
+                      <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #18181b; line-height: 1.3;">
+                        ${status === 'pending' ? 'Registration Request Received' : isInvite ? "You're Invited!" : "You're Registered!"}
+                      </h1>
+                      <p style="margin: 0 0 28px; font-size: 15px; color: #52525b; line-height: 1.6;">
+                        ${status === 'pending'
+                          ? `Hi ${attendeeName}, your request to join <strong>${eventTitle}</strong> from <strong>${hostLabel}</strong> has been received. You'll get another email once approved.`
+                          : `Hi ${attendeeName}, you registered for <strong>${eventTitle}</strong> from <strong>${hostLabel}</strong>.`
+                        }
+                      </p>
 
-          <p style="margin-top: 30px;">
-            <a href="${eventUrl}" style="background-color: #111827; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">View Event Details</a>
-          </p>
-          
-          <p style="color: #9ca3af; font-size: 14px; margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            Powered by Radius for Christex Foundation
-          </p>
-        </div>
+                      <!-- Event info mini row -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px; margin-bottom: 28px;">
+                        <tr>
+                          <td style="padding: 16px 20px;">
+                            <p style="margin: 0 0 6px; font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📅 ${formattedDate}</p>
+                            ${eventLocation ? `<p style="margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📍 ${eventLocation}</p>` : ''}
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Buttons -->
+                      <table width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding-right: ${registrationId ? '6px' : '0'};">
+                            <a href="${eventUrl}" style="display: block; background-color: #18181b; color: #ffffff; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 700;">
+                              View Event
+                            </a>
+                          </td>
+                          ${registrationId ? `
+                          <td style="padding-left: 6px;">
+                            <a href="${ticketUrl}" style="display: block; background-color: #f4f4f5; color: #18181b; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 700; border: 1px solid #e4e4e7;">
+                              🎫 My Ticket
+                            </a>
+                          </td>
+                          ` : ''}
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding: 20px 32px 28px; border-top: 1px solid #f4f4f5;">
+                      <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-align: center;">
+                        Powered by Radius
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
     });
 
@@ -110,6 +142,84 @@ export async function sendConfirmationEmail({
     return { success: true, data };
   } catch (err) {
     console.error('❌ Failed to send email:', err);
+    return { success: false, error: err };
+  }
+}
+
+/* ───── Organizer Notification Email ───── */
+interface SendOrganizerNotificationProps {
+  organizerEmail: string;
+  organizerName: string;
+  attendeeName: string;
+  attendeeEmail: string;
+  eventTitle: string;
+  eventSlug: string;
+  registrationStatus: 'confirmed' | 'pending';
+}
+
+export async function sendOrganizerNotificationEmail({
+  organizerEmail,
+  organizerName,
+  attendeeName,
+  attendeeEmail,
+  eventTitle,
+  eventSlug,
+  registrationStatus,
+}: SendOrganizerNotificationProps) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY is not set. Skipping organizer notification.');
+    return { success: true, skipped: true };
+  }
+
+  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/events/${eventSlug}/manage/guests`;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  const subject = registrationStatus === 'pending'
+    ? `🔔 New registration request for ${eventTitle}`
+    : `🎉 New registration for ${eventTitle}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [organizerEmail],
+      subject,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #111827;">Hi ${organizerName || 'there'},</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6;">
+            ${registrationStatus === 'pending'
+              ? `Someone has requested to join your event <strong>${eventTitle}</strong>. Their registration is pending your approval.`
+              : `Great news! Someone just registered for your event <strong>${eventTitle}</strong>.`
+            }
+          </p>
+          
+          <div style="background-color: #f3f4f6; border-radius: 8px; padding: 20px; margin: 24px 0;">
+            <p style="margin: 0 0 10px 0;"><strong>👤 Name:</strong> ${attendeeName}</p>
+            <p style="margin: 0;"><strong>📧 Email:</strong> ${attendeeEmail}</p>
+          </div>
+
+          <p style="margin-top: 30px;">
+            <a href="${manageUrl}" style="background-color: #111827; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              ${registrationStatus === 'pending' ? 'Review Registration' : 'View Guest List'}
+            </a>
+          </p>
+          
+          <p style="color: #9ca3af; font-size: 14px; margin-top: 40px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
+            Powered by Radius
+          </p>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Organizer notification error:', error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    console.error('❌ Failed to send organizer notification:', err);
     return { success: false, error: err };
   }
 }

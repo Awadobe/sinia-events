@@ -6,6 +6,10 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
+// Force dynamic — no caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_req: NextRequest) {
     try {

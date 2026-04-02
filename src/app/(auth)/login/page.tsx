@@ -1,68 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { ArrowRight, Phone, Sparkles } from "lucide-react";
+import { ArrowRight, Mail, Sparkles, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
 export default function UserLoginPage() {
-    const [phone, setPhone] = useState("");
-    const [otp, setOtp] = useState("");
-    const [step, setStep] = useState<"phone" | "otp">("phone");
+    const [email, setEmail] = useState("");
+    const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
-    const router = useRouter();
     const supabase = createClient();
+    const router = useRouter();
 
-    const handleSendOtp = async (e: React.FormEvent) => {
+    // Check if user is already signed in (e.g. redirected here after magic link)
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+            (event, session) => {
+                if (event === "SIGNED_IN" && session) {
+                    router.replace("/events/new");
+                }
+            }
+        );
+
+        // Also check existing session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) {
+                router.replace("/events/new");
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase, router]);
+
+
+    const handleSendMagicLink = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
-        const formatPhone = phone.startsWith("+") ? phone : `+232${phone.replace(/^0/, "")}`;
-
         try {
             const { error } = await supabase.auth.signInWithOtp({
-                phone: formatPhone,
+                email,
+                options: {
+                    shouldCreateUser: true,
+                },
             });
 
             if (error) {
                 toast.error(error.message);
             } else {
-                toast.success("Verification code sent!");
-                setStep("otp");
+                toast.success("Magic link sent! Check your inbox.");
+                setSent(true);
             }
-        } catch (err) {
-            toast.error("Failed to send code. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleVerifyOtp = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-
-        const formatPhone = phone.startsWith("+") ? phone : `+232${phone.replace(/^0/, "")}`;
-
-        try {
-            const { error } = await supabase.auth.verifyOtp({
-                phone: formatPhone,
-                token: otp,
-                type: 'sms'
-            });
-
-            if (error) {
-                toast.error("Invalid or expired code.");
-            } else {
-                toast.success("Successfully logged in!");
-                router.push("/profile");
-                router.refresh();
-            }
-        } catch (err) {
-            toast.error("Verification failed.");
+        } catch {
+            toast.error("Failed to send magic link. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -88,10 +82,10 @@ export default function UserLoginPage() {
                 
                 <div className="relative z-10 max-w-sm">
                     <h2 className="text-4xl font-semibold text-white leading-tight mb-4">
-                        Discover & Connect.
+                        Create & Share Events.
                     </h2>
                     <p className="text-lg text-zinc-400">
-                        Join the Christex Foundation community to attend workshops, connect with talent, and level up your tech skills.
+                        Sign in to create events, share them with your audience, and build your community on Radius.
                     </p>
                 </div>
                 
@@ -113,83 +107,73 @@ export default function UserLoginPage() {
                 </Link>
 
                 <div className="w-full max-w-[360px] space-y-8">
-                    <div className="space-y-2 text-center lg:text-left">
-                        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
-                            {step === "phone" ? "Welcome back" : "Verify your number"}
-                        </h1>
-                        <p className="text-sm text-zinc-500 pb-2">
-                            {step === "phone"
-                                ? "Enter your phone number to sign in or create an account securely."
-                                : `We sent a 6-digit code to ${phone}.`}
-                        </p>
-                    </div>
+                    {!sent ? (
+                        <>
+                            <div className="space-y-2 text-center lg:text-left">
+                                <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+                                    Sign in to Radius
+                                </h1>
+                                <p className="text-sm text-zinc-500 pb-2">
+                                    Enter your email to sign in or create a new account. We&apos;ll send you a magic link — no password needed.
+                                </p>
+                            </div>
 
-                    <form onSubmit={step === "phone" ? handleSendOtp : handleVerifyOtp} className="space-y-5">
-                        {step === "phone" ? (
-                            <div className="space-y-2.5">
-                                <label htmlFor="phone" className="text-sm font-medium leading-none text-zinc-700">
-                                    Phone Number
-                                </label>
-                                <div className="relative">
-                                    <Phone className="absolute left-3.5 top-3.5 h-4 w-4 text-zinc-400" />
-                                    <Input
-                                        id="phone"
-                                        type="tel"
-                                        placeholder="+232 77 123 456"
-                                        className="pl-10 h-11 bg-white border-zinc-200"
-                                        value={phone}
-                                        onChange={(e) => setPhone(e.target.value)}
-                                        required
-                                    />
+                            <form onSubmit={handleSendMagicLink} className="space-y-5">
+                                <div className="space-y-2.5">
+                                    <label htmlFor="email" className="text-sm font-medium leading-none text-zinc-700">
+                                        Email Address
+                                    </label>
+                                    <div className="relative">
+                                        <Mail className="absolute left-3.5 top-3.5 h-4 w-4 text-zinc-400" />
+                                        <Input
+                                            id="email"
+                                            type="email"
+                                            placeholder="you@example.com"
+                                            className="pl-10 h-11 bg-white border-zinc-200"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <Button type="submit" className="w-full h-11 text-base bg-zinc-900 hover:bg-zinc-800 transition-colors" disabled={loading}>
+                                    {loading ? (
+                                        "Sending..."
+                                    ) : (
+                                        <>
+                                            Continue <ArrowRight className="ml-2 h-4 w-4" />
+                                        </>
+                                    )}
+                                </Button>
+                            </form>
+                        </>
+                    ) : (
+                        <div className="text-center lg:text-left space-y-5">
+                            <div className="flex justify-center lg:justify-start">
+                                <div className="h-16 w-16 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                                    <CheckCircle2 className="h-8 w-8 text-emerald-500" />
                                 </div>
                             </div>
-                        ) : (
-                            <div className="space-y-2.5">
-                                <label htmlFor="otp" className="text-sm font-medium leading-none text-zinc-700">
-                                    Verification Code
-                                </label>
-                                <Input
-                                    id="otp"
-                                    type="text"
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    maxLength={6}
-                                    placeholder="000 000"
-                                    className="h-12 text-center text-xl tracking-widest bg-white border-zinc-200"
-                                    value={otp}
-                                    onChange={(e) => setOtp(e.target.value)}
-                                    required
-                                />
-                            </div>
-                        )}
-
-                        <Button type="submit" className="w-full h-11 text-base bg-zinc-900 hover:bg-zinc-800 transition-colors" disabled={loading}>
-                            {loading ? (
-                                "Please wait..."
-                            ) : step === "phone" ? (
-                                <>
-                                    Continue <ArrowRight className="ml-2 h-4 w-4" />
-                                </>
-                            ) : (
-                                "Verify & Log In"
-                            )}
-                        </Button>
-                    </form>
-
-                    {step === "otp" && (
-                        <div className="text-center lg:text-left">
+                            <h1 className="text-3xl font-semibold tracking-tight text-zinc-900">
+                                Check your email
+                            </h1>
+                            <p className="text-sm text-zinc-500 leading-relaxed">
+                                We sent a magic link to <span className="font-medium text-zinc-700">{email}</span>. 
+                                Click the link in the email to sign in — no password needed.
+                            </p>
                             <button
                                 type="button"
-                                onClick={() => setStep("phone")}
+                                onClick={() => setSent(false)}
                                 className="text-sm font-medium text-emerald-600 hover:text-emerald-700 hover:underline transition-colors"
                             >
-                                Change phone number
+                                Use a different email
                             </button>
                         </div>
                     )}
                     
-                    <div className="mt-8 border-t border-black/5 pt-8 text-center lg:text-left text-sm text-zinc-500">
-                        Are you an admin? <Link href="/admin/login" className="font-medium text-zinc-900 hover:text-emerald-600 transition-colors">Log in here</Link>
+                    <div className="mt-8 border-t border-black/5 pt-8 text-center lg:text-left text-sm text-zinc-400">
+                        By signing in, you can create events, manage your calendar, and build your community.
                     </div>
                 </div>
             </div>

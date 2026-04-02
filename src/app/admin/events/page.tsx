@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-import { PlusCircle, Calendar, MapPin, Users, Search } from "lucide-react";
+import { PlusCircle, Calendar, MapPin, Users, Search, Pencil, Copy, ExternalLink, MoreHorizontal } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type EventRow = {
     id: string;
@@ -33,6 +34,7 @@ export default function AdminEventsPage() {
     const [events, setEvents] = useState<EventRow[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [openMenu, setOpenMenu] = useState<string | null>(null);
 
     useEffect(() => {
         async function fetchEvents() {
@@ -54,6 +56,13 @@ export default function AdminEventsPage() {
         e.title.toLowerCase().includes(search.toLowerCase()) ||
         e.event_type?.toLowerCase().includes(search.toLowerCase())
     );
+
+    const copyEventLink = async (slug: string) => {
+        const url = `${window.location.origin}/events/${slug}`;
+        await navigator.clipboard.writeText(url);
+        toast.success("Event link copied to clipboard!");
+        setOpenMenu(null);
+    };
 
     return (
         <div className="min-h-screen bg-[#f5f3ef]">
@@ -112,40 +121,44 @@ export default function AdminEventsPage() {
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                         {filtered.map((event) => (
-                            <button
+                            <div
                                 key={event.id}
-                                onClick={() => router.push(`/events/${event.slug}`)}
-                                className="group text-left rounded-3xl bg-white/70 border border-black/5 shadow-sm overflow-hidden hover:shadow-md hover:translate-y-[-2px] transition-all duration-300"
+                                className="group text-left rounded-3xl bg-white/70 border border-black/5 shadow-sm overflow-hidden hover:shadow-md hover:translate-y-[-2px] transition-all duration-300 relative"
                             >
-                                {/* Cover */}
-                                <div className="relative aspect-[4/3] bg-zinc-100">
-                                    {event.image_url ? (
-                                        <Image
-                                            src={event.image_url}
-                                            alt={event.title}
-                                            fill
-                                            className="object-cover"
-                                            unoptimized
-                                        />
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center text-4xl text-zinc-200">
-                                            🖼
-                                        </div>
-                                    )}
-                                    {/* Status badge */}
-                                    <span className={cn(
-                                        "absolute top-3 left-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm",
-                                        STATUS_STYLES[event.status] || STATUS_STYLES.draft
-                                    )}>
-                                        {event.status}
-                                    </span>
-                                    {/* Tag badge */}
-                                    {event.event_type && (
-                                        <span className="absolute top-3 right-3 rounded-full bg-black/40 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
-                                            #{event.event_type}
+                                {/* Cover — clickable to manage event */}
+                                <button
+                                    onClick={() => router.push(`/admin/events/${event.slug}/manage`)}
+                                    className="w-full"
+                                >
+                                    <div className="relative aspect-[4/3] bg-zinc-100">
+                                        {event.image_url ? (
+                                            <Image
+                                                src={event.image_url}
+                                                alt={event.title}
+                                                fill
+                                                className="object-cover"
+                                                unoptimized
+                                            />
+                                        ) : (
+                                            <div className="absolute inset-0 flex items-center justify-center text-4xl text-zinc-200">
+                                                🖼
+                                            </div>
+                                        )}
+                                        {/* Status badge */}
+                                        <span className={cn(
+                                            "absolute top-3 left-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest shadow-sm",
+                                            STATUS_STYLES[event.status] || STATUS_STYLES.draft
+                                        )}>
+                                            {event.status}
                                         </span>
-                                    )}
-                                </div>
+                                        {/* Tag badge */}
+                                        {event.event_type && (
+                                            <span className="absolute top-3 right-3 rounded-full bg-black/40 backdrop-blur-sm px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
+                                                #{event.event_type}
+                                            </span>
+                                        )}
+                                    </div>
+                                </button>
 
                                 {/* Content */}
                                 <div className="p-4 space-y-2">
@@ -168,8 +181,56 @@ export default function AdminEventsPage() {
                                             <span>{event.max_attendees.toLocaleString()} capacity</span>
                                         </div>
                                     )}
+
+                                    {/* Action buttons */}
+                                    <div className="flex items-center gap-2 pt-2 border-t border-zinc-50 mt-3">
+                                        <button
+                                            onClick={() => copyEventLink(event.slug)}
+                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                                            title="Copy event link"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Copy Link
+                                        </button>
+                                        <Link
+                                            href={`/events/${event.slug}`}
+                                            target="_blank"
+                                            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                                            title="View event page"
+                                        >
+                                            <ExternalLink className="h-3 w-3" />
+                                            View
+                                        </Link>
+                                        <div className="relative ml-auto">
+                                            <button
+                                                onClick={() => setOpenMenu(openMenu === event.id ? null : event.id)}
+                                                className="flex items-center justify-center rounded-lg p-1.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600 transition-colors"
+                                                title="More options"
+                                            >
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </button>
+                                            {openMenu === event.id && (
+                                                <div className="absolute right-0 bottom-full mb-1 w-40 rounded-xl bg-white border border-black/5 shadow-xl p-1.5 z-50">
+                                                    <button
+                                                        onClick={() => { router.push(`/admin/events/${event.slug}/manage/edit`); setOpenMenu(null); }}
+                                                        className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 transition-colors"
+                                                    >
+                                                        <Pencil className="h-3.5 w-3.5" />
+                                                        Edit Event
+                                                    </button>
+                                                    <button
+                                                        onClick={() => copyEventLink(event.slug)}
+                                                        className="w-full rounded-lg px-3 py-2 text-left text-sm text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 transition-colors"
+                                                    >
+                                                        <Copy className="h-3.5 w-3.5" />
+                                                        Copy Link
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
                                 </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}

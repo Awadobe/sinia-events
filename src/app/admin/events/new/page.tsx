@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
@@ -8,11 +8,14 @@ import {
     Loader2,
     Upload,
     ImageIcon,
-    Check,
-    Palette,
     X,
     MapPin,
+    Clock,
+    CalendarDays,
     Pencil,
+    Globe,
+    Check,
+    Palette,
 } from "lucide-react";
 
 import { toast } from "sonner";
@@ -21,16 +24,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { Textarea } from "@/components/ui/textarea";
-
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import {
     Popover,
     PopoverContent,
@@ -38,70 +32,111 @@ import {
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-/* ───── Theming Options (Luma Style) ───── */
-const themeStyles = [
-    { id: "minimal", label: "Minimal", pattern: "", colorId: "slate", fontId: "standard" },
-    { id: "quantum", label: "Quantum", pattern: "bg-pattern-quantum", colorId: "indigo", fontId: "technical" },
-    { id: "warp", label: "Warp", pattern: "bg-pattern-warp", colorId: "midnight", fontId: "modern" },
-    { id: "emoji", label: "Emoji", pattern: "bg-pattern-emoji", colorId: "amber", fontId: "soft" },
-    { id: "confetti", label: "Confetti", pattern: "bg-pattern-confetti", colorId: "rose", fontId: "display" },
-    { id: "pattern", label: "Pattern", pattern: "bg-pattern-abstract", colorId: "forest", fontId: "elegant" },
+/* ───── Event Categories with Default Covers ───── */
+const EVENT_CATEGORIES = [
+    { id: "Event", label: "Event", cover: null, emoji: "📅" },
+    { id: "Bootcamp", label: "Bootcamp", cover: "/covers/bootcamp.png", emoji: "🚀" },
+    { id: "Workshop", label: "Workshop", cover: "/covers/workshop.png", emoji: "🛠️" },
+    { id: "Hackathon", label: "Hackathon", cover: "/covers/hackathon.png", emoji: "⚡" },
+    { id: "Meetup", label: "Meetup", cover: "/covers/meetup.png", emoji: "🤝" },
+    { id: "Conference", label: "Conference", cover: "/covers/conference.png", emoji: "🎤" },
+    { id: "Webinar", label: "Webinar", cover: "/covers/webinar.png", emoji: "💻" },
 ];
 
-const themeColors = [
-    { id: "forest", label: "Forest", primary: "bg-emerald-600", light: "bg-emerald-50", dark: "bg-emerald-950/40" },
-    { id: "sky", label: "Sky", primary: "bg-sky-600", light: "bg-sky-50", dark: "bg-sky-950/40" },
-    { id: "rose", label: "Rose", primary: "bg-rose-600", light: "bg-rose-50", dark: "bg-rose-950/40" },
-    { id: "slate", label: "Slate", primary: "bg-slate-600", light: "bg-slate-50", dark: "bg-slate-950/40" },
-    { id: "amber", label: "Amber", primary: "bg-amber-600", light: "bg-amber-50", dark: "bg-amber-950/40" },
-    { id: "indigo", label: "Indigo", primary: "bg-indigo-600", light: "bg-indigo-50", dark: "bg-indigo-950/40" },
-    { id: "violet", label: "Violet", primary: "bg-violet-600", light: "bg-violet-50", dark: "bg-violet-950/40" },
-    { id: "crimson", label: "Crimson", primary: "bg-rose-700", light: "bg-rose-50", dark: "bg-rose-950/60" },
-    { id: "ocean", label: "Ocean", primary: "bg-cyan-600", light: "bg-cyan-50", dark: "bg-cyan-950/40" },
-    { id: "sunset", label: "Sunset", primary: "bg-orange-600", light: "bg-orange-50", dark: "bg-orange-950/40" },
-    { id: "lavender", label: "Lavender", primary: "bg-purple-400", light: "bg-purple-50", dark: "bg-purple-950/40" },
-    { id: "earth", label: "Earth", primary: "bg-stone-600", light: "bg-stone-50", dark: "bg-stone-950/40" },
-    { id: "neon", label: "Neon", primary: "bg-lime-400", light: "bg-lime-50", dark: "bg-lime-950/40" },
-    { id: "midnight", label: "Midnight", primary: "bg-blue-900", light: "bg-blue-50", dark: "bg-blue-950/80" },
-    { id: "mint", label: "Mint", primary: "bg-teal-400", light: "bg-teal-50", dark: "bg-teal-950/40" },
-    { id: "honey", label: "Honey", primary: "bg-yellow-500", light: "bg-yellow-50", dark: "bg-yellow-950/40" },
-    { id: "coral", label: "Coral", primary: "bg-coral-500", light: "bg-orange-50", dark: "bg-orange-950/40" },
-    { id: "charcoal", label: "Charcoal", primary: "bg-zinc-800", light: "bg-zinc-100", dark: "bg-zinc-950/90" },
-    { id: "gold", label: "Gold", primary: "bg-amber-400", light: "bg-amber-50", dark: "bg-amber-950/50" },
-    { id: "plum", label: "Plum", primary: "bg-fuchsia-800", light: "bg-fuchsia-50", dark: "bg-fuchsia-950/50" },
-    { id: "emerald", label: "Emerald", primary: "bg-emerald-500", light: "bg-emerald-50", dark: "bg-emerald-950/50" },
-    { id: "ruby", label: "Ruby", primary: "bg-red-600", light: "bg-red-50", dark: "bg-red-950/50" },
-    { id: "sapphire", label: "Sapphire", primary: "bg-blue-600", light: "bg-blue-50", dark: "bg-blue-950/50" },
-    { id: "topaz", label: "Topaz", primary: "bg-yellow-400", light: "bg-yellow-50", dark: "bg-yellow-950/50" },
-    { id: "amethyst", label: "Amethyst", primary: "bg-purple-600", light: "bg-purple-50", dark: "bg-purple-950/50" },
-    { id: "peridot", label: "Peridot", primary: "bg-lime-500", light: "bg-lime-50", dark: "bg-lime-950/50" },
-    { id: "turquoise", label: "Turquoise", primary: "bg-cyan-400", light: "bg-cyan-50", dark: "bg-cyan-950/50" },
-    { id: "garnet", label: "Garnet", primary: "bg-red-800", light: "bg-red-50", dark: "bg-red-950/70" },
-    { id: "onyx", label: "Onyx", primary: "bg-gray-900", light: "bg-gray-100", dark: "bg-gray-950/90" },
-    { id: "pearl", label: "Pearl", primary: "bg-gray-200", light: "bg-gray-50", dark: "bg-gray-950/20" },
+/* ───── Theme Options ───── */
+const THEME_STYLES = [
+    { id: "minimal", label: "Minimal" },
+    { id: "quantum", label: "Quantum" },
+    { id: "warp", label: "Warp" },
+    { id: "confetti", label: "Confetti" },
+    { id: "pattern", label: "Pattern" },
+    { id: "seasonal", label: "Seasonal" },
 ];
 
-const themeFonts = [
-    { id: "standard", label: "Standard Sans", class: "font-sans", category: "Modern" },
-    { id: "classic", label: "Classic Serif", class: "font-serif", category: "Elegant" },
-    { id: "technical", label: "Tech Mono", class: "font-mono", category: "Minimal" },
-    { id: "soft", label: "Soft Rounded", class: "font-rounded", category: "Playful" },
-    { id: "display", label: "Bold Display", class: "font-display", category: "Celebrative" },
-    { id: "elegant", label: "Elegant Serif", class: "font-elegant", category: "Formal" },
-    { id: "modern", label: "Clean Modern", class: "font-modern", category: "Corporate" },
-    { id: "retro", label: "Retro Style", class: "font-mono", category: "Vintage" },
-    { id: "playful", label: "Fun Playful", class: "font-rounded", category: "Casual" },
+const THEME_COLORS = [
+    { id: "slate",   hex: "#64748b", light: { bg: "#f1f5f9", accent: "#475569", text: "#1e293b", muted: "#94a3b8", card: "#ffffff", cardBorder: "#e2e8f0", inputBg: "#f8fafc" }, dark: { bg: "#0f172a", accent: "#94a3b8", text: "#f1f5f9", muted: "#64748b", card: "#1e293b", cardBorder: "#334155", inputBg: "#1e293b" } },
+    { id: "rose",    hex: "#f43f5e", light: { bg: "#fff1f2", accent: "#e11d48", text: "#1c1917", muted: "#fb7185", card: "#ffffff", cardBorder: "#fecdd3", inputBg: "#fff5f5" }, dark: { bg: "#1a0a0e", accent: "#fb7185", text: "#fef2f2", muted: "#f43f5e", card: "#2a1015", cardBorder: "#4c1d2a", inputBg: "#2a1015" } },
+    { id: "orange",  hex: "#f97316", light: { bg: "#fff7ed", accent: "#ea580c", text: "#1c1917", muted: "#fb923c", card: "#ffffff", cardBorder: "#fed7aa", inputBg: "#fffbf5" }, dark: { bg: "#1a120a", accent: "#fb923c", text: "#fff7ed", muted: "#f97316", card: "#2a1a0e", cardBorder: "#4c2a12", inputBg: "#2a1a0e" } },
+    { id: "amber",   hex: "#f59e0b", light: { bg: "#fffbeb", accent: "#d97706", text: "#1c1917", muted: "#fbbf24", card: "#ffffff", cardBorder: "#fde68a", inputBg: "#fffdf5" }, dark: { bg: "#1a150a", accent: "#fbbf24", text: "#fffbeb", muted: "#f59e0b", card: "#2a200e", cardBorder: "#4c3512", inputBg: "#2a200e" } },
+    { id: "emerald", hex: "#10b981", light: { bg: "#ecfdf5", accent: "#059669", text: "#1c1917", muted: "#34d399", card: "#ffffff", cardBorder: "#a7f3d0", inputBg: "#f0fdf9" }, dark: { bg: "#0a1a14", accent: "#34d399", text: "#ecfdf5", muted: "#10b981", card: "#0e2a1e", cardBorder: "#124c32", inputBg: "#0e2a1e" } },
+    { id: "sky",     hex: "#0ea5e9", light: { bg: "#f0f9ff", accent: "#0284c7", text: "#1c1917", muted: "#38bdf8", card: "#ffffff", cardBorder: "#bae6fd", inputBg: "#f5fbff" }, dark: { bg: "#0a1520", accent: "#38bdf8", text: "#f0f9ff", muted: "#0ea5e9", card: "#0e1f2e", cardBorder: "#12354c", inputBg: "#0e1f2e" } },
+    { id: "indigo",  hex: "#6366f1", light: { bg: "#eef2ff", accent: "#4f46e5", text: "#1c1917", muted: "#818cf8", card: "#ffffff", cardBorder: "#c7d2fe", inputBg: "#f5f7ff" }, dark: { bg: "#0e0e2a", accent: "#818cf8", text: "#eef2ff", muted: "#6366f1", card: "#16163a", cardBorder: "#2e2e5c", inputBg: "#16163a" } },
+    { id: "violet",  hex: "#8b5cf6", light: { bg: "#f5f3ff", accent: "#7c3aed", text: "#1c1917", muted: "#a78bfa", card: "#ffffff", cardBorder: "#ddd6fe", inputBg: "#faf8ff" }, dark: { bg: "#120e2a", accent: "#a78bfa", text: "#f5f3ff", muted: "#8b5cf6", card: "#1c163a", cardBorder: "#362e5c", inputBg: "#1c163a" } },
+    { id: "pink",    hex: "#ec4899", light: { bg: "#fdf2f8", accent: "#db2777", text: "#1c1917", muted: "#f472b6", card: "#ffffff", cardBorder: "#fbcfe8", inputBg: "#fef5fa" }, dark: { bg: "#1a0a15", accent: "#f472b6", text: "#fdf2f8", muted: "#ec4899", card: "#2a1020", cardBorder: "#4c1d3a", inputBg: "#2a1020" } },
+    { id: "zinc",    hex: "#18181b", light: { bg: "#faf9f7", accent: "#18181b", text: "#18181b", muted: "#71717a", card: "#ffffff", cardBorder: "#e4e4e7", inputBg: "#fafafa" }, dark: { bg: "#09090b", accent: "#e4e4e7", text: "#fafafa", muted: "#a1a1aa", card: "#18181b", cardBorder: "#27272a", inputBg: "#18181b" } },
 ];
 
-/* ───── Preset Covers ───── */
-const presetCovers = [
-    { id: "bootcamp", label: "Bootcamp", src: "/covers/bootcamp.png" },
-    { id: "workshop", label: "Workshop", src: "/covers/workshop.png" },
-    { id: "hackathon", label: "Hackathon", src: "/covers/hackathon.png" },
-    { id: "meetup", label: "Meetup", src: "/covers/meetup.png" },
-    { id: "community", label: "Community", src: "/covers/community.png" },
-    { id: "abstract", label: "Abstract", src: "/covers/abstract.png" },
+const THEME_FONTS = [
+    { id: "standard", label: "Sans",    class: "font-sans" },
+    { id: "classic",  label: "Serif",   class: "font-serif" },
+    { id: "technical",label: "Mono",    class: "font-mono" },
+    { id: "display",  label: "Display", class: "font-display" },
 ];
+
+const THEME_MODES = [
+    { id: "light", label: "Light", icon: "☀️" },
+    { id: "dark",  label: "Dark",  icon: "🌙" },
+    { id: "auto",  label: "Auto",  icon: "🔄" },
+];
+
+/* ───── Theme computation helper ───── */
+function useTheme(colorId: string, modeId: string, styleId: string, fontId: string) {
+    return useMemo(() => {
+        const colorDef = THEME_COLORS.find(c => c.id === colorId) || THEME_COLORS[9]; // default zinc
+        const isDark = modeId === "dark";
+        const palette = isDark ? colorDef.dark : colorDef.light;
+        const fontDef = THEME_FONTS.find(f => f.id === fontId) || THEME_FONTS[0];
+
+        // Style-specific background pattern class
+        let bgPatternClass = "";
+        let bgOverlayStyle: React.CSSProperties = {};
+        switch (styleId) {
+            case "quantum":
+                bgPatternClass = "bg-pattern-quantum";
+                break;
+            case "warp":
+                bgPatternClass = "bg-pattern-warp";
+                break;
+            case "confetti":
+                bgPatternClass = "bg-pattern-confetti";
+                break;
+            case "pattern":
+                bgPatternClass = "bg-pattern-abstract";
+                break;
+            case "seasonal":
+                bgPatternClass = "bg-pattern-emoji";
+                break;
+            case "minimal":
+            default:
+                break;
+        }
+
+        // For non-minimal styles in light mode, add a subtle gradient overlay
+        if (styleId !== "minimal" && !isDark) {
+            bgOverlayStyle = {
+                backgroundImage: `radial-gradient(ellipse at 20% 50%, ${colorDef.hex}12 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, ${colorDef.hex}10 0%, transparent 50%)`,
+            };
+        }
+
+        return {
+            isDark,
+            palette,
+            colorHex: colorDef.hex,
+            fontClass: fontDef.class,
+            bgPatternClass,
+            bgOverlayStyle,
+            // Convenience style objects for inline use
+            pageBg: { backgroundColor: palette.bg },
+            textPrimary: { color: palette.text },
+            textMuted: { color: palette.muted },
+            textAccent: { color: palette.accent },
+            cardStyle: { backgroundColor: palette.card, borderColor: palette.cardBorder },
+            inputStyle: { backgroundColor: palette.inputBg, borderColor: palette.cardBorder, color: palette.text },
+            btnPrimary: { backgroundColor: palette.accent, color: isDark ? "#09090b" : "#ffffff" },
+            btnSecondary: { backgroundColor: isDark ? palette.card : palette.inputBg, borderColor: palette.cardBorder, color: palette.text },
+        };
+    }, [colorId, modeId, styleId, fontId]);
+}
 
 /* ───── Form types ───── */
 type EventFormData = {
@@ -117,7 +152,6 @@ type EventFormData = {
     status: string;
     slug: string;
     require_approval: boolean;
-    ticket_price: string;
 };
 
 const initialFormData: EventFormData = {
@@ -133,7 +167,6 @@ const initialFormData: EventFormData = {
     status: "published",
     slug: "",
     require_approval: false,
-    ticket_price: "free",
 };
 
 function generateSlug(title: string): string {
@@ -150,21 +183,21 @@ export default function CreateEventPage() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
-    // Advanced Theme state
-    const [activeStyle, setActiveStyle] = useState(themeStyles[0]);
-    const [activeColor, setActiveColor] = useState(themeColors[0]);
-    const [activeFont, setActiveFont] = useState(themeFonts[0]);
-    const [activeDisplay, setActiveDisplay] = useState<"light" | "dark">("light");
-    const [showPersonalize, setShowPersonalize] = useState(false);
-    // Map picker state reserved for future use
-
     // Cover state
     const [coverImage, setCoverImage] = useState<string | null>(null);
-    const [coverFile, setCoverFile] = useState<File | null>(null); // Real file for upload
-    const [coverSource, setCoverSource] = useState<"preset" | "upload" | null>(null);
-    const [selectedPresetId, setSelectedPresetId] = useState<string | null>(null);
-    const [showCoverPicker, setShowCoverPicker] = useState(false);
+    const [coverFile, setCoverFile] = useState<File | null>(null);
+    const [coverSource, setCoverSource] = useState<"category" | "upload" | null>(null);
     const [editingCapacity, setEditingCapacity] = useState(false);
+
+    // Theme state
+    const [themeStyle, setThemeStyle] = useState("minimal");
+    const [themeColor, setThemeColor] = useState("zinc");
+    const [themeFont, setThemeFont] = useState("standard");
+    const [themeMode, setThemeMode] = useState("light");
+    const [showTheme, setShowTheme] = useState(false);
+
+    // Computed theme
+    const theme = useTheme(themeColor, themeMode, themeStyle, themeFont);
 
     const updateField = <K extends keyof EventFormData>(
         field: K,
@@ -179,11 +212,12 @@ export default function CreateEventPage() {
         });
     };
 
-    const handlePresetSelect = (preset: (typeof presetCovers)[number]) => {
-        setCoverImage(preset.src);
-        setCoverSource("preset");
-        setSelectedPresetId(preset.id);
-        setShowCoverPicker(false);
+    const handleCategorySelect = (category: (typeof EVENT_CATEGORIES)[number]) => {
+        updateField("event_type", category.id);
+        if (coverSource !== "upload" && category.cover) {
+            setCoverImage(category.cover);
+            setCoverSource("category");
+        }
     };
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,8 +227,6 @@ export default function CreateEventPage() {
             const url = URL.createObjectURL(file);
             setCoverImage(url);
             setCoverSource("upload");
-            setSelectedPresetId(null);
-            setShowCoverPicker(false);
         }
     };
 
@@ -202,13 +234,11 @@ export default function CreateEventPage() {
         setCoverImage(null);
         setCoverFile(null);
         setCoverSource(null);
-        setSelectedPresetId(null);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Validate mandatory fields that might be missing if button was enabled early
         if (!formData.date) {
             toast.error("Please pick a date for your event.");
             return;
@@ -216,43 +246,37 @@ export default function CreateEventPage() {
 
         setIsSubmitting(true);
 
-        // NOTE: Auth/staff check skipped here – access control is enforced at the DB level via RLS.
-        // When a proper login flow is added, re-enable this check.
-
         const payload = {
             title: formData.title,
             description: formData.description || null,
-            event_type: formData.event_type.trim() || 'Event',
+            event_type: formData.event_type.trim() || "Event",
             date: formData.date?.toISOString(),
             end_date: formData.end_date?.toISOString() || null,
             location: formData.location || null,
             is_virtual: formData.is_virtual,
             virtual_link: formData.virtual_link || null,
-            image_url: coverSource === "preset" ? coverImage : null, // Preset images are URLs already
+            image_url: coverSource === "category" ? coverImage : null,
             max_attendees: formData.max_attendees
                 ? parseInt(formData.max_attendees.toString())
                 : null,
             status: formData.status,
             slug: formData.slug,
-            theme_style: activeStyle.id,
-            theme_color: activeColor.id,
-            theme_font: activeFont.id || 'inter',
-            theme_mode: activeDisplay,
+            theme_style: themeStyle,
+            theme_color: themeColor,
+            theme_font: themeFont,
+            theme_mode: themeMode,
             require_approval: formData.require_approval,
         };
 
-        // Build FormData to send both the payload and the file
         const submitData = new FormData();
-        submitData.append('payload', JSON.stringify(payload));
+        submitData.append("payload", JSON.stringify(payload));
 
-        // Attach cover file if user uploaded one (not a preset)
         if (coverSource === "upload" && coverFile) {
-            submitData.append('coverFile', coverFile);
+            submitData.append("coverFile", coverFile);
         }
 
-        // Call server-side API route (handles storage upload + DB insert)
-        const res = await fetch('/api/events/create', {
-            method: 'POST',
+        const res = await fetch("/api/events/create", {
+            method: "POST",
             body: submitData,
         });
 
@@ -261,7 +285,7 @@ export default function CreateEventPage() {
 
         if (!res.ok) {
             console.error("❌ API error:", result);
-            if (result.code === '23505') {
+            if (result.code === "23505") {
                 toast.error("An event with this slug already exists.");
             } else {
                 toast.error(`Failed to create event: ${result.error}`);
@@ -278,53 +302,46 @@ export default function CreateEventPage() {
             setCoverImage(null);
             setCoverFile(null);
             setCoverSource(null);
-            setSelectedPresetId(null);
-            router.push("/admin/events");
+            router.push(`/events/${result.event.slug}`);
         }, 1200);
     };
 
     const isFormValid = formData.title.trim() !== "";
+    const activeCategory = EVENT_CATEGORIES.find(c => c.id === formData.event_type) || EVENT_CATEGORIES[0];
 
     return (
         <div
-            className={cn(
-                "min-h-screen transition-all duration-700 relative overflow-x-hidden",
-                activeFont.class,
-                activeDisplay === "light" ? activeColor.light : "bg-[#1a1614] text-white"
-            )}
+            className={cn("min-h-screen transition-colors duration-500", theme.fontClass, theme.bgPatternClass)}
+            style={{ ...theme.pageBg, ...theme.bgOverlayStyle }}
         >
-            {/* Background Pattern Overlay */}
-            {activeStyle.pattern && (
-                <div className={cn("absolute inset-0 pointer-events-none opacity-60 transition-opacity duration-1000", activeStyle.pattern)} />
-            )}
-
-            <div className="mx-auto max-w-5xl px-4 py-12 pb-32 relative z-10">
+            <div className="mx-auto max-w-4xl px-4 sm:px-6 py-8 pb-32">
                 {/* Back link */}
                 <button
                     onClick={() => router.back()}
-                    className={cn(
-                        "mb-8 flex items-center gap-1.5 text-sm font-medium transition-colors opacity-60 hover:opacity-100",
-                        activeDisplay === "dark" ? "text-white" : "text-zinc-900"
-                    )}
+                    className="mb-8 flex items-center gap-1.5 text-sm font-medium transition-colors hover:opacity-70"
+                    style={theme.textMuted}
                 >
                     <ArrowLeft className="h-4 w-4" />
                     Back
                 </button>
 
                 <form onSubmit={handleSubmit}>
-                    {/* ═══ Main two-column Luma-style layout ═══ */}
-                    <div className="grid gap-12 lg:grid-cols-[400px_1fr]">
-                        {/* ──── LEFT: Cover Image & Personalization ──── */}
-                        <div className="space-y-8">
+                    {/* ═══ Two-column layout ═══ */}
+                    <div className="grid gap-10 lg:grid-cols-[340px_1fr]">
+                        {/* ──── LEFT: Cover Image + Theme ──── */}
+                        <div className="space-y-5">
+                            {/* Cover Image Card */}
                             <div
-                                className={cn(
-                                    "relative overflow-hidden rounded-[2rem] border-4 shadow-2xl transition-all duration-500",
-                                    activeDisplay === "dark" ? "border-white/10" : "border-white/50",
-                                    !coverImage && (activeDisplay === "dark" ? "bg-white/5" : "bg-white/30")
-                                )}
+                                className="relative overflow-hidden rounded-2xl shadow-sm transition-all"
+                                style={{
+                                    ...theme.cardStyle,
+                                    borderWidth: "1px",
+                                    borderStyle: "solid",
+                                    ...(coverImage ? {} : { backgroundColor: theme.isDark ? theme.palette.card : "#fafafa" }),
+                                }}
                             >
                                 {coverImage ? (
-                                    <div className="group relative aspect-square lg:aspect-[4/5]">
+                                    <div className="group relative aspect-[4/5]">
                                         <Image
                                             src={coverImage}
                                             alt="Event cover"
@@ -332,455 +349,43 @@ export default function CreateEventPage() {
                                             className="object-cover"
                                             unoptimized={coverSource === "upload"}
                                         />
-                                        <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100">
-                                            <div className="flex w-full gap-2 p-6">
-                                                <Button
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
+                                            <div className="flex w-full gap-2 p-4">
+                                                <button
                                                     type="button"
-                                                    variant="secondary"
-                                                    className="flex-1 rounded-xl bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30"
-                                                    onClick={() => setShowCoverPicker(true)}
+                                                    onClick={() => fileInputRef.current?.click()}
+                                                    className="flex-1 rounded-xl bg-white/20 backdrop-blur-md text-white text-sm font-medium py-2.5 px-4 hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
                                                 >
-                                                    <ImageIcon className="mr-2 h-4 w-4" />
-                                                    Change Image
-                                                </Button>
-                                                <Button
+                                                    <Upload className="h-3.5 w-3.5" />
+                                                    Change
+                                                </button>
+                                                <button
                                                     type="button"
-                                                    variant="secondary"
-                                                    className="rounded-xl bg-white/20 backdrop-blur-md border-white/30 text-white hover:bg-white/30 px-3"
                                                     onClick={removeCover}
+                                                    className="rounded-xl bg-white/20 backdrop-blur-md text-white py-2.5 px-3 hover:bg-white/30 transition-colors"
                                                 >
-                                                    <X className="h-4 w-4" />
-                                                </Button>
+                                                    <X className="h-3.5 w-3.5" />
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 ) : (
                                     <button
                                         type="button"
-                                        onClick={() => setShowCoverPicker(true)}
-                                        className={cn(
-                                            "flex aspect-square lg:aspect-[4/5] w-full flex-col items-center justify-center gap-4 transition-colors",
-                                            activeDisplay === "dark" ? "text-white/40 hover:text-white" : "text-zinc-400 hover:text-zinc-900"
-                                        )}
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 transition-colors hover:opacity-70"
+                                        style={theme.textMuted}
                                     >
-                                        <div className="flex h-16 w-16 items-center justify-center rounded-3xl border-2 border-dashed border-current opacity-50">
-                                            <ImageIcon className="h-8 w-8" />
+                                        <div className="h-14 w-14 rounded-2xl border-2 border-dashed border-current flex items-center justify-center">
+                                            <ImageIcon className="h-6 w-6" />
                                         </div>
                                         <div className="text-center">
-                                            <p className="text-lg font-bold">Add Cover Image</p>
-                                            <p className="text-sm opacity-60">Presets or custom upload</p>
+                                            <p className="text-sm font-semibold">Upload Cover Image</p>
+                                            <p className="text-xs mt-0.5 opacity-60">or pick a category below</p>
                                         </div>
                                     </button>
                                 )}
                             </div>
-
-                            {/* ═══ Personalization Panel ═══ */}
-                            <div className={cn(
-                                "rounded-[2rem] border p-6 space-y-4 transition-all duration-500",
-                                activeDisplay === "dark" ? "bg-white/5 border-white/10" : "bg-white/50 border-black/5"
-                            )}>
-                                <div className="flex items-center justify-between px-2">
-                                    <h3 className="text-sm font-bold opacity-60 uppercase tracking-widest">Theme style</h3>
-                                    <Palette className="h-4 w-4 opacity-40" />
-                                </div>
-
-                                <Select value={activeStyle.id} onValueChange={(val) => {
-                                    const style = themeStyles.find(s => s.id === val);
-                                    if (style) {
-                                        setActiveStyle(style);
-                                        // Sync color if recommended
-                                        const recommendedColor = themeColors.find(c => c.id === style.colorId);
-                                        if (recommendedColor) setActiveColor(recommendedColor);
-
-                                        // Sync font if recommended
-                                        const recommendedFont = themeFonts.find(f => f.id === style.fontId);
-                                        if (recommendedFont) setActiveFont(recommendedFont);
-
-                                        setShowPersonalize(true);
-                                    }
-                                }}>
-                                    <SelectTrigger className="w-full h-14 rounded-2xl border-none bg-black/5 hover:bg-black/10 transition-colors px-6 font-bold text-lg ring-0">
-                                        <div className="flex items-center gap-3">
-                                            <div className={cn("h-4 w-4 rounded-full border border-current opacity-40", activeStyle.pattern)} />
-                                            <span>{activeStyle.label}</span>
-                                        </div>
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl border-none shadow-2xl">
-                                        {themeStyles.map(style => (
-                                            <SelectItem key={style.id} value={style.id}>
-                                                <div className="flex items-center gap-3 py-1">
-                                                    <div className={cn("h-3 w-3 rounded-full border border-zinc-200", style.pattern)} />
-                                                    {style.label}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-
-                                {activeStyle && (
-                                    <div className={cn(
-                                        "space-y-4 pt-2 overflow-hidden transition-all duration-500",
-                                        showPersonalize ? "max-h-[400px] opacity-100" : "max-h-0 opacity-0"
-                                    )}>
-                                        <div className="h-px bg-current opacity-5 mx-2" />
-
-                                        {/* Color Selection */}
-                                        <div className="space-y-2 px-2">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest opacity-100">Color</p>
-                                            <div className="flex flex-wrap gap-2">
-                                                {themeColors.map(c => (
-                                                    <button
-                                                        key={c.id}
-                                                        type="button"
-                                                        onClick={() => setActiveColor(c)}
-                                                        className={cn(
-                                                            "h-6 w-6 rounded-full border-2 transition-all",
-                                                            activeColor.id === c.id ? "border-zinc-900 scale-110" : "border-transparent opacity-60 hover:opacity-100",
-                                                            c.primary
-                                                        )}
-                                                        title={c.label}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Font & Mode */}
-                                        <div className="grid grid-cols-2 gap-3 px-2">
-                                            <div className="space-y-2">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Font choice</p>
-                                                <Select value={activeFont.id} onValueChange={(val) => setActiveFont(themeFonts.find(f => f.id === val) || themeFonts[0])}>
-                                                    <SelectTrigger className="w-full h-10 rounded-xl border-none bg-black/5 hover:bg-black/10 transition-colors px-3 font-normal text-xs ring-0">
-                                                        <div className="flex items-center justify-between w-full text-zinc-900/80">
-                                                            <SelectValue />
-                                                            <span className="opacity-50 text-[9px] uppercase tracking-tighter ml-1">{activeFont.category}</span>
-                                                        </div>
-                                                    </SelectTrigger>
-                                                    <SelectContent className="rounded-xl border-none shadow-2xl">
-                                                        {themeFonts.map(f => (
-                                                            <SelectItem key={f.id} value={f.id} className={cn(f.class, "font-normal")}>
-                                                                <div className="flex items-center justify-between w-full gap-4">
-                                                                    <span>{f.label}</span>
-                                                                    <span className="opacity-40 text-[9px] uppercase">{f.category}</span>
-                                                                </div>
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div className="space-y-2">
-                                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">Mode</p>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setActiveDisplay(activeDisplay === "light" ? "dark" : "light")}
-                                                    className="w-full h-10 rounded-xl bg-black/5 hover:bg-black/10 transition-colors px-3 font-normal text-xs flex items-center justify-between text-zinc-900/80"
-                                                >
-                                                    <span>{activeDisplay === "light" ? "Light" : "Dark"}</span>
-                                                    <span>{activeDisplay === "light" ? "☀️" : "🌙"}</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {!showPersonalize && (
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPersonalize(true)}
-                                        className="w-full py-2 text-[10px] font-bold uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity"
-                                    >
-                                        Customize further
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* ──── RIGHT: Event form ──── */}
-                        <div className="space-y-6">
-                            {/* Personal Calendar indicator - Above Event Name */}
-                            <div className="flex items-center gap-2 px-1">
-                                <div className="h-5 w-5 rounded-full bg-orange-100 flex items-center justify-center text-[10px] shadow-inner">👤</div>
-                                <button type="button" className="flex items-center gap-1.5 text-sm font-medium opacity-60 hover:opacity-100 transition-opacity">
-                                    <span>Personal calendar</span>
-                                    <span className="text-[10px] opacity-40">▼</span>
-                                </button>
-                                <div className="ml-auto px-3 py-1 rounded-full bg-black/5 text-[10px] font-bold opacity-40 flex items-center gap-1.5">
-                                    <span className="h-1 w-1 rounded-full bg-current" />
-                                    Public
-                                </div>
-                            </div>
-
-                            {/* Category/Tag Tag — NEW */}
-                            <div className="px-1 flex items-center gap-2">
-                                <div className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all text-[11px] font-bold uppercase tracking-widest",
-                                    activeDisplay === "dark" ? "bg-white/10 border-white/10 text-white" : "bg-black/5 border-black/5 text-zinc-600"
-                                )}>
-                                    <span className="opacity-40 select-none">#</span>
-                                    <Input
-                                        placeholder="Add tag (e.g. Bootcamp)"
-                                        value={formData.event_type}
-                                        onChange={(e) => updateField("event_type", e.target.value)}
-                                        className="border-none bg-transparent p-0 h-auto w-40 text-[11px] font-bold uppercase tracking-widest focus-visible:ring-0 placeholder:opacity-40"
-                                    />
-                                </div>
-                                <div className="text-[10px] opacity-30 font-medium italic">Type your own category</div>
-                            </div>
-
-                            {/* Event name — prominent */}
-                            <div className="px-1">
-                                <input
-                                    id="title"
-                                    type="text"
-                                    placeholder="Event Name"
-                                    value={formData.title}
-                                    onChange={(e) => updateField("title", e.target.value)}
-                                    className={cn(
-                                        "w-full border-none bg-transparent outline-none text-6xl font-normal tracking-tight placeholder:opacity-30 px-0 h-auto py-0 leading-tight",
-                                        activeDisplay === "dark" ? "text-white placeholder:text-white" : "text-zinc-900 placeholder:text-zinc-900"
-                                    )}
-                                    style={{ fontSize: '3.5rem', lineHeight: 1.1 }}
-                                />
-                            </div>
-
-                            {/* Date/Time Section with standalone Timezone card */}
-                            <div className="flex gap-3">
-                                <div className={cn(
-                                    "flex-1 rounded-2xl border transition-all duration-500 overflow-hidden shadow-sm",
-                                    activeDisplay === "dark" ? "bg-white/[0.03] border-white/10" : "bg-white/60 border-black/5"
-                                )}>
-                                    {/* Start row */}
-                                    <div className="flex items-center gap-10 border-b border-inherit px-6 py-4">
-                                        <div className="flex items-center gap-3 w-16">
-                                            <div className="h-2 w-2 rounded-full border-2 border-primary" />
-                                            <span className="text-sm font-medium opacity-40">Start</span>
-                                        </div>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="h-auto px-0 py-0 text-base font-normal hover:bg-transparent text-foreground flex-1 justify-start"
-                                                >
-                                                    {formData.date ? format(formData.date, "EEE, MMM d") : format(new Date(), "EEE, MMM d")}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                                                <Calendar mode="single" selected={formData.date} onSelect={(d) => updateField("date", d)} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Input type="time" className="h-auto w-16 border-none bg-transparent px-0 text-base font-normal focus-visible:ring-0 text-right opacity-80" defaultValue="16:00" />
-                                    </div>
-                                    {/* End row */}
-                                    <div className="flex items-center gap-10 px-6 py-4">
-                                        <div className="flex items-center gap-3 w-16">
-                                            <div className="h-2 w-2 rounded-full border-2 border-dashed border-foreground/20" />
-                                            <span className="text-sm font-medium opacity-40">End</span>
-                                        </div>
-                                        <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    className="h-auto px-0 py-0 text-base font-normal hover:bg-transparent text-foreground/60 flex-1 justify-start"
-                                                >
-                                                    {formData.end_date ? format(formData.end_date, "EEE, MMM d") : format(new Date(), "EEE, MMM d")}
-                                                </Button>
-                                            </PopoverTrigger>
-                                            <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
-                                                <Calendar mode="single" selected={formData.end_date} onSelect={(d) => updateField("end_date", d)} initialFocus />
-                                            </PopoverContent>
-                                        </Popover>
-                                        <Input type="time" className="h-auto w-16 border-none bg-transparent px-0 text-base font-normal focus-visible:ring-0 text-right opacity-60" defaultValue="17:00" />
-                                    </div>
-                                </div>
-
-                                {/* Timezone standalone card */}
-                                <div className={cn(
-                                    "w-32 rounded-2xl border p-4 flex flex-col justify-center items-center shadow-sm text-center gap-1",
-                                    activeDisplay === "dark" ? "bg-white/[0.03] border-white/10" : "bg-white/60 border-black/5"
-                                )}>
-                                    <div className="h-5 w-5 rounded-full border border-dashed border-foreground/20 flex items-center justify-center text-[10px] opacity-40">🌐</div>
-                                    <Select defaultValue="GMT+00:00">
-                                        <SelectTrigger className="w-full border-none bg-transparent h-auto p-0 text-[10px] font-bold opacity-60 uppercase tracking-widest focus:ring-0 ring-0 text-center flex justify-center hover:opacity-100 transition-opacity">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-xl border-none shadow-2xl">
-                                            <SelectItem value="GMT+00:00">GMT+00:00</SelectItem>
-                                            <SelectItem value="GMT-05:00">EST (GMT-5)</SelectItem>
-                                            <SelectItem value="GMT-08:00">PST (GMT-8)</SelectItem>
-                                            <SelectItem value="GMT+01:00">CET (GMT+1)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <span className="text-[9px] font-bold opacity-30 uppercase tracking-tighter">Monrovia</span>
-                                </div>
-                            </div>
-
-                            {/* Action Cards */}
-                            <div className="space-y-3">
-                                {/* Location elevated card */}
-                                <div className={cn(
-                                    "rounded-2xl border p-5 flex items-center gap-4 shadow-sm hover:translate-y-[-1px] transition-all",
-                                    activeDisplay === "dark" ? "bg-white/[0.03] border-white/10" : "bg-white/60 border-black/5"
-                                )}>
-                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center opacity-40">
-                                        <MapPin className="h-4 w-4" />
-                                    </div>
-                                    <div className="flex-1 flex flex-col">
-                                        <Input
-                                            id="location"
-                                            placeholder="Add event location"
-                                            value={formData.location}
-                                            onChange={(e) => updateField("location", e.target.value)}
-                                            className="border-none bg-transparent px-0 text-base font-normal focus-visible:ring-0 h-auto py-0 placeholder:opacity-30 leading-tight"
-                                        />
-                                        <span className="text-[10px] opacity-40 mt-1 font-medium">Offline location or virtual link</span>
-                                    </div>
-                                </div>
-
-                                {/* Description elevated card */}
-                                <div className={cn(
-                                    "rounded-2xl border p-5 flex items-start gap-4 shadow-sm",
-                                    activeDisplay === "dark" ? "bg-white/[0.03] border-white/10" : "bg-white/60 border-black/5"
-                                )}>
-                                    <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center opacity-40 mt-1 text-xs">📝</div>
-                                    <Textarea
-                                        id="description"
-                                        placeholder="Add description"
-                                        rows={1}
-                                        value={formData.description}
-                                        onChange={(e) => updateField("description", e.target.value)}
-                                        className="border-none bg-transparent px-0 text-base font-normal resize-none focus-visible:ring-0 placeholder:opacity-30 min-h-0 py-0 flex-1 leading-normal"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Event Options section */}
-                            <div className="pt-4 space-y-3">
-                                <p className="text-sm font-bold opacity-60 px-2">Event options</p>
-                                <div className={cn(
-                                    "rounded-2xl border transition-all duration-500 overflow-hidden",
-                                    activeDisplay === "dark" ? "bg-white/5 border-white/10" : "bg-white/40 border-black/5"
-                                )}>
-                                    {/* Event Options grouped card */}
-                                    <div className="space-y-3">
-                                        <div className={cn(
-                                            "rounded-2xl border shadow-sm transition-all duration-500 overflow-hidden",
-                                            activeDisplay === "dark" ? "bg-white/[0.03] border-white/10" : "bg-white/60 border-black/5"
-                                        )}>
-                                            <div className="flex items-center justify-between px-6 py-4 border-b border-inherit bg-white/[0.01]">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-base font-normal opacity-60">Ticket Price</span>
-                                                </div>
-                                                <span className="text-base font-normal opacity-40 flex items-center gap-1">Free <span className="text-xs">🔗</span></span>
-                                            </div>
-                                            <div className="flex items-center justify-between px-6 py-4 border-b border-inherit">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-base font-normal opacity-60">Require approval</span>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => updateField("require_approval", !formData.require_approval)}
-                                                    className={cn(
-                                                        "relative inline-flex h-5 w-10 shrink-0 cursor-pointer items-center rounded-full transition-colors",
-                                                        formData.require_approval ? activeColor.primary : "bg-black/20"
-                                                    )}
-                                                >
-                                                    <span className={cn(
-                                                        "pointer-events-none block h-4 w-4 rounded-full bg-white shadow-sm transition-transform",
-                                                        formData.require_approval ? "translate-x-5" : "translate-x-1"
-                                                    )} />
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center justify-between px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-base font-normal opacity-60">Capacity</span>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    {editingCapacity ? (
-                                                        <input
-                                                            type="number"
-                                                            autoFocus
-                                                            placeholder="e.g. 100"
-                                                            value={formData.max_attendees ?? ""}
-                                                            onChange={(e) => updateField("max_attendees", e.target.value === "" ? null : parseInt(e.target.value))}
-                                                            onBlur={() => setEditingCapacity(false)}
-                                                            onKeyDown={(e) => e.key === "Enter" && setEditingCapacity(false)}
-                                                            className="w-24 border-none bg-transparent p-0 text-right text-base font-normal focus:outline-none placeholder:opacity-30"
-                                                        />
-                                                    ) : (
-                                                        <button
-                                                            type="button"
-                                                            onClick={() => setEditingCapacity(true)}
-                                                            className="flex items-center gap-1.5 text-base font-normal opacity-40 hover:opacity-70 transition-opacity"
-                                                        >
-                                                            <span>{formData.max_attendees ? formData.max_attendees.toLocaleString() : "Unlimited"}</span>
-                                                            <Pencil className="h-3 w-3" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Submit Button Section - Elevated from bottom */}
-                            <div className="pt-8">
-                                <Button
-                                    type="submit"
-                                    disabled={!isFormValid || isSubmitting}
-                                    className={cn(
-                                        "w-full rounded-2xl py-8 text-xl font-bold shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99]",
-                                        activeDisplay === "dark" ? "bg-white text-black hover:bg-white/90" : "bg-zinc-900 text-white hover:bg-zinc-800"
-                                    )}
-                                >
-                                    {isSubmitting ? (
-                                        <Loader2 className="mr-3 h-5 w-5 animate-spin" />
-                                    ) : submitSuccess ? (
-                                        "✓ Event Created!"
-                                    ) : (
-                                        "Create Event"
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div >
-
-            {/* Removed Floating Control Bar */}
-
-            {/* ═══ Cover Image Picker Modal ═══ */}
-            {
-                showCoverPicker && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
-                        <div className="mx-4 w-full max-w-lg rounded-[2.5rem] border bg-background p-8 shadow-2xl relative">
-                            <div className="mb-6 flex items-center justify-between">
-                                <h3 className="text-2xl font-bold">Choose Cover Image</h3>
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCoverPicker(false)}
-                                    className="rounded-full p-2 bg-black/5 hover:bg-black/10 text-muted-foreground hover:text-foreground transition-colors"
-                                >
-                                    <X className="h-6 w-6" />
-                                </button>
-                            </div>
-
-                            {/* Upload option */}
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="mb-8 flex w-full items-center gap-4 rounded-3xl border-2 border-dashed border-zinc-200 px-6 py-6 text-muted-foreground transition-all hover:border-primary hover:bg-primary/5 hover:text-primary"
-                            >
-                                <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                                    <Upload className="h-6 w-6" />
-                                </div>
-                                <div className="text-left">
-                                    <p className="text-lg font-bold">Upload from computer</p>
-                                    <p className="text-xs opacity-60">JPG, PNG, or WebP up to 5MB</p>
-                                </div>
-                            </button>
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -789,52 +394,391 @@ export default function CreateEventPage() {
                                 onChange={handleFileUpload}
                             />
 
-                            {/* Divider */}
-                            <div className="mb-8 flex items-center gap-4">
-                                <div className="h-px flex-1 bg-zinc-100" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-300">or choose a preset</span>
-                                <div className="h-px flex-1 bg-zinc-100" />
+                            {/* ═══ Theme Customization Strip ═══ */}
+                            <div
+                                className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
+                                style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}
+                            >
+                                <button
+                                    type="button"
+                                    onClick={() => setShowTheme(!showTheme)}
+                                    className="w-full flex items-center justify-between px-4 py-3.5 text-sm font-medium transition-colors"
+                                    style={theme.textPrimary}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Palette className="h-4 w-4" style={theme.textMuted} />
+                                        <span>Theme</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-xs capitalize" style={theme.textMuted}>{themeStyle}</span>
+                                        <div
+                                            className="h-4 w-4 rounded-full border-2"
+                                            style={{ backgroundColor: THEME_COLORS.find(c => c.id === themeColor)?.hex || '#64748b', borderColor: theme.palette.cardBorder }}
+                                        />
+                                    </div>
+                                </button>
+
+                                {showTheme && (
+                                    <div className="p-4 space-y-4" style={{ borderTop: `1px solid ${theme.palette.cardBorder}` }}>
+                                        {/* Style selector */}
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Style</p>
+                                            <div className="flex gap-2 overflow-x-auto pb-1">
+                                                {THEME_STYLES.map(s => {
+                                                    const previewColors: Record<string, string> = {
+                                                        minimal: theme.isDark ? "linear-gradient(135deg, #27272a, #3f3f46)" : "linear-gradient(135deg, #f4f4f5, #e4e4e7)",
+                                                        quantum: `linear-gradient(135deg, ${theme.palette.accent}40, ${theme.palette.muted}30)`,
+                                                        warp: theme.isDark ? "linear-gradient(135deg, #0a0a0a, #1a1a2e)" : "linear-gradient(135deg, #374151, #1f2937)",
+                                                        confetti: `linear-gradient(135deg, ${theme.palette.accent}30, ${theme.palette.muted}20)`,
+                                                        pattern: `linear-gradient(135deg, ${theme.palette.accent}25, ${theme.palette.bg})`,
+                                                        seasonal: `linear-gradient(135deg, ${theme.palette.accent}20, #f97316${theme.isDark ? '30' : '20'})`,
+                                                    };
+                                                    return (
+                                                        <button
+                                                            key={s.id}
+                                                            type="button"
+                                                            onClick={() => setThemeStyle(s.id)}
+                                                            className={cn(
+                                                                "flex flex-col items-center gap-1.5 flex-shrink-0 transition-all",
+                                                                themeStyle === s.id ? "opacity-100 scale-105" : "opacity-50 hover:opacity-80"
+                                                            )}
+                                                        >
+                                                            <div
+                                                                className="h-12 w-16 rounded-lg border-2 transition-all"
+                                                                style={{
+                                                                    background: previewColors[s.id] || previewColors.minimal,
+                                                                    borderColor: themeStyle === s.id ? theme.palette.accent : "transparent",
+                                                                }}
+                                                            />
+                                                            <span className="text-[9px] font-bold uppercase tracking-wider" style={theme.textMuted}>{s.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Color selector */}
+                                        <div className="space-y-2">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Color</p>
+                                            <div className="flex gap-2 flex-wrap">
+                                                {THEME_COLORS.map(c => (
+                                                    <button
+                                                        key={c.id}
+                                                        type="button"
+                                                        onClick={() => setThemeColor(c.id)}
+                                                        className={cn(
+                                                            "h-7 w-7 rounded-full border-2 transition-all flex items-center justify-center",
+                                                            themeColor === c.id ? "scale-110 shadow-md" : "hover:scale-105"
+                                                        )}
+                                                        style={{
+                                                            backgroundColor: c.hex,
+                                                            borderColor: themeColor === c.id ? theme.palette.text : "transparent",
+                                                        }}
+                                                        title={c.id}
+                                                    >
+                                                        {themeColor === c.id && <Check className="h-3 w-3 text-white" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Font + Mode row */}
+                                        <div className="flex gap-3">
+                                            <div className="flex-1 space-y-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Font</p>
+                                                <div className="flex gap-1.5">
+                                                    {THEME_FONTS.map(f => (
+                                                        <button
+                                                            key={f.id}
+                                                            type="button"
+                                                            onClick={() => setThemeFont(f.id)}
+                                                            className={cn("px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all")}
+                                                            style={
+                                                                themeFont === f.id
+                                                                    ? theme.btnPrimary
+                                                                    : theme.btnSecondary
+                                                            }
+                                                        >
+                                                            {f.label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-2">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Display</p>
+                                                <div className="flex gap-1.5">
+                                                    {THEME_MODES.map(m => (
+                                                        <button
+                                                            key={m.id}
+                                                            type="button"
+                                                            onClick={() => setThemeMode(m.id)}
+                                                            className="px-2 py-1.5 rounded-lg text-[10px] font-bold transition-all"
+                                                            style={
+                                                                themeMode === m.id
+                                                                    ? theme.btnPrimary
+                                                                    : theme.btnSecondary
+                                                            }
+                                                        >
+                                                            {m.icon}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
-                            {/* Preset gallery */}
-                            <div className="grid grid-cols-3 gap-4">
-                                {presetCovers.map((preset) => (
-                                    <button
-                                        key={preset.id}
-                                        type="button"
-                                        onClick={() => handlePresetSelect(preset)}
-                                        className={cn(
-                                            "group relative overflow-hidden rounded-[1.5rem] border-4 transition-all",
-                                            selectedPresetId === preset.id
-                                                ? "border-primary scale-105 shadow-xl"
-                                                : "border-transparent opacity-60 hover:opacity-100 hover:scale-[1.02]"
-                                        )}
-                                    >
-                                        <div className="relative aspect-square">
-                                            <Image
-                                                src={preset.src}
-                                                alt={preset.label}
-                                                fill
-                                                className="object-cover"
+                            {/* Category Selector */}
+                            <div className="space-y-2.5">
+                                <p className="text-xs font-semibold uppercase tracking-widest px-1" style={theme.textMuted}>
+                                    Event Type
+                                </p>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {EVENT_CATEGORIES.map((cat) => (
+                                        <button
+                                            key={cat.id}
+                                            type="button"
+                                            onClick={() => handleCategorySelect(cat)}
+                                            className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all border"
+                                            style={
+                                                activeCategory.id === cat.id
+                                                    ? { ...theme.btnPrimary, borderColor: theme.palette.accent }
+                                                    : { ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid", color: theme.palette.text }
+                                            }
+                                        >
+                                            <span className="text-base">{cat.emoji}</span>
+                                            {cat.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ──── RIGHT: Event Details Form ──── */}
+                        <div className="space-y-6">
+                            {/* Event Name */}
+                            <div>
+                                <input
+                                    id="title"
+                                    type="text"
+                                    placeholder="Event Name"
+                                    value={formData.title}
+                                    onChange={(e) => updateField("title", e.target.value)}
+                                    className="w-full border-none bg-transparent text-3xl sm:text-4xl font-semibold tracking-tight outline-none transition-colors duration-300"
+                                    style={{
+                                        color: theme.palette.text,
+                                        lineHeight: 1.2,
+                                        caretColor: theme.palette.accent,
+                                    }}
+                                />
+                                {formData.slug && (
+                                    <p className="mt-2 text-xs font-mono" style={theme.textMuted}>
+                                        radius.events/{formData.slug}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Date & Time Card */}
+                            <div
+                                className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
+                                style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}
+                            >
+                                <div className="flex items-center gap-4 px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}15` }}>
+                                    <div className="flex items-center gap-2.5 w-20">
+                                        <CalendarDays className="h-4 w-4" style={theme.textMuted} />
+                                        <span className="text-sm" style={theme.textMuted}>Start</span>
+                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <button type="button" className="text-sm font-medium transition-colors" style={theme.textPrimary}>
+                                                {formData.date ? format(formData.date, "EEE, MMM d, yyyy") : "Pick a date"}
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                                            <Calendar mode="single" selected={formData.date} onSelect={(d) => updateField("date", d)} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <div className="ml-auto flex items-center gap-1.5">
+                                        <Clock className="h-3.5 w-3.5" style={theme.textMuted} />
+                                        <input
+                                            type="time"
+                                            className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none"
+                                            style={{ color: theme.palette.text }}
+                                            defaultValue="16:00"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-4 px-5 py-4">
+                                    <div className="flex items-center gap-2.5 w-20">
+                                        <div className="h-4 w-4 flex items-center justify-center">
+                                            <div className="h-2 w-2 rounded-full border-2 border-dashed" style={{ borderColor: theme.palette.cardBorder }} />
+                                        </div>
+                                        <span className="text-sm" style={theme.textMuted}>End</span>
+                                    </div>
+                                    <Popover>
+                                        <PopoverTrigger asChild>
+                                            <button type="button" className="text-sm font-medium transition-colors" style={theme.textMuted}>
+                                                {formData.end_date ? format(formData.end_date, "EEE, MMM d, yyyy") : "Pick end date"}
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start">
+                                            <Calendar mode="single" selected={formData.end_date} onSelect={(d) => updateField("end_date", d)} initialFocus />
+                                        </PopoverContent>
+                                    </Popover>
+                                    <div className="ml-auto flex items-center gap-1.5">
+                                        <Clock className="h-3.5 w-3.5" style={theme.textMuted} />
+                                        <input
+                                            type="time"
+                                            className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none"
+                                            style={{ color: theme.palette.muted }}
+                                            defaultValue="17:00"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Location Card */}
+                            <div
+                                className="rounded-2xl shadow-sm transition-colors duration-300"
+                                style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}
+                            >
+                                <div className="flex items-center gap-4 px-5 py-4">
+                                    <MapPin className="h-4 w-4 flex-shrink-0" style={theme.textMuted} />
+                                    <input
+                                        id="location"
+                                        placeholder="Add event location"
+                                        value={formData.location}
+                                        onChange={(e) => updateField("location", e.target.value)}
+                                        className="flex-1 border-none bg-transparent text-sm font-medium outline-none"
+                                        style={{ color: theme.palette.text, caretColor: theme.palette.accent }}
+                                    />
+                                </div>
+                                <div className="flex items-center gap-4 px-5 py-3" style={{ borderTop: `1px solid ${theme.palette.cardBorder}30` }}>
+                                    <Globe className="h-4 w-4 flex-shrink-0" style={theme.textMuted} />
+                                    <button type="button" onClick={() => updateField("is_virtual", !formData.is_virtual)} className="flex items-center gap-2 text-sm">
+                                        <div
+                                            className="h-4 w-4 rounded border flex items-center justify-center transition-colors"
+                                            style={
+                                                formData.is_virtual
+                                                    ? { backgroundColor: theme.palette.accent, borderColor: theme.palette.accent }
+                                                    : { borderColor: theme.palette.cardBorder }
+                                            }
+                                        >
+                                            {formData.is_virtual && <Check className="h-3 w-3 text-white" />}
+                                        </div>
+                                        <span style={theme.textMuted}>This is a virtual event</span>
+                                    </button>
+                                </div>
+                                {formData.is_virtual && (
+                                    <div className="flex items-center gap-4 px-5 py-3" style={{ borderTop: `1px solid ${theme.palette.cardBorder}30` }}>
+                                        <div className="w-4" />
+                                        <input
+                                            placeholder="Add meeting link (Zoom, Meet, etc.)"
+                                            value={formData.virtual_link}
+                                            onChange={(e) => updateField("virtual_link", e.target.value)}
+                                            className="flex-1 border-none bg-transparent text-sm font-medium outline-none"
+                                            style={{ color: theme.palette.text, caretColor: theme.palette.accent }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Description Card */}
+                            <div
+                                className="rounded-2xl shadow-sm px-5 py-4 transition-colors duration-300"
+                                style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}
+                            >
+                                <textarea
+                                    id="description"
+                                    placeholder="Add a description... Tell people what your event is about"
+                                    rows={4}
+                                    value={formData.description}
+                                    onChange={(e) => updateField("description", e.target.value)}
+                                    className="w-full border-none bg-transparent text-sm font-normal resize-none outline-none leading-relaxed"
+                                    style={{ color: theme.palette.text, caretColor: theme.palette.accent }}
+                                />
+                            </div>
+
+                            {/* Event Options Card */}
+                            <div className="space-y-2.5">
+                                <p className="text-xs font-semibold uppercase tracking-widest px-1" style={theme.textMuted}>Event Options</p>
+                                <div
+                                    className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300"
+                                    style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}
+                                >
+                                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}30` }}>
+                                        <span className="text-sm" style={theme.textMuted}>Ticket Price</span>
+                                        <span className="text-sm font-medium" style={theme.textPrimary}>Free</span>
+                                    </div>
+                                    <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}30` }}>
+                                        <span className="text-sm" style={theme.textMuted}>Require Approval</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => updateField("require_approval", !formData.require_approval)}
+                                            className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors"
+                                            style={{ backgroundColor: formData.require_approval ? theme.palette.accent : theme.palette.cardBorder }}
+                                        >
+                                            <span
+                                                className={cn("pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform", formData.require_approval ? "translate-x-[18px]" : "translate-x-[3px]")}
                                             />
-                                            {selectedPresetId === preset.id && (
-                                                <div className="absolute inset-0 flex items-center justify-center bg-primary/20 backdrop-blur-[2px]">
-                                                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-lg transform scale-125">
-                                                        <Check className="h-5 w-5 text-white" />
-                                                    </div>
-                                                </div>
+                                        </button>
+                                    </div>
+                                    <div className="flex items-center justify-between px-5 py-4">
+                                        <span className="text-sm" style={theme.textMuted}>Capacity</span>
+                                        <div className="flex items-center gap-1.5">
+                                            {editingCapacity ? (
+                                                <input
+                                                    type="number"
+                                                    autoFocus
+                                                    placeholder="e.g. 100"
+                                                    value={formData.max_attendees ?? ""}
+                                                    onChange={(e) => updateField("max_attendees", e.target.value === "" ? null : parseInt(e.target.value))}
+                                                    onBlur={() => setEditingCapacity(false)}
+                                                    onKeyDown={(e) => e.key === "Enter" && setEditingCapacity(false)}
+                                                    className="w-20 border-none bg-transparent p-0 text-right text-sm font-medium focus:outline-none"
+                                                    style={{ color: theme.palette.text }}
+                                                />
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditingCapacity(true)}
+                                                    className="flex items-center gap-1 text-sm font-medium transition-colors hover:opacity-70"
+                                                    style={theme.textPrimary}
+                                                >
+                                                    <span>{formData.max_attendees ? formData.max_attendees.toLocaleString() : "Unlimited"}</span>
+                                                    <Pencil className="h-3 w-3" style={theme.textMuted} />
+                                                </button>
                                             )}
                                         </div>
-                                        <p className="absolute bottom-0 inset-x-0 bg-black/40 backdrop-blur-md py-1.5 text-center text-[10px] font-black uppercase tracking-widest text-white">
-                                            {preset.label}
-                                        </p>
-                                    </button>
-                                ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Submit Button */}
+                            <div className="pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={!isFormValid || isSubmitting}
+                                    className={cn(
+                                        "w-full rounded-2xl py-5 text-base font-semibold shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] hover:shadow-xl",
+                                        (!isFormValid || isSubmitting) && "opacity-50 cursor-not-allowed hover:scale-100"
+                                    )}
+                                    style={theme.btnPrimary}
+                                >
+                                    {isSubmitting ? (
+                                        <Loader2 className="mr-2 h-5 w-5 animate-spin inline" />
+                                    ) : submitSuccess ? (
+                                        <span className="flex items-center justify-center gap-2"><Check className="h-5 w-5" /> Event Created!</span>
+                                    ) : (
+                                        "Create Event"
+                                    )}
+                                </button>
                             </div>
                         </div>
                     </div>
-                )
-            }
-        </div >
+                </form>
+            </div>
+        </div>
     );
 }

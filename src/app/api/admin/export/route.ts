@@ -48,7 +48,8 @@ export async function GET(req: NextRequest) {
         
         // Map data to rows
         const rows = registrations.map(reg => {
-            const eventTitle = reg.events && !Array.isArray(reg.events) ? reg.events.title : 'Unknown Event';
+            const events = reg.events as { title: string } | { title: string }[] | null;
+            const eventTitle = events && !Array.isArray(events) ? events.title : 'Unknown Event';
             // Escape quotes in data by replacing " with "" and wrap entire field in quotes if it contains commas
             const escapeField = (field: unknown) => {
                 const str = String(field || '');

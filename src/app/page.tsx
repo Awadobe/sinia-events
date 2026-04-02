@@ -1,9 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
 import { format } from "date-fns";
-import { Calendar, MapPin, ArrowRight, Clock } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Clock, Sparkles } from "lucide-react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { EventsGrid } from "@/components/events-grid";
 
 // Initialize Supabase admin client for server-side fetching
 const supabaseAdmin = createAdminClient(
@@ -17,7 +18,7 @@ async function getUpcomingEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual")
+    .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual, is_featured")
     .neq("status", "cancelled")
     .gte("date", now)
     .order("date", { ascending: true });
@@ -37,7 +38,7 @@ async function getPastEvents() {
     .neq("status", "cancelled")
     .lt("date", now)
     .order("date", { ascending: false })
-    .limit(5); // fetch 5 so we know if there are more than 4
+    .limit(5);
 
   if (error) {
     console.error("Past events fetch error:", error);
@@ -54,20 +55,6 @@ export default async function HomePage() {
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const isAdmin = user?.email ? true : false;
-
-  let userLocation = null;
-  if (user && !isAdmin) {
-      const { data: profile } = await supabase.from("profiles").select("location").eq("id", user.id).single();
-      if (profile?.location) {
-          userLocation = profile.location.toLowerCase();
-      }
-  }
-
-  // Determine which events are "near me"
-  const nearMeEvents = userLocation 
-      ? upcomingEvents.filter(e => !e.is_virtual && e.location?.toLowerCase().includes(userLocation))
-      : [];
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
@@ -84,163 +71,126 @@ export default async function HomePage() {
             <div className="hidden md:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
               By Christex Foundation
             </div>
-            
-            {user ? (
-              <Link href={isAdmin ? "/admin/events" : "/profile"} className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                {isAdmin ? "Admin" : "My Profile"}
-              </Link>
-            ) : (
-              <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                Log In
-              </Link>
-            )}
 
-            {isAdmin ? (
-              <Link
-                href="/admin/events/new"
-                className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-colors"
-              >
-                Create Event
-              </Link>
-            ) : (
-              <Link
-                href={user ? "/profile" : "/login"}
-                className="rounded-full bg-primary/10 text-primary px-4 py-2 text-sm font-semibold shadow-sm hover:bg-primary/20 transition-colors"
-              >
-                Get Alerts
-              </Link>
-            )}
+            <a
+              href="#upcoming-events"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors hidden sm:block"
+            >
+              Explore Events ↗
+            </a>
+
+            <Link
+              href="/events/new"
+              className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
+            >
+              + Create Event
+            </Link>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="mx-auto max-w-6xl px-6 py-20 lg:py-28">
-        <div className="max-w-2xl">
-          <h1 className="text-4xl sm:text-6xl font-semibold tracking-tight text-zinc-900 leading-[1.1]">
-            Discover tech events. <br className="hidden sm:block" /> Learn and connect.
-          </h1>
-          <p className="mt-6 text-lg text-zinc-500 max-w-xl leading-relaxed">
-            Join our community events in Sierra Leone and online. Register for workshops, meetups, and hackathons hosted by Christex Foundation.
-          </p>
+      {/* Hero Section — Two Column */}
+      <section className="mx-auto max-w-6xl px-6 py-16 lg:py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+          {/* Left: Text + CTAs */}
+          <div className="max-w-xl">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-900 leading-[1.1]">
+              Discover tech events. <br className="hidden sm:block" /> Learn and connect.
+            </h1>
+            <p className="mt-6 text-lg text-zinc-500 max-w-xl leading-relaxed">
+              Join community events in Sierra Leone and online. Register for workshops, meetups, and hackathons — or create your own and share them with the world.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href="#upcoming-events"
+                className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-all hover:shadow-md"
+              >
+                Explore Events
+                <ArrowRight className="h-4 w-4" />
+              </a>
+              <Link
+                href="/events/new"
+                className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition-all hover:shadow-md"
+              >
+                <Sparkles className="h-4 w-4" />
+                Create an Event
+              </Link>
+            </div>
+          </div>
+
+          {/* Right: Decorative Illustration (CSS-based floating cards) */}
+          <div className="hidden lg:block relative" aria-hidden="true">
+            <div className="relative h-[420px] w-full">
+              {/* Background glow */}
+              <div className="absolute inset-0 rounded-[3rem] bg-gradient-to-br from-amber-50 via-rose-50 to-violet-50 opacity-80" />
+              
+              {/* Floating card 1 — Event preview */}
+              <div className="absolute top-8 left-8 w-[260px] bg-white rounded-3xl shadow-xl border border-black/5 p-5 transform rotate-[-3deg] hover:rotate-0 transition-transform duration-500">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs font-bold">
+                    <Calendar className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900">Tech Meetup</div>
+                    <div className="text-xs text-zinc-400">Freetown, SL</div>
+                  </div>
+                </div>
+                <div className="h-24 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                  <span className="text-3xl">🚀</span>
+                </div>
+              </div>
+
+              {/* Floating card 2 — Calendar widget */}
+              <div className="absolute top-4 right-6 w-[180px] bg-white rounded-2xl shadow-lg border border-black/5 p-4 transform rotate-[4deg] hover:rotate-0 transition-transform duration-500">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Upcoming</div>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">15</div>
+                    <div className="text-xs text-zinc-600 font-medium">Hackathon</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 text-xs font-bold">22</div>
+                    <div className="text-xs text-zinc-600 font-medium">Workshop</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 text-xs font-bold">28</div>
+                    <div className="text-xs text-zinc-600 font-medium">Bootcamp</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating card 3 — Community badge */}
+              <div className="absolute bottom-12 left-16 w-[220px] bg-white rounded-2xl shadow-lg border border-black/5 p-4 transform rotate-[2deg] hover:rotate-0 transition-transform duration-500">
+                <div className="flex items-center gap-3">
+                  <div className="flex -space-x-2">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 border-2 border-white" />
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-sky-400 to-blue-500 border-2 border-white" />
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 border-2 border-white" />
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold">+5</div>
+                  </div>
+                  <div>
+                    <div className="text-sm font-semibold text-zinc-900">Community</div>
+                    <div className="text-xs text-emerald-500 font-medium">Join 200+ members</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Floating card 4 — Location pin */}
+              <div className="absolute bottom-6 right-12 bg-white rounded-xl shadow-md border border-black/5 px-4 py-2.5 flex items-center gap-2 transform rotate-[-2deg] hover:rotate-0 transition-transform duration-500">
+                <MapPin className="h-4 w-4 text-rose-500" />
+                <span className="text-sm font-medium text-zinc-700">Sierra Leone & Online</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Upcoming Events Grid */}
-      <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-             <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
-             {userLocation && nearMeEvents.length > 0 && (
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-100 flex items-center gap-1 rounded-full px-2.5 py-1">
-                   <MapPin className="h-3 w-3" />
-                   Near Me
-                </span>
-             )}
-          </div>
-          {upcomingEvents.length > 0 && (
-            <span className="text-sm font-medium text-zinc-400 bg-white border border-black/5 rounded-full px-3 py-1 shadow-sm">
-              {upcomingEvents.length} event{upcomingEvents.length === 1 ? "" : "s"}
-            </span>
-          )}
+      {/* Upcoming Events — Searchable & Filterable */}
+      <section id="upcoming-events" className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
         </div>
-
-        {upcomingEvents.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 bg-white/50 border border-black/5 rounded-[2rem]">
-            <div className="h-20 w-20 rounded-3xl bg-zinc-100 flex items-center justify-center mb-6 shadow-none">
-              <Calendar className="h-8 w-8 text-zinc-300" />
-            </div>
-            <h3 className="text-xl font-semibold text-zinc-800 mb-2">No upcoming events</h3>
-            <p className="text-sm text-zinc-500 max-w-sm text-center">
-              We&apos;re currently planning our next activities. Check back later or follow our social channels for updates.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {upcomingEvents.map((event) => (
-              <Link
-                href={`/events/${event.slug}`}
-                key={event.id}
-                className="group flex flex-col bg-white rounded-[2rem] border border-black/5 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300"
-              >
-                {/* Cover Image Area */}
-                <div className="relative aspect-[4/3] w-full bg-zinc-100 overflow-hidden">
-                  {event.image_url ? (
-                    <Image
-                      src={event.image_url}
-                      alt={event.title}
-                      fill
-                      className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      unoptimized
-                    />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Calendar className="h-10 w-10 text-zinc-300" />
-                    </div>
-                  )}
-
-                  {/* Floating Date Badge */}
-                  <div className="absolute top-4 left-4 bg-white/95 backdrop-blur shadow-sm rounded-2xl px-3 py-2 flex flex-col items-center justify-center min-w-[3.5rem] text-center border border-black/5">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 leading-none mb-1">
-                      {format(new Date(event.date), "MMM")}
-                    </span>
-                    <span className="text-lg font-bold text-zinc-900 leading-none">
-                      {format(new Date(event.date), "d")}
-                    </span>
-                  </div>
-
-                  {/* Near Me Badge & Event Type */}
-                  <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
-                    {userLocation && event.location?.toLowerCase().includes(userLocation) && (
-                      <span className="bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full flex items-center gap-1 shadow-sm">
-                        <MapPin className="h-3 w-3" /> Near Me
-                      </span>
-                    )}
-                    {event.event_type && (
-                      <span className="bg-black/40 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
-                        {event.event_type}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Content Area */}
-                <div className="p-6 flex-grow flex flex-col">
-                  <h3 className="text-lg font-semibold text-zinc-900 leading-snug line-clamp-2 mb-4 group-hover:text-zinc-600 transition-colors">
-                    {event.title}
-                  </h3>
-
-                  <div className="mt-auto space-y-2.5">
-                    <div className="flex items-center gap-2.5 text-sm text-zinc-500">
-                      <Calendar className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="truncate">
-                        {format(new Date(event.date), "h:mm a")}
-                        {event.end_date && ` - ${format(new Date(event.end_date), "h:mm a")}`}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 text-sm text-zinc-500">
-                      <MapPin className="h-4 w-4 shrink-0 text-zinc-400" />
-                      <span className="truncate">
-                        {event.is_virtual ? "Virtual Event" : event.location || "Location TBD"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Footer / CTA */}
-                  <div className="mt-6 pt-5 border-t border-black/5 flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                      Free Registration
-                    </span>
-                    <div className="h-8 w-8 rounded-full bg-zinc-50 text-zinc-400 flex items-center justify-center group-hover:bg-zinc-900 group-hover:text-white transition-colors">
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+        <EventsGrid events={upcomingEvents} userLocation={null} />
       </section>
 
       {/* Past Events - Horizontal Scroll */}

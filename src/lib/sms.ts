@@ -38,7 +38,8 @@ export async function sendSmsNotification(to: string, message: string) {
  * Utility to notify all subscribed users when a new event goes live.
  * This should be called from `src/app/admin/events/new/page.tsx` after successful insertion.
  */
-export async function notifySubscribersOfNewEvent(eventTitle: string, eventUrl: string) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function notifySubscribersOfNewEvent(eventTitle: string, _eventUrl: string) {
     // 1. Fetch all profiles where opt_in_notifications is true
     // const { data: subscribers } = await supabaseAdmin.from('profiles').select('phone').eq('opt_in_notifications', true).not('phone', 'is', null);
     
