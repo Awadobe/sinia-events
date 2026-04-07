@@ -61,10 +61,9 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
-  // Event creation and management require any logged-in user
-  // If not logged in, send them to the /login page (magic link)
+  // Event creation requires a logged-in user
   if (
-    (pathname === '/events/new' || pathname.includes('/manage')) &&
+    pathname === '/events/new' &&
     !user
   ) {
     const url = request.nextUrl.clone();

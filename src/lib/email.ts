@@ -223,3 +223,242 @@ export async function sendOrganizerNotificationEmail({
     return { success: false, error: err };
   }
 }
+
+/* ───── Event Reminder Email ───── */
+interface SendReminderEmailProps {
+  toEmail: string;
+  attendeeName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventLocation: string | null;
+  eventSlug: string;
+  reminderType: '24h' | '1h';
+  organizerName?: string;
+}
+
+export async function sendReminderEmail({
+  toEmail,
+  attendeeName,
+  eventTitle,
+  eventDate,
+  eventLocation,
+  eventSlug,
+  reminderType,
+  organizerName,
+}: SendReminderEmailProps) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY is not set. Skipping reminder.');
+    return { success: true, skipped: true };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const eventUrl = `${baseUrl}/events/${eventSlug}`;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");
+  const timeLabel = reminderType === '1h' ? 'starts in 1 hour' : 'is tomorrow';
+  const emoji = reminderType === '1h' ? '⏰' : '📅';
+
+  const subject = `${emoji} Reminder: ${eventTitle} ${timeLabel}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [toEmail],
+      subject,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background-color: #ffffff;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #f4f4f5;">
+            <!-- Header -->
+            <tr>
+              <td style="padding: 32px 32px 0;">
+                <p style="margin: 0 0 6px; font-size: 14px; color: #a1a1aa; font-weight: 600;">
+                  ${emoji} EVENT REMINDER
+                </p>
+                <h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #18181b; line-height: 1.3;">
+                  ${eventTitle}
+                </h1>
+                ${organizerName ? `<p style="margin: 6px 0 0; font-size: 13px; color: #a1a1aa;">by ${organizerName}</p>` : ''}
+              </td>
+            </tr>
+
+            <!-- Reminder message -->
+            <tr>
+              <td style="padding: 20px 32px;">
+                <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px;">
+                  <p style="margin: 0; font-size: 14px; color: #166534; font-weight: 600;">
+                    Hey ${attendeeName.split(' ')[0]}! Your event ${timeLabel}. ${reminderType === '1h' ? "Time to get ready! 🚀" : "Don't forget to add it to your calendar."}
+                  </p>
+                </div>
+              </td>
+            </tr>
+
+            <!-- Event details -->
+            <tr>
+              <td style="padding: 0 32px 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px; padding: 16px;">
+                  <tr>
+                    <td style="padding: 16px;">
+                      <p style="margin: 0 0 8px; font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📅 ${formattedDate}</p>
+                      ${eventLocation ? `<p style="margin: 0; font-size: 13px; color: #a1a1aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">📍 ${eventLocation}</p>` : ''}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- Button -->
+            <tr>
+              <td style="padding: 0 32px 28px;">
+                <a href="${eventUrl}" style="display: block; background-color: #18181b; color: #ffffff; text-decoration: none; text-align: center; padding: 14px 24px; border-radius: 12px; font-size: 14px; font-weight: 700;">
+                  View Event Details
+                </a>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 20px 32px 28px; border-top: 1px solid #f4f4f5;">
+                <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-align: center;">
+                  Powered by Radius
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Reminder email error:', error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    console.error('❌ Failed to send reminder email:', err);
+    return { success: false, error: err };
+  }
+}
+
+/* ───── Event Invite Email ───── */
+interface SendInviteEmailProps {
+  toEmail: string;
+  attendeeName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventLocation: string | null;
+  eventSlug: string;
+  organizerName?: string;
+}
+
+export async function sendInviteEmail({
+  toEmail,
+  attendeeName,
+  eventTitle,
+  eventDate,
+  eventLocation,
+  eventSlug,
+  organizerName,
+}: SendInviteEmailProps) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
+    return { success: true, skipped: true };
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const eventUrl = `${baseUrl}/events/${eventSlug}`;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
+  const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");
+  const firstName = attendeeName.split(' ')[0];
+
+  const subject = `🎉 You're invited to ${eventTitle}`;
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [toEmail],
+      subject,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; background-color: #ffffff;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #f4f4f5;">
+            <!-- Header -->
+            <tr>
+              <td style="padding: 32px 32px 0;">
+                <p style="margin: 0 0 6px; font-size: 14px; color: #a1a1aa; font-weight: 600;">
+                  🎉 YOU'RE INVITED
+                </p>
+                <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #18181b; line-height: 1.3;">
+                  ${eventTitle}
+                </h1>
+                ${organizerName ? `<p style="margin: 8px 0 0; font-size: 13px; color: #a1a1aa;">Hosted by <strong style="color: #52525b;">${organizerName}</strong></p>` : ''}
+              </td>
+            </tr>
+
+            <!-- Invite message -->
+            <tr>
+              <td style="padding: 20px 32px;">
+                <p style="margin: 0; font-size: 15px; color: #3f3f46; line-height: 1.6;">
+                  Hey ${firstName}! You've been personally invited to join this event. We'd love to see you there!
+                </p>
+              </td>
+            </tr>
+
+            <!-- Event details -->
+            <tr>
+              <td style="padding: 0 32px 24px;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border-radius: 12px;">
+                  <tr>
+                    <td style="padding: 16px;">
+                      <p style="margin: 0 0 8px; font-size: 14px; color: #52525b;">
+                        📅 <strong>${formattedDate}</strong>
+                      </p>
+                      ${eventLocation ? `<p style="margin: 0; font-size: 14px; color: #52525b;">📍 <strong>${eventLocation}</strong></p>` : ''}
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
+            <!-- CTA Button -->
+            <tr>
+              <td style="padding: 0 32px 12px;">
+                <a href="${eventUrl}" style="display: block; background-color: #6366f1; color: #ffffff; text-decoration: none; text-align: center; padding: 16px 24px; border-radius: 12px; font-size: 15px; font-weight: 700;">
+                  Register Now →
+                </a>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding: 0 32px 28px;">
+                <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-align: center;">
+                  Click the button above to view details and register
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="padding: 20px 32px 28px; border-top: 1px solid #f4f4f5;">
+                <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-align: center;">
+                  Powered by Radius
+                </p>
+              </td>
+            </tr>
+          </table>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Invite email error:', error);
+      return { success: false, error };
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    console.error('❌ Failed to send invite email:', err);
+    return { success: false, error: err };
+  }
+}

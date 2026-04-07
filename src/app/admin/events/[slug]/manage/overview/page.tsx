@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
-import { Users, UserCheck, Clock, QrCode, ArrowRight, Loader2 } from "lucide-react";
+import { Users, UserCheck, Clock, QrCode, ArrowRight, Loader2, Check, TrendingUp, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Stats = {
@@ -29,6 +29,7 @@ export default function OverviewPage() {
     const slug = params.slug as string;
     const [stats, setStats] = useState<Stats | null>(null);
     const [recent, setRecent] = useState<Registration[]>([]);
+    const [dailyBreakdown, setDailyBreakdown] = useState<{ date: string; count: number }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -38,6 +39,7 @@ export default function OverviewPage() {
                 const data = await res.json();
                 setStats(data.stats);
                 setRecent(data.registrations.slice(0, 5));
+                setDailyBreakdown(data.dailyBreakdown || []);
             }
             setLoading(false);
         }
@@ -79,12 +81,101 @@ export default function OverviewPage() {
                 ))}
             </div>
 
+            {/* Analytics Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Registration Trend Chart */}
+                <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                        <BarChart3 className="h-4 w-4 text-zinc-400" />
+                        <h3 className="text-sm font-semibold text-zinc-900">Registrations — Last 7 Days</h3>
+                    </div>
+                    <div className="flex items-end gap-1.5 h-28">
+                        {dailyBreakdown.map((day, i) => {
+                            const maxCount = Math.max(...dailyBreakdown.map(d => d.count), 1);
+                            const heightPct = Math.max((day.count / maxCount) * 100, 4);
+                            const dayLabel = new Date(day.date + 'T12:00:00').toLocaleDateString('en', { weekday: 'short' });
+                            return (
+                                <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                                    <span className="text-[10px] font-bold text-zinc-500">{day.count || ''}</span>
+                                    <div
+                                        className="w-full rounded-t-md transition-all duration-500"
+                                        style={{
+                                            height: `${heightPct}%`,
+                                            backgroundColor: day.count > 0 ? '#6366f1' : '#f4f4f5',
+                                            minHeight: '4px',
+                                        }}
+                                    />
+                                    <span className="text-[9px] font-medium text-zinc-400">{dayLabel}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Check-in Rate + Quick Stats */}
+                <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-4">
+                        <TrendingUp className="h-4 w-4 text-zinc-400" />
+                        <h3 className="text-sm font-semibold text-zinc-900">Event Insights</h3>
+                    </div>
+                    <div className="space-y-4">
+                        {/* Check-in Rate */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-zinc-500">Check-in Rate</span>
+                                <span className="text-sm font-bold text-zinc-900">
+                                    {stats?.confirmed ? Math.round((stats.checkedIn / stats.confirmed) * 100) : 0}%
+                                </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-emerald-500 transition-all duration-700"
+                                    style={{ width: `${stats?.confirmed ? (stats.checkedIn / stats.confirmed) * 100 : 0}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Approval Rate */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium text-zinc-500">Approval Rate</span>
+                                <span className="text-sm font-bold text-zinc-900">
+                                    {stats?.total ? Math.round((stats.confirmed / stats.total) * 100) : 0}%
+                                </span>
+                            </div>
+                            <div className="h-2 rounded-full bg-zinc-100 overflow-hidden">
+                                <div
+                                    className="h-full rounded-full bg-indigo-500 transition-all duration-700"
+                                    style={{ width: `${stats?.total ? (stats.confirmed / stats.total) * 100 : 0}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Quick totals */}
+                        <div className="grid grid-cols-3 gap-3 pt-2 border-t border-zinc-50">
+                            <div className="text-center">
+                                <div className="text-lg font-bold text-zinc-900">{stats?.total || 0}</div>
+                                <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Total</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg font-bold text-emerald-600">{stats?.checkedIn || 0}</div>
+                                <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Checked In</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-lg font-bold text-amber-500">{stats?.pending || 0}</div>
+                                <div className="text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Pending</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Recent Registrations */}
             <div className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-50">
                     <h3 className="text-sm font-semibold text-zinc-900">Recent Registrations</h3>
                     <Link
-                        href={`/admin/events/${slug}/manage/guests`}
+                        href={`/events/${slug}/manage/guests`}
                         className="text-xs font-medium text-zinc-400 hover:text-zinc-900 flex items-center gap-1 transition-colors"
                     >
                         View all <ArrowRight className="h-3 w-3" />
@@ -100,8 +191,15 @@ export default function OverviewPage() {
                     <div className="divide-y divide-zinc-50">
                         {recent.map((reg) => (
                             <div key={reg.id} className="flex items-center gap-4 px-5 py-3.5">
-                                <div className="h-8 w-8 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                                    {reg.name.charAt(0).toUpperCase()}
+                                <div className="relative">
+                                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-zinc-200 to-zinc-300 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                                        {reg.name.charAt(0).toUpperCase()}
+                                    </div>
+                                    {reg.checked_in && (
+                                        <div className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center">
+                                            <Check className="h-2 w-2 text-white" />
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <div className="text-sm font-medium text-zinc-900 truncate">{reg.name}</div>
@@ -113,7 +211,7 @@ export default function OverviewPage() {
                                     reg.status === "pending" ? "bg-amber-50 text-amber-600" :
                                     "bg-red-50 text-red-500"
                                 )}>
-                                    {reg.status}
+                                    {reg.checked_in ? "checked in" : reg.status}
                                 </span>
                                 <div className="text-xs text-zinc-300 flex-shrink-0">
                                     {format(new Date(reg.created_at), "MMM d")}

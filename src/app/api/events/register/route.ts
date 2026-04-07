@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { sendConfirmationEmail, sendOrganizerNotificationEmail } from '@/lib/email';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -63,10 +64,10 @@ export async function POST(req: NextRequest) {
         // Extract organizer info for email
         const organizer = event.organizer as { email?: string; name?: string; org_name?: string } | null;
 
-        // Send confirmation email via Resend
-        // Fire-and-forget so we don't slow down the response
-        import('@/lib/email').then(({ sendConfirmationEmail }) => {
-            sendConfirmationEmail({
+        // Send confirmation email via Resend (awaited for proper error logging)
+        try {
+            console.log('📧 Sending confirmation email to:', email);
+            const emailResult = await sendConfirmationEmail({
                 toEmail: email,
                 attendeeName: name,
                 eventTitle: event.title,
@@ -76,10 +77,17 @@ export async function POST(req: NextRequest) {
                 status: status as 'confirmed' | 'pending',
                 registrationId: registration.id,
                 organizerName: organizer?.org_name || organizer?.name || undefined,
-            }).catch(err => console.error('Failed to send async email:', err));
-        });
+            });
+            if (emailResult.success) {
+                console.log('✅ Confirmation email sent successfully');
+            } else {
+                console.error('❌ Email send failed:', emailResult.error);
+            }
+        } catch (emailErr) {
+            console.error('❌ Email send exception:', emailErr);
+        }
 
-        // Sync to Airtable
+        // Sync to Airtable (fire-and-forget)
         import('@/lib/airtable').then(({ syncRegistrationToAirtable }) => {
             syncRegistrationToAirtable({
                 Name: name,
@@ -93,8 +101,8 @@ export async function POST(req: NextRequest) {
 
         // Notify event organizer
         if (organizer?.email) {
-            import('@/lib/email').then(({ sendOrganizerNotificationEmail }) => {
-                sendOrganizerNotificationEmail({
+            try {
+                await sendOrganizerNotificationEmail({
                     organizerEmail: organizer.email!,
                     organizerName: organizer.name || organizer.org_name || '',
                     attendeeName: name,
@@ -102,9 +110,22 @@ export async function POST(req: NextRequest) {
                     eventTitle: event.title,
                     eventSlug: event.slug,
                     registrationStatus: status as 'confirmed' | 'pending',
-                }).catch(err => console.error('Failed to send organizer notification:', err));
-            });
+                });
+            } catch (orgErr) {
+                console.error('❌ Organizer notification failed:', orgErr);
+            }
         }
+
+        // Auto-match invites — mark as accepted if this email was invited
+        supabaseAdmin
+            .from('invites')
+            .update({ status: 'accepted', accepted_at: new Date().toISOString() })
+            .eq('event_id', event_id)
+            .ilike('email', email)
+            .eq('status', 'sent')
+            .then(({ error: inviteErr }) => {
+                if (inviteErr) console.error('Invite match error (non-critical):', inviteErr);
+            });
 
         return NextResponse.json({
             registration,

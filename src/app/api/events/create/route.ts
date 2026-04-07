@@ -42,43 +42,28 @@ export async function POST(req: NextRequest) {
             const arrayBuffer = await coverFile.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
 
+            // Ensure the bucket exists before uploading
+            const { error: bucketError } = await supabaseAdmin.storage.createBucket('event-covers', {
+                public: true,
+                fileSizeLimit: 10485760, // 10MB
+            });
+
+            // Ignore "already exists" errors — that's fine
+            if (bucketError && !bucketError.message.includes('already exists')) {
+                console.error('❌ Bucket creation error:', bucketError);
+                // Don't fail — the bucket might already exist with a different check
+            }
+
             const { error: uploadError } = await supabaseAdmin.storage
                 .from('event-covers')
                 .upload(filePath, buffer, {
                     contentType: coverFile.type,
-                    upsert: false,
+                    upsert: true,
                 });
 
             if (uploadError) {
-                // If bucket doesn't exist, try creating it
-                if (uploadError.message.includes('not found') || uploadError.message.includes('Bucket')) {
-                    // Create the bucket
-                    const { error: bucketError } = await supabaseAdmin.storage.createBucket('event-covers', {
-                        public: true,
-                        fileSizeLimit: 10485760, // 10MB
-                    });
-
-                    if (bucketError && !bucketError.message.includes('already exists')) {
-                        console.error('❌ Bucket creation error:', bucketError);
-                        return NextResponse.json({ error: `Storage setup failed: ${bucketError.message}` }, { status: 500 });
-                    }
-
-                    // Retry upload after bucket creation
-                    const { error: retryError } = await supabaseAdmin.storage
-                        .from('event-covers')
-                        .upload(filePath, buffer, {
-                            contentType: coverFile.type,
-                            upsert: false,
-                        });
-
-                    if (retryError) {
-                        console.error('❌ Storage retry error:', retryError);
-                        return NextResponse.json({ error: `Image upload failed: ${retryError.message}` }, { status: 500 });
-                    }
-                } else {
-                    console.error('❌ Storage upload error:', uploadError);
-                    return NextResponse.json({ error: `Image upload failed: ${uploadError.message}` }, { status: 500 });
-                }
+                console.error('❌ Storage upload error:', uploadError);
+                return NextResponse.json({ error: `Image upload failed: ${uploadError.message}` }, { status: 500 });
             }
 
             const { data: { publicUrl } } = supabaseAdmin.storage

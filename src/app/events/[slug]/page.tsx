@@ -299,6 +299,7 @@ export default function PublicEventPage() {
 
     const [event, setEvent] = useState<EventData | null>(null);
     const [attendeeCount, setAttendeeCount] = useState(0);
+    const [recentAttendees, setRecentAttendees] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
@@ -330,6 +331,7 @@ export default function PublicEventPage() {
             const data = await res.json();
             setEvent(data.event);
             setAttendeeCount(data.attendee_count ?? 0);
+            setRecentAttendees(data.recent_attendees ?? []);
             setLoading(false);
 
             // Check if user already registered (from localStorage)
@@ -419,16 +421,14 @@ export default function PublicEventPage() {
                     </a>
 
                     <div className="flex items-center gap-3">
-                        {/* Manage Event — visible to logged-in users */}
-                        {isLoggedIn && (
-                            <Link
-                                href={`/events/${slug}/manage`}
-                                className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
-                            >
-                                <Settings className="h-4 w-4" />
-                                Manage
-                            </Link>
-                        )}
+                        {/* Manage Event — always visible */}
+                        <Link
+                            href={`/events/${slug}/manage`}
+                            className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
+                        >
+                            <Settings className="h-4 w-4" />
+                            Manage
+                        </Link>
 
                         {/* Share button */}
                         <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -482,30 +482,6 @@ export default function PublicEventPage() {
                             </div>
                         )}
 
-                        {/* Organizer section */}
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                                {event.organizer?.avatar_url ? (
-                                    <Image
-                                        src={event.organizer.avatar_url}
-                                        alt={organizerName}
-                                        width={40}
-                                        height={40}
-                                        className="rounded-full object-cover"
-                                        unoptimized
-                                    />
-                                ) : (
-                                    <div className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold text-sm" style={{ backgroundColor: theme.primary }}>
-                                        {organizerInitials}
-                                    </div>
-                                )}
-                                <div>
-                                    <p className="text-[11px] font-medium uppercase tracking-wider" style={{ color: theme.textMuted }}>Presented by</p>
-                                    <p className="font-semibold" style={{ color: theme.text }}>{organizerName}</p>
-                                </div>
-                            </div>
-                        </div>
-
                         {/* Hosted By card */}
                         <div className="rounded-2xl p-6" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
                             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.textMuted }}>Hosted by</p>
@@ -530,6 +506,7 @@ export default function PublicEventPage() {
                                 </div>
                             </div>
                         </div>
+
                     </div>
 
                     {/* ═══════ RIGHT COLUMN ═══════ */}
@@ -638,17 +615,44 @@ export default function PublicEventPage() {
                                 ) : (
                                     /* ── Active registration state ── */
                                     <div className="space-y-4">
-                                        <div className="flex items-center gap-2 text-sm">
-                                            <Users className="h-4 w-4" style={{ color: theme.textMuted }} />
-                                            <span style={{ color: theme.text }} className="font-medium">{attendeeCount} going</span>
-                                            {spotsLeft !== null && (
-                                                <span className={cn(
-                                                    "font-medium",
-                                                    spotsLeft <= 10 ? "text-amber-500" : ""
-                                                )} style={spotsLeft > 10 ? { color: theme.textMuted } : undefined}>
-                                                    · {spotsLeft} spots left
-                                                </span>
+                                        {/* Attendee avatars + count */}
+                                        <div className="flex items-center gap-3">
+                                            {recentAttendees.length > 0 && (
+                                                <div className="flex -space-x-2">
+                                                    {recentAttendees.slice(0, 5).map((name, i) => {
+                                                        const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f97316', '#14b8a6'];
+                                                        return (
+                                                            <div
+                                                                key={i}
+                                                                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 ring-0"
+                                                                style={{ backgroundColor: colors[i % colors.length], borderColor: theme.isDark ? theme.pageBackground : '#ffffff', zIndex: 5 - i }}
+                                                                title={name}
+                                                            >
+                                                                {name.charAt(0).toUpperCase()}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                    {attendeeCount > 5 && (
+                                                        <div
+                                                            className="h-7 w-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2"
+                                                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5', color: theme.textMuted, borderColor: theme.isDark ? theme.pageBackground : '#ffffff', zIndex: 0 }}
+                                                        >
+                                                            +{attendeeCount - 5}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             )}
+                                            <div>
+                                                <span className="text-sm font-medium" style={{ color: theme.text }}>{attendeeCount} going</span>
+                                                {spotsLeft !== null && (
+                                                    <span className={cn(
+                                                        "text-sm ml-1.5 font-medium",
+                                                        spotsLeft <= 10 ? "text-amber-500" : ""
+                                                    )} style={spotsLeft > 10 ? { color: theme.textMuted } : undefined}>
+                                                        · {spotsLeft} spots left
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
 
                                         <p className="text-sm" style={{ color: theme.textMuted }}>
@@ -710,6 +714,29 @@ export default function PublicEventPage() {
                     </div>
                 </div>
             </main>
+
+            {/* ───── Footer ───── */}
+            <footer className="border-t py-8 mt-4" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
+                <div className="mx-auto max-w-6xl px-5 flex items-center justify-center gap-3">
+                    {event.organizer?.avatar_url ? (
+                        <Image
+                            src={event.organizer.avatar_url}
+                            alt={organizerName}
+                            width={28}
+                            height={28}
+                            className="rounded-full object-cover"
+                            unoptimized
+                        />
+                    ) : (
+                        <div className="h-7 w-7 rounded-full flex items-center justify-center text-white font-bold text-[10px]" style={{ backgroundColor: theme.primary }}>
+                            {organizerInitials}
+                        </div>
+                    )}
+                    <p className="text-sm" style={{ color: theme.textMuted }}>
+                        Presented by <span className="font-semibold" style={{ color: theme.text }}>{organizerName}</span>
+                    </p>
+                </div>
+            </footer>
 
             {/* ───── Registration Modal ───── */}
             {showModal && (

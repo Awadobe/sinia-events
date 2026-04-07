@@ -39,10 +39,20 @@ export async function GET(
             .eq('event_id', data.id)
             .in('status', ['confirmed', 'pending']);
 
+        // Get recent attendee names for avatar strip (public social proof)
+        const { data: recentAttendees } = await supabaseAdmin
+            .from('registrations')
+            .select('name')
+            .eq('event_id', data.id)
+            .in('status', ['confirmed', 'pending'])
+            .order('created_at', { ascending: false })
+            .limit(8);
+
         return NextResponse.json({
             event: data,
             attendee_count: totalCount ?? 0,
             confirmed_count: confirmedCount ?? 0,
+            recent_attendees: (recentAttendees || []).map(r => r.name),
         }, { status: 200 });
     } catch (err) {
         console.error('❌ Unexpected error:', err);

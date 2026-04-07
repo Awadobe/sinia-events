@@ -45,9 +45,23 @@ export async function GET(
         const cancelled = registrations?.filter(r => r.status === 'cancelled').length || 0;
         const checkedIn = registrations?.filter(r => r.checked_in).length || 0;
 
+        // Daily registration breakdown (last 7 days) for analytics chart
+        const dailyBreakdown: { date: string; count: number }[] = [];
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date();
+            d.setDate(d.getDate() - i);
+            const dayStr = d.toISOString().split('T')[0]; // YYYY-MM-DD
+            const count = registrations?.filter(r => {
+                const regDate = new Date(r.created_at).toISOString().split('T')[0];
+                return regDate === dayStr;
+            }).length || 0;
+            dailyBreakdown.push({ date: dayStr, count });
+        }
+
         return NextResponse.json({
             registrations: registrations || [],
             stats: { total: registrations?.length || 0, confirmed, pending, cancelled, checkedIn },
+            dailyBreakdown,
         });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
