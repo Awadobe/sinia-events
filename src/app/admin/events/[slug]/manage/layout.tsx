@@ -28,6 +28,7 @@ const TABS = [
     { id: "checkin", label: "Check In", href: "checkin" },
     { id: "edit", label: "Edit", href: "edit" },
     { id: "blast", label: "Blast", href: "blast" },
+    { id: "team", label: "Team", href: "team" },
 ];
 
 export default function ManageEventLayout({

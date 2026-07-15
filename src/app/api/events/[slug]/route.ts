@@ -18,7 +18,7 @@ export async function GET(
 
         const { data, error } = await supabaseAdmin
             .from('events')
-            .select('*, organizer:profiles!organizer_id(id, org_name, name, avatar_url)')
+            .select('*, host:hosts(id, type, name, slug, logo_url), organizer:profiles!organizer_id(id, org_name, name, avatar_url)')
             .eq('slug', slug)
             .single();
 

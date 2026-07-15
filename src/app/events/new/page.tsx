@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import {
     ArrowLeft,
     Loader2,
@@ -139,6 +140,8 @@ type EventFormData = {
     require_approval: boolean;
 };
 
+type HostOption = { id: string; type: "individual" | "organization"; name: string; slug: string };
+
 const initialFormData: EventFormData = {
     title: "",
     description: "",
@@ -178,6 +181,20 @@ export default function CreateEventPage() {
     const [themeFont, setThemeFont] = useState("standard");
     const [themeMode, setThemeMode] = useState("light");
     const [showTheme, setShowTheme] = useState(false);
+    const [hosts, setHosts] = useState<HostOption[]>([]);
+    const [selectedHostId, setSelectedHostId] = useState("");
+
+    useEffect(() => {
+        fetch("/api/hosts")
+            .then((response) => response.ok ? response.json() : Promise.reject())
+            .then((result) => {
+                const availableHosts = (result.hosts || []) as HostOption[];
+                setHosts(availableHosts);
+                const personal = availableHosts.find((host) => host.type === "individual");
+                setSelectedHostId(personal?.id || availableHosts[0]?.id || "");
+            })
+            .catch(() => toast.error("Could not load your organizer profiles."));
+    }, []);
 
     const theme = useTheme(themeColor, themeMode, themeStyle, themeFont);
 
@@ -218,6 +235,7 @@ export default function CreateEventPage() {
             status: formData.status, slug: formData.slug,
             theme_style: themeStyle, theme_color: themeColor, theme_font: themeFont, theme_mode: themeMode,
             require_approval: formData.require_approval,
+            host_id: selectedHostId,
         };
         const submitData = new FormData();
         submitData.append("payload", JSON.stringify(payload));
@@ -236,7 +254,10 @@ export default function CreateEventPage() {
         setTimeout(() => {
             setSubmitSuccess(false); setFormData(initialFormData);
             setCoverImage(null); setCoverFile(null); setCoverSource(null);
-            router.push(`/events/${result.event.slug}`);
+            const selectedHost = hosts.find((host) => host.id === selectedHostId);
+            router.push(selectedHost
+                ? `/hosts/${selectedHost.slug}/events/${result.event.public_slug}`
+                : `/events/${result.event.slug}`);
         }, 1200);
     };
 
@@ -346,8 +367,16 @@ export default function CreateEventPage() {
                         {/* RIGHT */}
                         <div className="space-y-6">
                             <div>
+                                <label htmlFor="host" className="text-xs font-bold uppercase tracking-widest" style={theme.textMuted}>Hosted by</label>
+                                <select id="host" value={selectedHostId} onChange={(event) => setSelectedHostId(event.target.value)} required className="mt-2 w-full rounded-xl border px-4 py-3 text-sm font-medium" style={theme.inputStyle}>
+                                    {hosts.map((host) => <option key={host.id} value={host.id}>{host.name} · {host.type === "organization" ? "Organization" : "Myself"}</option>)}
+                                </select>
+                                <Link href="/organizer" className="mt-2 inline-block text-xs underline" style={theme.textMuted}>Create or manage an organization</Link>
+                            </div>
+
+                            <div>
                                 <input id="title" type="text" placeholder="Event Name" value={formData.title} onChange={(e) => updateField("title", e.target.value)} className="w-full border-none bg-transparent text-3xl sm:text-4xl font-semibold tracking-tight outline-none transition-colors duration-300" style={{ color: theme.palette.text, lineHeight: 1.2, caretColor: theme.palette.accent }} />
-                                {formData.slug && <p className="mt-2 text-xs font-mono" style={theme.textMuted}>radius.events/{formData.slug}</p>}
+                                {formData.slug && <p className="mt-2 text-xs" style={theme.textMuted}>Your event link will be generated automatically from this title.</p>}
                             </div>
 
                             <div className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300" style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}>

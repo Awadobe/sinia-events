@@ -18,7 +18,7 @@ async function getUpcomingEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual, is_featured")
+    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, is_featured, host:hosts(slug)")
     .neq("status", "cancelled")
     .gte("date", now)
     .order("date", { ascending: true });
@@ -27,14 +27,17 @@ async function getUpcomingEvents() {
     console.error("Upcoming events fetch error:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((event) => ({
+    ...event,
+    host: Array.isArray(event.host) ? event.host[0] || null : event.host,
+  }));
 }
 
 async function getPastEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual")
+    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, host:hosts(slug)")
     .neq("status", "cancelled")
     .lt("date", now)
     .order("date", { ascending: false })
@@ -44,7 +47,10 @@ async function getPastEvents() {
     console.error("Past events fetch error:", error);
     return [];
   }
-  return data || [];
+  return (data || []).map((event) => ({
+    ...event,
+    host: Array.isArray(event.host) ? event.host[0] || null : event.host,
+  }));
 }
 
 export default async function HomePage() {
@@ -55,9 +61,6 @@ export default async function HomePage() {
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const { data: staff } = user?.email
-    ? await supabase.from("staff_allowlist").select("id").eq("email", user.email).maybeSingle()
-    : { data: null };
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
@@ -84,11 +87,9 @@ export default async function HomePage() {
 
             {user ? (
               <>
-                {staff && (
-                  <Link href="/admin/events" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                    Dashboard
-                  </Link>
-                )}
+                <Link href="/organizer" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                  Organizer dashboard
+                </Link>
                 <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
                   My profile
                 </Link>
@@ -249,7 +250,9 @@ export default async function HomePage() {
           <div className="flex gap-5 overflow-x-auto pb-4 -mx-1 px-1 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
             {pastEvents.map((event) => (
               <Link
-                href={`/events/${event.slug}`}
+                href={event.host?.slug && event.public_slug
+                  ? `/hosts/${event.host.slug}/events/${event.public_slug}`
+                  : `/events/${event.slug}`}
                 key={event.id}
                 className="group flex-shrink-0 w-[280px] sm:w-[300px] flex flex-col bg-white rounded-[2rem] border border-black/5 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 snap-start"
               >

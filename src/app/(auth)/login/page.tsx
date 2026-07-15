@@ -21,7 +21,7 @@ export default function UserLoginPage() {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
                 if (event === "SIGNED_IN" && session) {
-                    router.replace("/events/new");
+                    router.replace("/organizer");
                 }
             }
         );
@@ -29,7 +29,7 @@ export default function UserLoginPage() {
         // Also check existing session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                router.replace("/events/new");
+                router.replace("/organizer");
             }
         });
 
@@ -46,7 +46,7 @@ export default function UserLoginPage() {
                 email,
                 options: {
                     shouldCreateUser: true,
-                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/organizer`,
                 },
             });
 

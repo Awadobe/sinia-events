@@ -30,6 +30,14 @@ type OrganizerData = {
     avatar_url: string | null;
 };
 
+type HostData = {
+    id: string;
+    type: "individual" | "organization";
+    name: string;
+    slug: string;
+    logo_url: string | null;
+};
+
 type EventData = {
     id: string;
     title: string;
@@ -50,6 +58,7 @@ type EventData = {
     theme_mode: string;
     require_approval: boolean;
     organizer: OrganizerData | null;
+    host: HostData | null;
 };
 
 /* ───── Helper: Generate Google Calendar URL ───── */
@@ -99,19 +108,19 @@ function downloadIcal(event: EventData) {
 
 /* ───── Share helpers ───── */
 function shareWhatsApp(event: EventData) {
-    const url = `${window.location.origin}/events/${event.slug}`;
+    const url = window.location.href.split("?")[0];
     const text = `Check out this event: *${event.title}*\n📅 ${format(new Date(event.date), "EEE, MMM d · h:mm a")}\n📍 ${event.location || "Online"}\n\n${url}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, "_blank");
 }
 
 function shareTwitter(event: EventData) {
-    const url = `${window.location.origin}/events/${event.slug}`;
+    const url = window.location.href.split("?")[0];
     const text = `${event.title} — ${format(new Date(event.date), "MMM d")}`;
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
 }
 
-function shareLinkedIn(event: EventData) {
-    const url = `${window.location.origin}/events/${event.slug}`;
+function shareLinkedIn() {
+    const url = window.location.href.split("?")[0];
     window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, "_blank");
 }
 
@@ -122,13 +131,14 @@ async function copyLink(slug: string) {
 }
 
 /* ───── Organizer display name helper ───── */
-function getOrganizerName(organizer: OrganizerData | null): string {
+function getOrganizerName(organizer: OrganizerData | null, host?: HostData | null): string {
+    if (host?.name) return host.name;
     if (!organizer) return "Radius Events";
     return organizer.org_name || organizer.name || "Radius Events";
 }
 
-function getOrganizerInitials(organizer: OrganizerData | null): string {
-    const name = getOrganizerName(organizer);
+function getOrganizerInitials(organizer: OrganizerData | null, host?: HostData | null): string {
+    const name = getOrganizerName(organizer, host);
     return name
         .split(" ")
         .map((w) => w[0])
@@ -387,8 +397,9 @@ export default function PublicEventPage() {
     const isPast = eventDate.getTime() < Date.now();
     const spotsLeft = event.max_attendees ? event.max_attendees - attendeeCount : null;
     const isFull = spotsLeft !== null && spotsLeft <= 0;
-    const organizerName = getOrganizerName(event.organizer);
-    const organizerInitials = getOrganizerInitials(event.organizer);
+    const organizerName = getOrganizerName(event.organizer, event.host);
+    const organizerInitials = getOrganizerInitials(event.organizer, event.host);
+    const organizerImage = event.host?.logo_url || event.organizer?.avatar_url;
 
     /* ───── Date display helpers ───── */
     const monthAbbr = format(eventDate, "MMM").toUpperCase();
@@ -445,7 +456,7 @@ export default function PublicEventPage() {
                                     <button onClick={() => { shareTwitter(event); setShowShare(false); }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm hover:bg-zinc-50 flex items-center gap-2.5 transition-colors">
                                         𝕏 Twitter / X
                                     </button>
-                                    <button onClick={() => { shareLinkedIn(event); setShowShare(false); }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm hover:bg-zinc-50 flex items-center gap-2.5 transition-colors">
+                                    <button onClick={() => { shareLinkedIn(); setShowShare(false); }} className="w-full rounded-xl px-3 py-2.5 text-left text-sm hover:bg-zinc-50 flex items-center gap-2.5 transition-colors">
                                         💼 LinkedIn
                                     </button>
                                     <hr className="my-1 border-black/5" />
@@ -483,9 +494,9 @@ export default function PublicEventPage() {
                         <div className="rounded-2xl p-6" style={{ backgroundColor: theme.cardBackground, border: `1px solid ${theme.cardBorder}` }}>
                             <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.textMuted }}>Hosted by</p>
                             <div className="flex items-center gap-3">
-                                {event.organizer?.avatar_url ? (
+                                {organizerImage ? (
                                     <Image
-                                        src={event.organizer.avatar_url}
+                                        src={organizerImage}
                                         alt={organizerName}
                                         width={44}
                                         height={44}
@@ -690,9 +701,9 @@ export default function PublicEventPage() {
             {/* ───── Footer ───── */}
             <footer className="border-t py-8 mt-4" style={{ borderColor: theme.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)' }}>
                 <div className="mx-auto max-w-6xl px-5 flex items-center justify-center gap-3">
-                    {event.organizer?.avatar_url ? (
+                    {organizerImage ? (
                         <Image
-                            src={event.organizer.avatar_url}
+                            src={organizerImage}
                             alt={organizerName}
                             width={28}
                             height={28}

@@ -15,6 +15,8 @@ type EventItem = {
   image_url: string | null;
   event_type: string;
   slug: string;
+  public_slug?: string;
+  host?: { slug: string } | null;
   theme_color: string;
   is_virtual: boolean;
   is_featured?: boolean;
@@ -165,7 +167,9 @@ export function EventsGrid({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {displayEvents.map((event) => (
             <Link
-              href={`/events/${event.slug}`}
+              href={event.host?.slug && event.public_slug
+                ? `/hosts/${event.host.slug}/events/${event.public_slug}`
+                : `/events/${event.slug}`}
               key={event.id}
               className={`group flex flex-col bg-white rounded-[2rem] border overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] hover:-translate-y-1 transition-all duration-300 ${
                 event.is_featured

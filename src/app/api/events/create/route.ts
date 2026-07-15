@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { findAvailableSlug, slugify } from '@/lib/slugs';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
@@ -26,12 +27,53 @@ export async function POST(req: NextRequest) {
 
         const payload = JSON.parse(payloadJson);
 
-        if (!payload.title || !payload.date || !payload.slug) {
+        if (!payload.title || !payload.date) {
             return NextResponse.json(
-                { error: 'Missing required fields: title, date, or slug.' },
+                { error: 'Missing required fields: title or date.' },
                 { status: 400 }
             );
         }
+
+        // Resolve the selected host. If none was supplied, use the user's
+        // personal host so an organization is never required.
+        let hostId = payload.host_id as string | undefined;
+        if (!hostId) {
+            const { data: personalMembership } = await supabaseAdmin
+                .from('host_organizers')
+                .select('host_id, host:hosts!inner(type)')
+                .eq('user_id', user.id)
+                .eq('hosts.type', 'individual')
+                .limit(1)
+                .maybeSingle();
+            hostId = personalMembership?.host_id;
+        }
+
+        if (!hostId) {
+            return NextResponse.json({ error: 'No host profile is available for this account.' }, { status: 400 });
+        }
+
+        const [{ data: membership }, { data: host }] = await Promise.all([
+            supabaseAdmin.from('host_organizers').select('host_id').eq('host_id', hostId).eq('user_id', user.id).maybeSingle(),
+            supabaseAdmin.from('hosts').select('id, slug').eq('id', hostId).maybeSingle(),
+        ]);
+
+        if (!membership || !host) {
+            return NextResponse.json({ error: 'You cannot create events for this host.' }, { status: 403 });
+        }
+
+        const requestedPublicSlug = slugify(payload.slug || payload.title);
+        const publicSlug = await findAvailableSlug(requestedPublicSlug, async (candidate) => {
+            const { data } = await supabaseAdmin.from('events').select('id').eq('host_id', hostId!).eq('public_slug', candidate).maybeSingle();
+            return Boolean(data);
+        });
+        const technicalSlug = await findAvailableSlug(`${host.slug}-${publicSlug}`, async (candidate) => {
+            const { data } = await supabaseAdmin.from('events').select('id').eq('slug', candidate).maybeSingle();
+            return Boolean(data);
+        });
+
+        payload.host_id = hostId;
+        payload.public_slug = publicSlug;
+        payload.slug = technicalSlug;
 
         // Handle image upload server-side using service role key
         if (coverFile && coverFile.size > 0) {

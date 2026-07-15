@@ -62,6 +62,28 @@ export async function updateSession(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
 
+  // Resolve public host-scoped event URLs to the existing event page while
+  // keeping the organization-aware address visible in the browser.
+  const publicEventMatch = pathname.match(/^\/hosts\/([^/]+)\/events\/([^/]+)\/?$/);
+  if (publicEventMatch) {
+    const admin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
+    );
+    const { data: event } = await admin
+      .from('events')
+      .select('slug, host:hosts!inner(slug)')
+      .eq('public_slug', decodeURIComponent(publicEventMatch[2]))
+      .eq('hosts.slug', decodeURIComponent(publicEventMatch[1]))
+      .maybeSingle();
+
+    if (event) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/events/${event.slug}`;
+      return NextResponse.rewrite(url);
+    }
+  }
+
   // Event creation requires a logged-in user
   if (
     pathname === '/events/new' &&
@@ -96,10 +118,17 @@ export async function updateSession(request: NextRequest) {
       );
       const { data: event } = await admin
         .from('events')
-        .select('organizer_id')
+        .select('id, host_id, organizer_id')
         .eq('slug', decodeURIComponent(manageMatch[1]))
         .maybeSingle();
-      ownsManagedEvent = event?.organizer_id === user.id;
+      if (event) {
+        const [{ data: membership }, { data: collaborationByUser }, { data: collaborationByEmail }] = await Promise.all([
+          admin.from('host_organizers').select('host_id').eq('host_id', event.host_id).eq('user_id', user.id).maybeSingle(),
+          admin.from('event_collaborators').select('id').eq('event_id', event.id).eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+          admin.from('event_collaborators').select('id').eq('event_id', event.id).ilike('email', user.email).eq('status', 'active').maybeSingle(),
+        ]);
+        ownsManagedEvent = Boolean(membership || collaborationByUser || collaborationByEmail || event.organizer_id === user.id);
+      }
     }
 
     if (!staff && !user.user_metadata?.is_admin && !ownsManagedEvent) {

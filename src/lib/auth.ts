@@ -44,16 +44,25 @@ export async function requireEventManager(slug: string) {
     const admin = createAdminClient();
     const [{ data: staff }, { data: event }] = await Promise.all([
         admin.from("staff_allowlist").select("id").eq("email", user.email).maybeSingle(),
-        admin.from("events").select("organizer_id").eq("slug", slug).maybeSingle(),
+        admin.from("events").select("id, host_id, organizer_id").eq("slug", slug).maybeSingle(),
     ]);
 
     const isAdmin = Boolean(staff || user.user_metadata?.is_admin);
-    const isOwner = event?.organizer_id === user.id;
+    const [{ data: hostMembership }, { data: collaborationByUser }, { data: collaborationByEmail }] = event
+        ? await Promise.all([
+            admin.from("host_organizers").select("host_id").eq("host_id", event.host_id).eq("user_id", user.id).maybeSingle(),
+            admin.from("event_collaborators").select("id").eq("event_id", event.id).eq("user_id", user.id).eq("status", "active").maybeSingle(),
+            admin.from("event_collaborators").select("id").eq("event_id", event.id).ilike("email", user.email).eq("status", "active").maybeSingle(),
+        ])
+        : [{ data: null }, { data: null }, { data: null }];
+    const isOwner = Boolean(hostMembership || event?.organizer_id === user.id);
+    const isCollaborator = Boolean(collaborationByUser || collaborationByEmail);
 
     return {
-        authorized: isAdmin || isOwner,
+        authorized: isAdmin || isOwner || isCollaborator,
         user,
         isAdmin,
         isOwner,
+        isCollaborator,
     };
 }

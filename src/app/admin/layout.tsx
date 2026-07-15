@@ -22,6 +22,9 @@ export default async function AdminLayout({
 }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    const { data: platformStaff } = user?.email
+        ? await supabase.from("staff_allowlist").select("id").eq("email", user.email).maybeSingle()
+        : { data: null };
 
     return (
         <div className="min-h-screen bg-secondary/40">
@@ -43,7 +46,7 @@ export default async function AdminLayout({
                     {user && (
                         <div className="flex items-center gap-2">
                             <nav className="flex items-center gap-1 mr-2">
-                                {navItems.map((item) => (
+                                {platformStaff ? navItems.map((item) => (
                                     <Link
                                         key={item.href}
                                         href={item.href}
@@ -52,7 +55,11 @@ export default async function AdminLayout({
                                         <item.icon className="h-4 w-4" />
                                         <span className="hidden md:inline">{item.label}</span>
                                     </Link>
-                                ))}
+                                )) : (
+                                    <Link href="/organizer" className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground">
+                                        Organizer Dashboard
+                                    </Link>
+                                )}
                             </nav>
                             <div className="h-4 w-[1px] bg-border mr-2 hidden sm:block"></div>
                             <form action={logout}>
