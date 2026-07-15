@@ -46,6 +46,7 @@ export default function UserLoginPage() {
                 email,
                 options: {
                     shouldCreateUser: true,
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/profile`,
                 },
             });
 

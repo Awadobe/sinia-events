@@ -54,7 +54,10 @@ export default async function HomePage() {
   const pastEvents = pastEventsRaw.slice(0, 4);
 
   const supabase = createClient();
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: staff } = user?.email
+    ? await supabase.from("staff_allowlist").select("id").eq("email", user.email).maybeSingle()
+    : { data: null };
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
@@ -79,12 +82,41 @@ export default async function HomePage() {
               Explore Events ↗
             </a>
 
-            <Link
-              href="/events/new"
-              className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
-            >
-              + Create Event
-            </Link>
+            {user ? (
+              <>
+                {staff && (
+                  <Link href="/admin/events" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                    Dashboard
+                  </Link>
+                )}
+                <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                  My profile
+                </Link>
+                <Link
+                  href="/events/new"
+                  className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
+                >
+                  + Create Event
+                </Link>
+                <form action="/auth/signout" method="post">
+                  <button type="submit" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
+                    Log out
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                  Sign in
+                </Link>
+                <Link
+                  href="/events/new"
+                  className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
+                >
+                  + Create Event
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>

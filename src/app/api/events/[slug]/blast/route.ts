@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
-import { requireAdmin } from '@/lib/auth';
+import { requireEventManager } from '@/lib/auth';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -15,7 +15,7 @@ export async function POST(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireAdmin();
+        const { authorized } = await requireEventManager(params.slug);
         if (!authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -126,7 +126,7 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireAdmin();
+        const { authorized } = await requireEventManager(params.slug);
         if (!authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

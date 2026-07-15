@@ -27,32 +27,21 @@ export async function GET(
         }
 
         // Get registration counts
-        const { count: confirmedCount } = await supabaseAdmin
+        const { count: confirmedCount, error: countError } = await supabaseAdmin
             .from('registrations')
             .select('*', { count: 'exact', head: true })
             .eq('event_id', data.id)
             .eq('status', 'confirmed');
 
-        const { count: totalCount } = await supabaseAdmin
-            .from('registrations')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', data.id)
-            .in('status', ['confirmed', 'pending']);
-
-        // Get recent attendee names for avatar strip (public social proof)
-        const { data: recentAttendees } = await supabaseAdmin
-            .from('registrations')
-            .select('name')
-            .eq('event_id', data.id)
-            .in('status', ['confirmed', 'pending'])
-            .order('created_at', { ascending: false })
-            .limit(8);
+        if (countError) {
+            console.error('Registration count error:', countError);
+            return NextResponse.json({ error: 'Could not load registration count' }, { status: 500 });
+        }
 
         return NextResponse.json({
             event: data,
-            attendee_count: totalCount ?? 0,
+            attendee_count: confirmedCount ?? 0,
             confirmed_count: confirmedCount ?? 0,
-            recent_attendees: (recentAttendees || []).map(r => r.name),
         }, { status: 200 });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
@@ -60,14 +49,14 @@ export async function GET(
     }
 }
 
-import { requireAdmin } from '@/lib/auth';
+import { requireEventManager } from '@/lib/auth';
 
 export async function PUT(
     req: NextRequest,
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireAdmin();
+        const { authorized } = await requireEventManager(params.slug);
         if (!authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

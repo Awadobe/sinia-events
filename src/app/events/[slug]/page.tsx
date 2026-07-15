@@ -177,7 +177,7 @@ function RegistrationModal({
                 toast.success(
                     event.require_approval
                         ? "Your request has been submitted!"
-                        : "You're registered! Check your email for confirmation."
+                        : "You're registered! Your ticket is ready."
                 );
                 // Save registration to localStorage so page remembers on reload
                 try {
@@ -299,7 +299,7 @@ export default function PublicEventPage() {
 
     const [event, setEvent] = useState<EventData | null>(null);
     const [attendeeCount, setAttendeeCount] = useState(0);
-    const [recentAttendees, setRecentAttendees] = useState<string[]>([]);
+    const [canManage, setCanManage] = useState(false);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
@@ -315,7 +315,10 @@ export default function PublicEventPage() {
 
     useEffect(() => {
         async function load() {
-            const res = await fetch(`/api/events/${slug}?t=${Date.now()}`);
+            const [res, accessRes] = await Promise.all([
+                fetch(`/api/events/${slug}?t=${Date.now()}`),
+                fetch(`/api/events/${slug}/access?t=${Date.now()}`),
+            ]);
             if (!res.ok) {
                 setNotFound(true);
                 setLoading(false);
@@ -324,7 +327,10 @@ export default function PublicEventPage() {
             const data = await res.json();
             setEvent(data.event);
             setAttendeeCount(data.attendee_count ?? 0);
-            setRecentAttendees(data.recent_attendees ?? []);
+            if (accessRes.ok) {
+                const access = await accessRes.json();
+                setCanManage(Boolean(access.can_manage));
+            }
             setLoading(false);
 
             // Check if user already registered (from localStorage)
@@ -332,17 +338,14 @@ export default function PublicEventPage() {
                 const stored = localStorage.getItem(`registered_${slug}`);
                 if (stored) {
                     const parsed = JSON.parse(stored);
-                    if (parsed.email) {
-                        // Verify against the registrations API
-                        const regRes = await fetch(`/api/events/${slug}/registrations?t=${Date.now()}`);
+                    if (parsed.registrationId) {
+                        // The registration ID acts as the private ticket reference.
+                        const regRes = await fetch(`/api/events/${slug}/registration?id=${encodeURIComponent(parsed.registrationId)}&t=${Date.now()}`);
                         if (regRes.ok) {
                             const regData = await regRes.json();
-                            const found = regData.registrations?.find(
-                                (r: { email: string; id: string }) => r.email.toLowerCase() === parsed.email.toLowerCase()
-                            );
-                            if (found) {
+                            if (regData.registration) {
                                 setRegistered(true);
-                                setRegistrationId(found.id);
+                                setRegistrationId(regData.registration.id);
                             }
                         }
                     }
@@ -414,14 +417,15 @@ export default function PublicEventPage() {
                     </a>
 
                     <div className="flex items-center gap-3">
-                        {/* Manage Event — always visible */}
-                        <Link
-                            href={`/admin/events/${slug}/manage`}
-                            className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
-                        >
-                            <Settings className="h-4 w-4" />
-                            Manage
-                        </Link>
+                        {canManage && (
+                            <Link
+                                href={`/admin/events/${slug}/manage`}
+                                className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
+                            >
+                                <Settings className="h-4 w-4" />
+                                Manage
+                            </Link>
+                        )}
 
                         {/* Share button */}
                         <div className="relative" onClick={(e) => e.stopPropagation()}>
@@ -557,7 +561,7 @@ export default function PublicEventPage() {
                                         <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />
                                         <h4 className="text-lg font-semibold" style={{ color: theme.text }}>You&apos;re in!</h4>
                                         <p className="text-sm" style={{ color: theme.textMuted }}>
-                                            Check your email for the confirmation.
+                                            Your registration is saved. Open your ticket below.
                                         </p>
                                         <div className="flex flex-col gap-2 pt-2">
                                             {registrationId && (
@@ -608,33 +612,8 @@ export default function PublicEventPage() {
                                 ) : (
                                     /* ── Active registration state ── */
                                     <div className="space-y-4">
-                                        {/* Attendee avatars + count */}
+                                        {/* Confirmed attendee count */}
                                         <div className="flex items-center gap-3">
-                                            {recentAttendees.length > 0 && (
-                                                <div className="flex -space-x-2">
-                                                    {recentAttendees.slice(0, 5).map((name, i) => {
-                                                        const colors = ['#10b981', '#6366f1', '#f59e0b', '#ec4899', '#0ea5e9', '#8b5cf6', '#f97316', '#14b8a6'];
-                                                        return (
-                                                            <div
-                                                                key={i}
-                                                                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white border-2 ring-0"
-                                                                style={{ backgroundColor: colors[i % colors.length], borderColor: theme.isDark ? theme.pageBackground : '#ffffff', zIndex: 5 - i }}
-                                                                title={name}
-                                                            >
-                                                                {name.charAt(0).toUpperCase()}
-                                                            </div>
-                                                        );
-                                                    })}
-                                                    {attendeeCount > 5 && (
-                                                        <div
-                                                            className="h-7 w-7 rounded-full flex items-center justify-center text-[9px] font-bold border-2"
-                                                            style={{ backgroundColor: theme.isDark ? 'rgba(255,255,255,0.1)' : '#f4f4f5', color: theme.textMuted, borderColor: theme.isDark ? theme.pageBackground : '#ffffff', zIndex: 0 }}
-                                                        >
-                                                            +{attendeeCount - 5}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
                                             <div>
                                                 <span className="text-sm font-medium" style={{ color: theme.text }}>{attendeeCount} going</span>
                                                 {spotsLeft !== null && (
@@ -740,7 +719,7 @@ export default function PublicEventPage() {
                         setShowModal(false);
                         setRegistered(true);
                         if (regId) setRegistrationId(regId);
-                        setAttendeeCount((c) => c + 1);
+                        if (!event.require_approval) setAttendeeCount((c) => c + 1);
                     }}
                 />
             )}

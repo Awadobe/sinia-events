@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAdmin } from '@/lib/auth';
+import { requireEventManager } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +15,7 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireAdmin();
+        const { authorized } = await requireEventManager(params.slug);
         if (!authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
@@ -76,9 +76,12 @@ export async function GET(
 }
 
 // PATCH — update registration status (approve/reject)
-export async function PATCH(req: NextRequest) {
+export async function PATCH(
+    req: NextRequest,
+    { params }: { params: { slug: string } }
+) {
     try {
-        const { authorized } = await requireAdmin();
+        const { authorized } = await requireEventManager(params.slug);
         if (!authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }

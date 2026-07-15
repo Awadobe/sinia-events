@@ -68,6 +68,7 @@ export default function TicketPage() {
             setLoading(false);
             return;
         }
+        const ticketId: string = regId;
 
         async function load() {
             try {
@@ -77,11 +78,11 @@ export default function TicketPage() {
                 const evData = await evRes.json();
                 setEvent(evData.event);
 
-                // Fetch registrations to find this specific one
-                const regRes = await fetch(`/api/events/${slug}/registrations?t=${Date.now()}`);
-                if (!regRes.ok) { setError("Could not load registrations."); setLoading(false); return; }
+                // Fetch only the ticket referenced by this private registration ID.
+                const regRes = await fetch(`/api/events/${slug}/registration?id=${encodeURIComponent(ticketId)}&t=${Date.now()}`);
+                if (!regRes.ok) { setError("Could not load this ticket."); setLoading(false); return; }
                 const regData = await regRes.json();
-                const found = regData.registrations?.find((r: RegistrationData) => r.id === regId);
+                const found = regData.registration as RegistrationData | undefined;
 
                 if (!found) {
                     setError("Ticket not found. Please check your link.");
@@ -94,7 +95,7 @@ export default function TicketPage() {
 
                 const checkInPayload = JSON.stringify({
                     type: "checkin",
-                    registrationId: regId,
+                    registrationId: ticketId,
                     eventSlug: slug,
                 });
                 const qr = await QRCode.toDataURL(checkInPayload, {

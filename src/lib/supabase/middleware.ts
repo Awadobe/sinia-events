@@ -1,4 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function updateSession(request: NextRequest) {
@@ -85,7 +86,23 @@ export async function updateSession(request: NextRequest) {
       .eq('email', user.email)
       .single();
 
-    if (!staff && !user.user_metadata?.is_admin) {
+    const manageMatch = pathname.match(/^\/admin\/events\/([^/]+)\/manage(?:\/|$)/);
+    let ownsManagedEvent = false;
+
+    if (manageMatch) {
+      const admin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+        process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
+      );
+      const { data: event } = await admin
+        .from('events')
+        .select('organizer_id')
+        .eq('slug', decodeURIComponent(manageMatch[1]))
+        .maybeSingle();
+      ownsManagedEvent = event?.organizer_id === user.id;
+    }
+
+    if (!staff && !user.user_metadata?.is_admin && !ownsManagedEvent) {
       const url = request.nextUrl.clone();
       url.pathname = '/'; // redirect to home if not staff
       return NextResponse.redirect(url);
@@ -101,4 +118,3 @@ export async function updateSession(request: NextRequest) {
 
   return response;
 }
-
