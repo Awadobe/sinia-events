@@ -7,7 +7,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { createClient } from "@/lib/supabase/client";
+
 import { resolveTheme } from "@/lib/theme";
 import {
     Calendar,
@@ -303,14 +303,7 @@ export default function PublicEventPage() {
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
-    // Auth — check if user is logged in
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    useEffect(() => {
-        const supabase = createClient();
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            setIsLoggedIn(!!user);
-        });
-    }, []);
+
 
     // Modal
     const [showModal, setShowModal] = useState(false);
@@ -423,7 +416,7 @@ export default function PublicEventPage() {
                     <div className="flex items-center gap-3">
                         {/* Manage Event — always visible */}
                         <Link
-                            href={`/events/${slug}/manage`}
+                            href={`/admin/events/${slug}/manage`}
                             className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
                         >
                             <Settings className="h-4 w-4" />

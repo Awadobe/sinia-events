@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 import { format } from 'date-fns';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789');
 
 interface SendConfirmationEmailProps {
   toEmail: string;
@@ -29,7 +29,7 @@ export async function sendConfirmationEmail({
   organizerName,
 }: SendConfirmationEmailProps) {
   // If no API key is set, silently skip email sending but log it
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.RESEND_API_KEY || 're_123456789') {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping email confirmation to:', toEmail);
     return { success: true, skipped: true };
   }
@@ -166,12 +166,12 @@ export async function sendOrganizerNotificationEmail({
   eventSlug,
   registrationStatus,
 }: SendOrganizerNotificationProps) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.RESEND_API_KEY || 're_123456789') {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping organizer notification.');
     return { success: true, skipped: true };
   }
 
-  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/events/${eventSlug}/manage/guests`;
+  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/events/${eventSlug}/manage/guests`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const subject = registrationStatus === 'pending'
@@ -246,7 +246,7 @@ export async function sendReminderEmail({
   reminderType,
   organizerName,
 }: SendReminderEmailProps) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.RESEND_API_KEY || 're_123456789') {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping reminder.');
     return { success: true, skipped: true };
   }
@@ -361,7 +361,7 @@ export async function sendInviteEmail({
   eventSlug,
   organizerName,
 }: SendInviteEmailProps) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.RESEND_API_KEY || 're_123456789') {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
     return { success: true, skipped: true };
   }

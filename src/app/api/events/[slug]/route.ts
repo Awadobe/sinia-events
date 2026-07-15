@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 export async function GET(
@@ -60,11 +60,18 @@ export async function GET(
     }
 }
 
+import { requireAdmin } from '@/lib/auth';
+
 export async function PUT(
     req: NextRequest,
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
         const body = await req.json();
 

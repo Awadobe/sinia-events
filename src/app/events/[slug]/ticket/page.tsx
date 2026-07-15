@@ -9,10 +9,10 @@ import {
     CalendarDays,
     MapPin,
     ArrowLeft,
-    Download,
+
     CheckCircle2,
     Clock,
-    User,
+
 } from "lucide-react";
 import { format } from "date-fns";
 import QRCode from "qrcode";
@@ -91,7 +91,7 @@ export default function TicketPage() {
                 setRegistration(found);
 
                 // Generate QR code — encodes the registration ID for scanning
-                const appUrl = window.location.origin;
+
                 const checkInPayload = JSON.stringify({
                     type: "checkin",
                     registrationId: regId,
@@ -234,7 +234,7 @@ export default function TicketPage() {
                                 </p>
                                 {qrDataUrl && (
                                     <div className="inline-block p-3 bg-white rounded-2xl border-2 border-zinc-100 shadow-sm">
-                                        <img src={qrDataUrl} alt="Ticket QR Code" className="w-52 h-52" />
+                                        <Image src={qrDataUrl} alt="Ticket QR Code" width={208} height={208} className="w-52 h-52" />
                                     </div>
                                 )}
                                 <p className="text-xs text-zinc-400 mt-3">

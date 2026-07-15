@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const cookieStore = cookies();
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
@@ -30,6 +30,7 @@ export async function GET(request: Request) {
         set(name: string, value: string, options: CookieOptions) {
           cookieStore.set({ name, value, ...options });
         },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         remove(name: string, options: CookieOptions) {
           cookieStore.delete(name);
         },

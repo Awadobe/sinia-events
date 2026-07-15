@@ -4,34 +4,52 @@
  * To enable this, configure an SMS provider like Twilio, Vonage, or MessageBird.
  * The following environment variables should be added to .env.local:
  * 
- * SMS_PROVIDER_API_KEY
- * SMS_PROVIDER_API_SECRET
- * SMS_SENDER_ID (e.g. "CF Events")
+ * TWILIO_ACCOUNT_SID
+ * TWILIO_AUTH_TOKEN
+ * TWILIO_WHATSAPP_NUMBER (e.g. "whatsapp:+14155238886")
  */
 
 export async function sendSmsNotification(to: string, message: string) {
     // Determine the phone number format
     const formattedPhone = to.startsWith("+") ? to : `+232${to.replace(/^0/, "")}`;
+    const whatsappTo = `whatsapp:${formattedPhone}`;
     
-    // Example Twilio Implementation:
-    /*
-    const client = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-    try {
-        await client.messages.create({
-            body: message,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: formattedPhone
-        });
-        return { success: true };
-    } catch (error) {
-        console.error("Failed to send SMS:", error);
-        return { error: error.message };
-    }
-    */
+    const accountSid = process.env.TWILIO_ACCOUNT_SID;
+    const authToken = process.env.TWILIO_AUTH_TOKEN;
+    const fromNumber = process.env.TWILIO_WHATSAPP_NUMBER;
 
-    // For now, in MVP mode without a paid provider, we just log it:
-    console.log(`[SMS MOCK] Sending to ${formattedPhone}: ${message}`);
-    return { success: true, mock: true };
+    if (!accountSid || !authToken || !fromNumber) {
+        console.warn(`[SMS MOCK] Missing Twilio credentials. Skipping WhatsApp to ${formattedPhone}: ${message}`);
+        return { success: true, mock: true };
+    }
+
+    try {
+        const auth = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+        const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams({
+                To: whatsappTo,
+                From: fromNumber,
+                Body: message
+            })
+        });
+
+        const data = await response.json();
+        
+        if (!response.ok) {
+            console.error("Failed to send WhatsApp:", data);
+            return { error: data.message };
+        }
+        
+        return { success: true, messageSid: data.sid };
+    } catch (error: unknown) {
+        console.error("Twilio API Error:", error);
+        return { error: error instanceof Error ? error.message : "Unknown error" };
+    }
 }
 
 /**

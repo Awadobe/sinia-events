@@ -28,7 +28,7 @@ export default function CheckInScannerPage() {
     const slug = params.slug as string;
 
     const [scanning, setScanning] = useState(false);
-    const [cameraReady, setCameraReady] = useState(false);
+
     const [scanResult, setScanResult] = useState<ScanResult | null>(null);
     const [processing, setProcessing] = useState(false);
     const [totalCheckedIn, setTotalCheckedIn] = useState(0);
@@ -159,7 +159,6 @@ export default function CheckInScannerPage() {
             );
 
             setScanning(true);
-            setCameraReady(true);
         } catch (err) {
             console.error("Camera error:", err);
             setScanResult({
@@ -179,7 +178,6 @@ export default function CheckInScannerPage() {
             scannerRef.current = null;
         }
         setScanning(false);
-        setCameraReady(false);
     }, []);
 
     // Cleanup on unmount
@@ -197,7 +195,7 @@ export default function CheckInScannerPage() {
             <header className="border-b border-white/5 backdrop-blur-xl sticky top-0 z-50 bg-zinc-950/90">
                 <div className="max-w-lg mx-auto flex items-center justify-between px-5 py-3">
                     <Link
-                        href={`/events/${slug}/manage`}
+                        href={`/admin/events/${slug}/manage`}
                         className="flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
                     >
                         <ArrowLeft className="h-4 w-4" />
@@ -304,7 +302,7 @@ export default function CheckInScannerPage() {
                 {/* ─── Quick links ─── */}
                 <div className="flex gap-3">
                     <Link
-                        href={`/events/${slug}/manage/guests`}
+                        href={`/admin/events/${slug}/manage/guests`}
                         className="flex-1 flex items-center justify-center gap-2 rounded-2xl bg-white/5 border border-white/5 py-3.5 text-sm font-medium text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
                     >
                         <Users className="h-4 w-4" />

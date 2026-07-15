@@ -1,11 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 // GET all registrations for an event
@@ -14,6 +15,11 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
 
         // Get event by slug first
@@ -70,11 +76,13 @@ export async function GET(
 }
 
 // PATCH — update registration status (approve/reject)
-export async function PATCH(
-    req: NextRequest,
-    { params }: { params: { slug: string } }
-) {
+export async function PATCH(req: NextRequest) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await req.json();
         const { registrationId, status, checked_in } = body;
 

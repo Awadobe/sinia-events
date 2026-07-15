@@ -8,8 +8,8 @@ import { EventsGrid } from "@/components/events-grid";
 
 // Initialize Supabase admin client for server-side fetching
 const supabaseAdmin = createAdminClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 export const revalidate = 0; // Always fetch fresh data
@@ -54,7 +54,7 @@ export default async function HomePage() {
   const pastEvents = pastEventsRaw.slice(0, 4);
 
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  await supabase.auth.getUser();
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">

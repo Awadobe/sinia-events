@@ -1,12 +1,13 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendInviteEmail } from '@/lib/email';
+import { requireAdmin } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 // GET — fetch invites & suggestions for an event
@@ -15,6 +16,11 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
 
         // Get event
@@ -124,6 +130,11 @@ export async function POST(
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
         const body = await req.json();
         const { emails } = body; // Array of { email: string, name?: string }

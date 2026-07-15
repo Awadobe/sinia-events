@@ -84,7 +84,7 @@ export default function ManageEventLayout({
                     {/* Row 1: Back + Actions */}
                     <div className="flex items-center justify-between py-3">
                         <Link
-                            href="/admin/events"
+                            href="/"
                             className="flex items-center gap-1.5 text-sm font-medium text-zinc-400 hover:text-zinc-900 transition-colors"
                         >
                             <ArrowLeft className="h-4 w-4" />

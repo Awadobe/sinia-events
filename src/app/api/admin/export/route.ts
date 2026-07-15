@@ -1,13 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-
+import { requireAdmin } from '@/lib/auth';
+export const dynamic = 'force-dynamic';
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 export async function GET(req: NextRequest) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return new NextResponse('Unauthorized', { status: 401 });
+        }
+
         const { searchParams } = new URL(req.url);
         const eventId = searchParams.get('event_id');
 

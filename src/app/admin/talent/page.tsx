@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Search } from "lucide-react";
@@ -12,15 +13,14 @@ export default async function TalentDatabasePage({
 }: {
     searchParams: { q?: string };
 }) {
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { authorized } = await requireAdmin();
 
-    // Ensure it's an admin (has email)
-    if (!user || (!user.email && !user.user_metadata?.is_admin)) {
+    if (!authorized) {
         redirect("/admin/login");
     }
 
     const query = searchParams.q?.toLowerCase() || "";
+    const supabase = createClient();
 
     // Fetch all profiles
     // eslint-disable-next-line prefer-const

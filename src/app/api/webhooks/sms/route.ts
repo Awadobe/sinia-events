@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 
 /**
  * Webhook Endpoint for Supabase 'Send SMS' Hook
@@ -7,6 +8,14 @@ import { NextResponse } from "next/server";
  */
 export async function POST(request: Request) {
     try {
+        // Enforce a webhook secret to prevent unauthorized spam
+        const authHeader = request.headers.get("authorization");
+        const webhookSecret = process.env.SMS_WEBHOOK_SECRET;
+        
+        if (!webhookSecret || authHeader !== `Bearer ${webhookSecret}`) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         // Parse the payload from Supabase
         const payload = await request.json();
         const { user, sms } = payload;

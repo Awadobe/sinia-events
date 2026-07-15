@@ -39,7 +39,10 @@ export default function BlastPage() {
         setLoading(false);
     };
 
-    useEffect(() => { fetchHistory(); }, [slug]);
+    useEffect(() => {
+        fetchHistory();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slug]);
 
     const handleSend = async () => {
         if (!subject.trim() || !body.trim()) {

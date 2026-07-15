@@ -36,7 +36,10 @@ export default function GuestsPage() {
         setLoading(false);
     };
 
-    useEffect(() => { fetchGuests(); }, [slug]);
+    useEffect(() => {
+        fetchGuests();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [slug]);
 
     const updateStatus = async (regId: string, newStatus: string) => {
         setUpdating(regId);

@@ -3,6 +3,7 @@ import {
     Calendar,
     LayoutDashboard,
     LogOut,
+    BarChart3,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/admin/login/actions";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 const navItems = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Events", href: "/admin/events", icon: Calendar },
+    { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
 ];
 
 export default async function AdminLayout({

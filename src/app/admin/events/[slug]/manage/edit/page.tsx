@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 
 import { cn } from "@/lib/utils";
+import { resolveTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -81,7 +82,9 @@ export default function EditTabPage() {
     const [description, setDescription] = useState("");
     const [eventType, setEventType] = useState("Event");
     const [date, setDate] = useState<Date | undefined>();
+    const [startTime, setStartTime] = useState("16:00");
     const [endDate, setEndDate] = useState<Date | undefined>();
+    const [endTime, setEndTime] = useState("");
     const [location, setLocation] = useState("");
     const [isVirtual, setIsVirtual] = useState(false);
     const [virtualLink, setVirtualLink] = useState("");
@@ -109,8 +112,12 @@ export default function EditTabPage() {
             setTitle(event.title || "");
             setDescription(event.description || "");
             setEventType(event.event_type || "Event");
-            setDate(event.date ? new Date(event.date) : undefined);
-            setEndDate(event.end_date ? new Date(event.end_date) : undefined);
+            const startDt = event.date ? new Date(event.date) : undefined;
+            const endDt = event.end_date ? new Date(event.end_date) : undefined;
+            setDate(startDt);
+            if (startDt) setStartTime(format(startDt, "HH:mm"));
+            setEndDate(endDt);
+            if (endDt) setEndTime(format(endDt, "HH:mm"));
             setLocation(event.location || "");
             setIsVirtual(event.is_virtual || false);
             setVirtualLink(event.virtual_link || "");
@@ -127,18 +134,31 @@ export default function EditTabPage() {
         load();
     }, [slug]);
 
+    // Merge a HH:mm time string into a Date object
+    function applyTime(d: Date | undefined, timeStr: string): Date | undefined {
+        if (!d || !timeStr) return d;
+        const [h, m] = timeStr.split(":").map(Number);
+        const result = new Date(d);
+        result.setHours(h, m, 0, 0);
+        return result;
+    }
+
     const handleSave = async () => {
         setSaving(true);
+
+        const finalDate = applyTime(date, startTime);
+        const finalEndDate = endDate ? applyTime(endDate, endTime) : null;
 
         const payload = {
             title,
             description: description || null,
             event_type: eventType,
-            date: date?.toISOString(),
-            end_date: endDate?.toISOString() || null,
+            date: finalDate?.toISOString(),
+            end_date: finalEndDate?.toISOString() || null,
             location: location || null,
             is_virtual: isVirtual,
             virtual_link: virtualLink || null,
+            image_url: coverImage || null,
             max_attendees: maxAttendees,
             status,
             require_approval: requireApproval,
@@ -174,6 +194,9 @@ export default function EditTabPage() {
             </div>
         );
     }
+
+    // Live theme computed from current state — updates on every render
+    const liveTheme = resolveTheme({ color: themeColor, style: themeStyle, font: themeFont, mode: themeMode });
 
     return (
         <div className="pb-20">
@@ -218,6 +241,41 @@ export default function EditTabPage() {
                         </button>
                         {showTheme && (
                             <div className="border-t border-black/5 p-4 space-y-4">
+
+                                {/* ─── Live Preview ─── */}
+                                <div
+                                    className="rounded-xl overflow-hidden"
+                                    style={{ border: `1px solid ${liveTheme.cardBorder}`, fontFamily: liveTheme.fontFamily }}
+                                >
+                                    {/* Mini header */}
+                                    <div className="px-3 py-2 flex items-center gap-2 border-b" style={{ background: liveTheme.headerBackground, borderColor: liveTheme.cardBorder }}>
+                                        <div className="h-2 w-2 rounded-full" style={{ background: liveTheme.primary }} />
+                                        <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: liveTheme.textMuted }}>Live Preview</span>
+                                    </div>
+                                    {/* Mini page body */}
+                                    <div className="p-3 space-y-2.5" style={{ background: liveTheme.pageBackground }}>
+                                        <p className="text-xs font-bold leading-snug" style={{ color: liveTheme.text }}>
+                                            {title || "Event Title"}
+                                        </p>
+                                        {date && (
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-6 w-6 rounded-md flex flex-col items-center justify-center" style={{ background: liveTheme.primary }}>
+                                                    <span className="text-[7px] font-bold text-white leading-none">{format(date, 'MMM').toUpperCase()}</span>
+                                                    <span className="text-[10px] font-bold text-white leading-none">{format(date, 'd')}</span>
+                                                </div>
+                                                <span className="text-[10px]" style={{ color: liveTheme.textMuted }}>{format(date, 'EEE, MMMM d')}</span>
+                                            </div>
+                                        )}
+                                        {location && (
+                                            <p className="text-[10px]" style={{ color: liveTheme.textMuted }}>📍 {location}</p>
+                                        )}
+                                        <div className="rounded-lg p-2" style={{ background: liveTheme.cardBackground, border: `1px solid ${liveTheme.cardBorder}` }}>
+                                            <div className="rounded-md py-1.5 text-[10px] font-bold text-white text-center" style={{ background: liveTheme.primary }}>
+                                                Register
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div className="space-y-2">
                                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Style</p>
                                     <div className="flex gap-2 overflow-x-auto pb-1">
@@ -307,7 +365,7 @@ export default function EditTabPage() {
                             </Popover>
                             <div className="ml-auto flex items-center gap-1.5">
                                 <Clock className="h-3.5 w-3.5 text-zinc-300" />
-                                <Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" defaultValue={date ? format(date, "HH:mm") : "16:00"} />
+                                <Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
                             </div>
                         </div>
                         <div className="flex items-center gap-4 px-5 py-4">
@@ -327,6 +385,12 @@ export default function EditTabPage() {
                                     <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
                                 </PopoverContent>
                             </Popover>
+                            {endDate && (
+                                <div className="ml-auto flex items-center gap-1.5">
+                                    <Clock className="h-3.5 w-3.5 text-zinc-300" />
+                                    <Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                                </div>
+                            )}
                         </div>
                     </div>
 

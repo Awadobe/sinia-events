@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { Resend } from 'resend';
+import { requireAdmin } from '@/lib/auth';
 
 const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+    process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
 // POST — send a blast email to event registrants
@@ -13,6 +15,11 @@ export async function POST(
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
         const { subject, body, includeStatus = 'confirmed' } = await req.json();
 
@@ -54,11 +61,11 @@ export async function POST(
         }
 
         // Send emails via Resend
-        if (!process.env.RESEND_API_KEY) {
+        if (!process.env.RESEND_API_KEY || 're_123456789') {
             console.warn('⚠️ RESEND_API_KEY not set. Skipping blast.');
             // Still save the blast record
         } else {
-            const resend = new Resend(process.env.RESEND_API_KEY);
+            const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789');
             const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
             // Send to each recipient
@@ -119,6 +126,11 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
+        const { authorized } = await requireAdmin();
+        if (!authorized) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { slug } = params;
 
         // Get event
