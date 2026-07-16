@@ -61,6 +61,13 @@ export default async function HomePage() {
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const [{ data: organizerMembership }, { data: legacyOrganizer }] = user?.email
+    ? await Promise.all([
+        supabaseAdmin.from("host_organizers").select("host_id").eq("user_id", user.id).limit(1).maybeSingle(),
+        supabaseAdmin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle(),
+      ])
+    : [{ data: null }, { data: null }];
+  const isOrganizer = Boolean(organizerMembership || legacyOrganizer);
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
@@ -87,18 +94,23 @@ export default async function HomePage() {
 
             {user ? (
               <>
-                <Link href="/organizer" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                  Organizer dashboard
-                </Link>
-                <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                  My profile
-                </Link>
-                <Link
-                  href="/events/new"
-                  className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
-                >
-                  + Create Event
-                </Link>
+                {isOrganizer ? (
+                  <>
+                    <Link href="/organizer" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                      Organizer account
+                    </Link>
+                    <Link
+                      href="/events/new"
+                      className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
+                    >
+                      + Create Event
+                    </Link>
+                  </>
+                ) : (
+                  <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                    My profile
+                  </Link>
+                )}
                 <form action="/auth/signout" method="post">
                   <button type="submit" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
                     Log out

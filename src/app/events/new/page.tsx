@@ -263,6 +263,10 @@ export default function CreateEventPage() {
 
     const isFormValid = formData.title.trim() !== "";
     const activeCategory = EVENT_CATEGORIES.find(c => c.id === formData.event_type) || EVENT_CATEGORIES[0];
+    const selectedHost = hosts.find((host) => host.id === selectedHostId);
+    const eventUrlPreview = selectedHost && formData.slug
+        ? `radius-sl.vercel.app/hosts/${selectedHost.slug}/events/${formData.slug}`
+        : "";
 
     return (
         <div className={cn("min-h-screen transition-colors duration-500", theme.fontClass, theme.bgPatternClass)} style={{ ...theme.pageBg, ...theme.bgOverlayStyle }}>
@@ -376,7 +380,13 @@ export default function CreateEventPage() {
 
                             <div>
                                 <input id="title" type="text" placeholder="Event Name" value={formData.title} onChange={(e) => updateField("title", e.target.value)} className="w-full border-none bg-transparent text-3xl sm:text-4xl font-semibold tracking-tight outline-none transition-colors duration-300" style={{ color: theme.palette.text, lineHeight: 1.2, caretColor: theme.palette.accent }} />
-                                {formData.slug && <p className="mt-2 text-xs" style={theme.textMuted}>Your event link will be generated automatically from this title.</p>}
+                                {eventUrlPreview && (
+                                    <div className="mt-2 text-xs" style={theme.textMuted}>
+                                        <span>Your event link: </span>
+                                        <span className="font-medium break-all" style={theme.textPrimary}>{eventUrlPreview}</span>
+                                        <p className="mt-1 opacity-75">If this organization already used that link, Radius will add a number automatically.</p>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300" style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}>

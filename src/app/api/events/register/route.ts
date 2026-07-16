@@ -20,6 +20,22 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const [{ data: legacyOrganizer }, { data: organizerProfile }] = await Promise.all([
+            supabaseAdmin.from('staff_allowlist').select('id').ilike('email', normalizedEmail).maybeSingle(),
+            supabaseAdmin.from('profiles').select('id').ilike('email', normalizedEmail).maybeSingle(),
+        ]);
+        const { data: organizerMembership } = organizerProfile
+            ? await supabaseAdmin.from('host_organizers').select('host_id').eq('user_id', organizerProfile.id).limit(1).maybeSingle()
+            : { data: null };
+
+        if (legacyOrganizer || organizerMembership) {
+            return NextResponse.json(
+                { error: 'This email belongs to an organizer account. Please use a different email to register as an attendee.' },
+                { status: 409 }
+            );
+        }
+
         // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
@@ -47,7 +63,7 @@ export async function POST(req: NextRequest) {
         const status = event.require_approval ? 'pending' : 'confirmed';
         const { data: registration, error: regError } = await supabaseAdmin
             .from('registrations')
-            .insert([{ event_id, name, email, phone: phone || null, status }])
+            .insert([{ event_id, name, email: normalizedEmail, phone: phone || null, status }])
             .select()
             .single();
 

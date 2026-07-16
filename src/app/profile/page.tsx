@@ -40,6 +40,17 @@ export default async function UserProfilePage() {
         redirect("/login");
     }
 
+    const [{ data: organizerMembership }, { data: legacyOrganizer }] = await Promise.all([
+        supabase.from("host_organizers").select("host_id").eq("user_id", user.id).limit(1).maybeSingle(),
+        user.email
+            ? supabase.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle()
+            : Promise.resolve({ data: null }),
+    ]);
+
+    if (organizerMembership || legacyOrganizer) {
+        redirect("/organizer");
+    }
+
     // Fetch the user's profile
     const { data: profile } = await supabase
         .from("profiles")
