@@ -53,6 +53,15 @@ const THEME_STYLES = [
     { id: "seasonal", label: "Seasonal" },
 ];
 
+function buildThemeColor(id: string, hex: string) {
+    return {
+        id,
+        hex,
+        light: { bg: `${hex}12`, accent: hex, text: "#1c1917", muted: hex, card: "#ffffff", cardBorder: `${hex}40`, inputBg: `${hex}0a` },
+        dark: { bg: "#0a0a0f", accent: hex, text: "#f4f4f5", muted: hex, card: "#18181f", cardBorder: `${hex}55`, inputBg: "#18181f" },
+    };
+}
+
 const THEME_COLORS = [
     { id: "slate",   hex: "#64748b", light: { bg: "#f1f5f9", accent: "#475569", text: "#1e293b", muted: "#94a3b8", card: "#ffffff", cardBorder: "#e2e8f0", inputBg: "#f8fafc" }, dark: { bg: "#0f172a", accent: "#94a3b8", text: "#f1f5f9", muted: "#64748b", card: "#1e293b", cardBorder: "#334155", inputBg: "#1e293b" } },
     { id: "rose",    hex: "#f43f5e", light: { bg: "#fff1f2", accent: "#e11d48", text: "#1c1917", muted: "#fb7185", card: "#ffffff", cardBorder: "#fecdd3", inputBg: "#fff5f5" }, dark: { bg: "#1a0a0e", accent: "#fb7185", text: "#fef2f2", muted: "#f43f5e", card: "#2a1015", cardBorder: "#4c1d2a", inputBg: "#2a1015" } },
@@ -63,6 +72,15 @@ const THEME_COLORS = [
     { id: "indigo",  hex: "#6366f1", light: { bg: "#eef2ff", accent: "#4f46e5", text: "#1c1917", muted: "#818cf8", card: "#ffffff", cardBorder: "#c7d2fe", inputBg: "#f5f7ff" }, dark: { bg: "#0e0e2a", accent: "#818cf8", text: "#eef2ff", muted: "#6366f1", card: "#16163a", cardBorder: "#2e2e5c", inputBg: "#16163a" } },
     { id: "violet",  hex: "#8b5cf6", light: { bg: "#f5f3ff", accent: "#7c3aed", text: "#1c1917", muted: "#a78bfa", card: "#ffffff", cardBorder: "#ddd6fe", inputBg: "#faf8ff" }, dark: { bg: "#120e2a", accent: "#a78bfa", text: "#f5f3ff", muted: "#8b5cf6", card: "#1c163a", cardBorder: "#362e5c", inputBg: "#1c163a" } },
     { id: "pink",    hex: "#ec4899", light: { bg: "#fdf2f8", accent: "#db2777", text: "#1c1917", muted: "#f472b6", card: "#ffffff", cardBorder: "#fbcfe8", inputBg: "#fef5fa" }, dark: { bg: "#1a0a15", accent: "#f472b6", text: "#fdf2f8", muted: "#ec4899", card: "#2a1020", cardBorder: "#4c1d3a", inputBg: "#2a1020" } },
+    buildThemeColor("red", "#dc2626"),
+    buildThemeColor("cyan", "#0891b2"),
+    buildThemeColor("teal", "#0f766e"),
+    buildThemeColor("lime", "#65a30d"),
+    buildThemeColor("yellow", "#eab308"),
+    buildThemeColor("fuchsia", "#c026d3"),
+    buildThemeColor("burgundy", "#881337"),
+    buildThemeColor("navy", "#1e3a8a"),
+    buildThemeColor("brown", "#92400e"),
     { id: "zinc",    hex: "#18181b", light: { bg: "#faf9f7", accent: "#18181b", text: "#18181b", muted: "#71717a", card: "#ffffff", cardBorder: "#e4e4e7", inputBg: "#fafafa" }, dark: { bg: "#09090b", accent: "#e4e4e7", text: "#fafafa", muted: "#a1a1aa", card: "#18181b", cardBorder: "#27272a", inputBg: "#18181b" } },
 ];
 
@@ -459,7 +477,10 @@ export default function CreateEventPage() {
 
                                         {/* Color selector */}
                                         <div className="space-y-2">
-                                            <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Color</p>
+                                            <div className="flex items-center justify-between">
+                                                <p className="text-[10px] font-bold uppercase tracking-widest" style={theme.textMuted}>Color</p>
+                                                <span className="text-[10px] font-semibold capitalize" style={theme.textMuted}>{themeColor}</span>
+                                            </div>
                                             <div className="flex gap-2 flex-wrap">
                                                 {THEME_COLORS.map(c => (
                                                     <button

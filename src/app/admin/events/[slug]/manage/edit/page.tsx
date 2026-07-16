@@ -42,6 +42,15 @@ const THEME_COLORS = [
     { id: "sky", hex: "#0ea5e9" },
     { id: "indigo", hex: "#6366f1" },
     { id: "violet", hex: "#8b5cf6" },
+    { id: "red", hex: "#dc2626" },
+    { id: "cyan", hex: "#0891b2" },
+    { id: "teal", hex: "#0f766e" },
+    { id: "lime", hex: "#65a30d" },
+    { id: "yellow", hex: "#eab308" },
+    { id: "fuchsia", hex: "#c026d3" },
+    { id: "burgundy", hex: "#881337" },
+    { id: "navy", hex: "#1e3a8a" },
+    { id: "brown", hex: "#92400e" },
     { id: "pink", hex: "#ec4899" },
     { id: "zinc", hex: "#18181b" },
 ];
@@ -288,7 +297,10 @@ export default function EditTabPage() {
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Color</p>
+                                    <div className="flex items-center justify-between">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Color</p>
+                                        <span className="text-[10px] font-semibold capitalize text-zinc-500">{themeColor}</span>
+                                    </div>
                                     <div className="flex gap-2 flex-wrap">
                                         {THEME_COLORS.map(c => (
                                             <button key={c.id} type="button" onClick={() => setThemeColor(c.id)} className={cn("h-6 w-6 rounded-full border-2 transition-all", themeColor === c.id ? "border-zinc-900 scale-110" : "border-transparent hover:scale-105")} style={{ backgroundColor: c.hex }} />

@@ -47,7 +47,9 @@ interface RegistrationData {
 const COLORS: Record<string, string> = {
     slate: "#64748b", rose: "#f43f5e", orange: "#f97316", amber: "#f59e0b",
     emerald: "#10b981", sky: "#0ea5e9", indigo: "#6366f1", violet: "#8b5cf6",
-    pink: "#ec4899", zinc: "#18181b",
+    pink: "#ec4899", red: "#dc2626", cyan: "#0891b2", teal: "#0f766e",
+    lime: "#65a30d", yellow: "#eab308", fuchsia: "#c026d3", burgundy: "#881337",
+    navy: "#1e3a8a", brown: "#92400e", zinc: "#18181b",
 };
 
 export default function TicketPage() {

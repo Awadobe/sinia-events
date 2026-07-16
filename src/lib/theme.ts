@@ -8,6 +8,15 @@ export const THEME_COLOR_HEX: Record<string, string> = {
     indigo: '#6366f1',
     violet: '#8b5cf6',
     pink: '#ec4899',
+    red: '#dc2626',
+    cyan: '#0891b2',
+    teal: '#0f766e',
+    lime: '#65a30d',
+    yellow: '#eab308',
+    fuchsia: '#c026d3',
+    burgundy: '#881337',
+    navy: '#1e3a8a',
+    brown: '#92400e',
     zinc: '#18181b',
 };
 
@@ -79,23 +88,45 @@ export function resolveTheme(opts: {
     const mode = opts.mode || 'light';
 
     const styleConfig = THEME_STYLE_CONFIG[style] || THEME_STYLE_CONFIG.minimal;
+    const primary = THEME_COLOR_HEX[color] || '#18181b';
     // Dark text when: user chose dark mode OR the style preset itself is dark (e.g. warp)
     const isDark = mode === 'dark' || styleConfig.isDark;
 
     // When dark mode is explicitly selected, override background to dark regardless of style
     const darkPageBg = '#0a0a0f';
-    const darkHeaderBg = 'rgba(10,10,15,0.95)';
 
     return {
-        primary: THEME_COLOR_HEX[color] || '#18181b',
+        primary,
         fontFamily: THEME_FONT_FAMILY[font] || THEME_FONT_FAMILY.standard,
-        pageBackground: isDark ? darkPageBg : styleConfig.pageBackground,
-        headerBackground: isDark ? darkHeaderBg : styleConfig.headerBackground,
+        pageBackground: isDark
+            ? `linear-gradient(${hexToRgba(primary, 0.08)}, ${hexToRgba(primary, 0.03)}), ${darkPageBg}`
+            : `linear-gradient(${hexToRgba(primary, 0.07)}, ${hexToRgba(primary, 0.015)}), ${styleConfig.pageBackground}`,
+        headerBackground: isDark ? hexToRgba(primary, 0.12) : hexToRgba(primary, 0.08),
         isDark,
         // High-contrast text for dark mode
         text: isDark ? '#f4f4f5' : '#18181b',
         textMuted: isDark ? '#d4d4d8' : '#71717a',
-        cardBackground: isDark ? '#18182a' : '#ffffff',
-        cardBorder: isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
+        cardBackground: isDark ? mixHex(primary, '#18181f', 0.12) : mixHex(primary, '#ffffff', 0.045),
+        cardBorder: isDark ? hexToRgba(primary, 0.28) : hexToRgba(primary, 0.18),
     };
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+    const normalized = hex.replace('#', '');
+    const value = Number.parseInt(normalized, 16);
+    const red = (value >> 16) & 255;
+    const green = (value >> 8) & 255;
+    const blue = value & 255;
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function mixHex(color: string, base: string, amount: number): string {
+    const parse = (hex: string) => {
+        const value = Number.parseInt(hex.replace('#', ''), 16);
+        return [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+    };
+    const source = parse(color);
+    const background = parse(base);
+    const mixed = source.map((channel, index) => Math.round(channel * amount + background[index] * (1 - amount)));
+    return `rgb(${mixed[0]}, ${mixed[1]}, ${mixed[2]})`;
 }
