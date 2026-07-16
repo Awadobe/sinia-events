@@ -2,6 +2,7 @@ import { Resend } from 'resend';
 import { format } from 'date-fns';
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_123456789');
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 interface SendConfirmationEmailProps {
   toEmail: string;
@@ -29,12 +30,11 @@ export async function sendConfirmationEmail({
   organizerName,
 }: SendConfirmationEmailProps) {
   // If no API key is set, silently skip email sending but log it
-  if (!process.env.RESEND_API_KEY || 're_123456789') {
+  if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping email confirmation to:', toEmail);
     return { success: true, skipped: true };
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const eventUrl = `${appUrl}/events/${eventSlug}`;
   const ticketUrl = registrationId ? `${appUrl}/events/${eventSlug}/ticket?id=${registrationId}` : eventUrl;
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d, yyyy 'at' h:mm a");
@@ -166,12 +166,12 @@ export async function sendOrganizerNotificationEmail({
   eventSlug,
   registrationStatus,
 }: SendOrganizerNotificationProps) {
-  if (!process.env.RESEND_API_KEY || 're_123456789') {
+  if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping organizer notification.');
     return { success: true, skipped: true };
   }
 
-  const manageUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/admin/events/${eventSlug}/manage/guests`;
+  const manageUrl = `${appUrl}/admin/events/${eventSlug}/manage/guests`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const subject = registrationStatus === 'pending'
@@ -246,13 +246,12 @@ export async function sendReminderEmail({
   reminderType,
   organizerName,
 }: SendReminderEmailProps) {
-  if (!process.env.RESEND_API_KEY || 're_123456789') {
+  if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping reminder.');
     return { success: true, skipped: true };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const eventUrl = `${baseUrl}/events/${eventSlug}`;
+  const eventUrl = `${appUrl}/events/${eventSlug}`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");
@@ -361,13 +360,12 @@ export async function sendInviteEmail({
   eventSlug,
   organizerName,
 }: SendInviteEmailProps) {
-  if (!process.env.RESEND_API_KEY || 're_123456789') {
+  if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
     return { success: true, skipped: true };
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const eventUrl = `${baseUrl}/events/${eventSlug}`;
+  const eventUrl = `${appUrl}/events/${eventSlug}`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");
@@ -460,5 +458,45 @@ export async function sendInviteEmail({
   } catch (err) {
     console.error('❌ Failed to send invite email:', err);
     return { success: false, error: err };
+  }
+}
+
+export async function sendNewHostEventEmail({
+  toEmail,
+  unsubscribeToken,
+  hostName,
+  hostSlug,
+  eventTitle,
+  eventPublicSlug,
+  eventDate,
+  eventLocation,
+}: {
+  toEmail: string;
+  unsubscribeToken: string;
+  hostName: string;
+  hostSlug: string;
+  eventTitle: string;
+  eventPublicSlug: string;
+  eventDate: string;
+  eventLocation?: string | null;
+}) {
+  if (!process.env.RESEND_API_KEY) return { success: true, skipped: true };
+
+  const eventUrl = `${appUrl}/hosts/${hostSlug}/events/${eventPublicSlug}`;
+  const unsubscribeUrl = `${appUrl}/api/subscriptions/unsubscribe?token=${unsubscribeToken}`;
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const formattedDate = format(new Date(eventDate), "EEEE, MMMM d, yyyy 'at' h:mm a");
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [toEmail],
+      subject: `New event from ${hostName}: ${eventTitle}`,
+      html: `<div style="font-family:system-ui;max-width:560px;margin:0 auto;padding:32px"><p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#71717a">NEW EVENT FROM ${hostName.toUpperCase()}</p><h1 style="font-size:26px;color:#18181b">${eventTitle}</h1><p style="color:#52525b">📅 ${formattedDate}${eventLocation ? `<br>📍 ${eventLocation}` : ''}</p><a href="${eventUrl}" style="display:inline-block;margin-top:16px;background:#18181b;color:white;text-decoration:none;padding:13px 20px;border-radius:10px;font-weight:700">View event</a><p style="margin-top:36px;font-size:11px;color:#a1a1aa">You received this because you followed ${hostName} on Radius. <a href="${unsubscribeUrl}" style="color:#71717a">Unsubscribe</a></p></div>`,
+    });
+    return error ? { success: false, error } : { success: true, data };
+  } catch (error) {
+    console.error('New host event email failed:', error);
+    return { success: false, error };
   }
 }

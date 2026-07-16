@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { sendNewHostEventEmail } from '@/lib/email';
 
 // Prevent Next.js from caching GET responses — ensures edits reflect immediately
 export const dynamic = 'force-dynamic';
@@ -63,6 +64,7 @@ export async function PUT(
 
         const { slug } = params;
         const body = await req.json();
+        const { data: previousEvent } = await supabaseAdmin.from('events').select('status').eq('slug', slug).maybeSingle();
 
         // Whitelist only valid event columns to avoid Supabase errors
         // from extra fields like joined organizer objects
@@ -87,6 +89,23 @@ export async function PUT(
         if (error) {
             console.error('❌ Event update error:', error);
             return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+        }
+
+        if (previousEvent?.status !== 'published' && data.status === 'published') {
+            const [{ data: host }, { data: subscribers }] = await Promise.all([
+                supabaseAdmin.from('hosts').select('name, slug').eq('id', data.host_id).maybeSingle(),
+                supabaseAdmin.from('host_subscriptions').select('email, unsubscribe_token').eq('host_id', data.host_id).eq('status', 'active'),
+            ]);
+            if (host) await Promise.allSettled((subscribers || []).map((subscriber) => sendNewHostEventEmail({
+                toEmail: subscriber.email,
+                unsubscribeToken: subscriber.unsubscribe_token,
+                hostName: host.name,
+                hostSlug: host.slug,
+                eventTitle: data.title,
+                eventPublicSlug: data.public_slug,
+                eventDate: data.date,
+                eventLocation: data.location,
+            })));
         }
 
         return NextResponse.json({ event: data }, { status: 200 });

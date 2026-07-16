@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { findAvailableSlug, slugify } from '@/lib/slugs';
+import { sendNewHostEventEmail } from '@/lib/email';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
 
         const [{ data: membership }, { data: host }] = await Promise.all([
             supabaseAdmin.from('host_organizers').select('host_id').eq('host_id', hostId).eq('user_id', user.id).maybeSingle(),
-            supabaseAdmin.from('hosts').select('id, slug').eq('id', hostId).maybeSingle(),
+            supabaseAdmin.from('hosts').select('id, slug, name').eq('id', hostId).maybeSingle(),
         ]);
 
         if (!membership || !host) {
@@ -128,6 +129,24 @@ export async function POST(req: NextRequest) {
         if (error) {
             console.error('❌ DB insert error:', error);
             return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+        }
+
+        if (data.status === 'published') {
+            const { data: subscribers } = await supabaseAdmin
+                .from('host_subscriptions')
+                .select('email, unsubscribe_token')
+                .eq('host_id', hostId)
+                .eq('status', 'active');
+            await Promise.allSettled((subscribers || []).map((subscriber) => sendNewHostEventEmail({
+                toEmail: subscriber.email,
+                unsubscribeToken: subscriber.unsubscribe_token,
+                hostName: host.name,
+                hostSlug: host.slug,
+                eventTitle: data.title,
+                eventPublicSlug: data.public_slug,
+                eventDate: data.date,
+                eventLocation: data.location,
+            })));
         }
 
         return NextResponse.json({ event: data }, { status: 201 });

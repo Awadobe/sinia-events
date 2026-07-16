@@ -61,7 +61,7 @@ export async function POST(
         }
 
         // Send emails via Resend
-        if (!process.env.RESEND_API_KEY || 're_123456789') {
+        if (!process.env.RESEND_API_KEY) {
             console.warn('⚠️ RESEND_API_KEY not set. Skipping blast.');
             // Still save the blast record
         } else {

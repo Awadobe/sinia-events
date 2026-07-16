@@ -66,6 +66,13 @@ const THEME_STYLES = [
     { id: "seasonal", label: "Seasonal", preview: "bg-gradient-to-r from-rose-200 to-orange-200" },
 ];
 
+function applyTime(date: Date, time: string): Date {
+    const next = new Date(date);
+    const [hours, minutes] = time.split(":").map(Number);
+    next.setHours(hours, minutes, 0, 0);
+    return next;
+}
+
 const THEME_FONTS = [
     { id: "standard", label: "Sans" },
     { id: "classic", label: "Serif" },
@@ -95,6 +102,8 @@ export default function EditEventPage() {
     const [eventType, setEventType] = useState("Event");
     const [date, setDate] = useState<Date | undefined>();
     const [endDate, setEndDate] = useState<Date | undefined>();
+    const [startTime, setStartTime] = useState("16:00");
+    const [endTime, setEndTime] = useState("17:00");
     const [location, setLocation] = useState("");
     const [isVirtual, setIsVirtual] = useState(false);
     const [virtualLink, setVirtualLink] = useState("");
@@ -125,6 +134,8 @@ export default function EditEventPage() {
             setEventType(event.event_type || "Event");
             setDate(event.date ? new Date(event.date) : undefined);
             setEndDate(event.end_date ? new Date(event.end_date) : undefined);
+            setStartTime(event.date ? format(new Date(event.date), "HH:mm") : "16:00");
+            setEndTime(event.end_date ? format(new Date(event.end_date), "HH:mm") : "17:00");
             setLocation(event.location || "");
             setIsVirtual(event.is_virtual || false);
             setVirtualLink(event.virtual_link || "");
@@ -148,8 +159,8 @@ export default function EditEventPage() {
             title,
             description: description || null,
             event_type: eventType,
-            date: date?.toISOString(),
-            end_date: endDate?.toISOString() || null,
+            date: date ? applyTime(date, startTime).toISOString() : null,
+            end_date: endDate ? applyTime(endDate, endTime).toISOString() : null,
             location: location || null,
             is_virtual: isVirtual,
             virtual_link: virtualLink || null,
@@ -383,7 +394,7 @@ export default function EditEventPage() {
                                 </Popover>
                                 <div className="ml-auto flex items-center gap-1.5">
                                     <Clock className="h-3.5 w-3.5 text-zinc-300" />
-                                    <Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" defaultValue={date ? format(date, "HH:mm") : "16:00"} />
+                                    <Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" value={startTime} onChange={(event) => setStartTime(event.target.value)} />
                                 </div>
                             </div>
                             <div className="flex items-center gap-4 px-5 py-4">
@@ -403,6 +414,7 @@ export default function EditEventPage() {
                                         <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
                                     </PopoverContent>
                                 </Popover>
+                                <div className="ml-auto flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-zinc-300" /><Input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium focus-visible:ring-0 text-right" value={endTime} onChange={(event) => setEndTime(event.target.value)} /></div>
                             </div>
                         </div>
 

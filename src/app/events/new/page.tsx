@@ -182,6 +182,13 @@ function generateSlug(title: string): string {
         .replace(/^-|-$/g, "");
 }
 
+function applyTime(date: Date, time: string): Date {
+    const next = new Date(date);
+    const [hours, minutes] = time.split(":").map(Number);
+    next.setHours(hours, minutes, 0, 0);
+    return next;
+}
+
 export default function CreateEventPage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -201,6 +208,8 @@ export default function CreateEventPage() {
     const [showTheme, setShowTheme] = useState(false);
     const [hosts, setHosts] = useState<HostOption[]>([]);
     const [selectedHostId, setSelectedHostId] = useState("");
+    const [startTime, setStartTime] = useState("16:00");
+    const [endTime, setEndTime] = useState("17:00");
 
     useEffect(() => {
         fetch("/api/hosts")
@@ -245,8 +254,8 @@ export default function CreateEventPage() {
         setIsSubmitting(true);
         const payload = {
             title: formData.title, description: formData.description || null,
-            event_type: formData.event_type.trim() || "Event", date: formData.date?.toISOString(),
-            end_date: formData.end_date?.toISOString() || null, location: formData.location || null,
+            event_type: formData.event_type.trim() || "Event", date: applyTime(formData.date, startTime).toISOString(),
+            end_date: formData.end_date ? applyTime(formData.end_date, endTime).toISOString() : null, location: formData.location || null,
             is_virtual: formData.is_virtual, virtual_link: formData.virtual_link || null,
             image_url: coverSource === "category" ? coverImage : null,
             max_attendees: formData.max_attendees ? parseInt(formData.max_attendees.toString()) : null,
@@ -414,12 +423,12 @@ export default function CreateEventPage() {
                                 <div className="flex items-center gap-4 px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}15` }}>
                                     <div className="flex items-center gap-2.5 w-20"><CalendarDays className="h-4 w-4" style={theme.textMuted} /><span className="text-sm" style={theme.textMuted}>Start</span></div>
                                     <Popover><PopoverTrigger asChild><button type="button" className="text-sm font-medium transition-colors" style={theme.textPrimary}>{formData.date ? format(formData.date, "EEE, MMM d, yyyy") : "Pick a date"}</button></PopoverTrigger><PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start"><Calendar mode="single" selected={formData.date} onSelect={(d) => updateField("date", d)} initialFocus /></PopoverContent></Popover>
-                                    <div className="ml-auto flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" style={theme.textMuted} /><input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none" style={{ color: theme.palette.text }} defaultValue="16:00" /></div>
+                                    <div className="ml-auto flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" style={theme.textMuted} /><input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none" style={{ color: theme.palette.text }} value={startTime} onChange={(event) => setStartTime(event.target.value)} /></div>
                                 </div>
                                 <div className="flex items-center gap-4 px-5 py-4">
                                     <div className="flex items-center gap-2.5 w-20"><div className="h-4 w-4 flex items-center justify-center"><div className="h-2 w-2 rounded-full border-2 border-dashed" style={{ borderColor: theme.palette.cardBorder }} /></div><span className="text-sm" style={theme.textMuted}>End</span></div>
                                     <Popover><PopoverTrigger asChild><button type="button" className="text-sm font-medium transition-colors" style={theme.textMuted}>{formData.end_date ? format(formData.end_date, "EEE, MMM d, yyyy") : "Pick end date"}</button></PopoverTrigger><PopoverContent className="w-auto p-0 rounded-2xl border-none shadow-2xl" align="start"><Calendar mode="single" selected={formData.end_date} onSelect={(d) => updateField("end_date", d)} initialFocus /></PopoverContent></Popover>
-                                    <div className="ml-auto flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" style={theme.textMuted} /><input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none" style={{ color: theme.palette.muted }} defaultValue="17:00" /></div>
+                                    <div className="ml-auto flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" style={theme.textMuted} /><input type="time" className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none" style={{ color: theme.palette.muted }} value={endTime} onChange={(event) => setEndTime(event.target.value)} /></div>
                                 </div>
                             </div>
 

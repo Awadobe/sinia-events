@@ -194,12 +194,21 @@ function generateSlug(title: string): string {
         .replace(/^-|-$/g, "");
 }
 
+function applyTime(date: Date, time: string): Date {
+    const next = new Date(date);
+    const [hours, minutes] = time.split(":").map(Number);
+    next.setHours(hours, minutes, 0, 0);
+    return next;
+}
+
 export default function CreateEventPage() {
     const router = useRouter();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [formData, setFormData] = useState<EventFormData>(initialFormData);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+    const [startTime, setStartTime] = useState("16:00");
+    const [endTime, setEndTime] = useState("17:00");
 
     // Cover state
     const [coverImage, setCoverImage] = useState<string | null>(null);
@@ -268,8 +277,8 @@ export default function CreateEventPage() {
             title: formData.title,
             description: formData.description || null,
             event_type: formData.event_type.trim() || "Event",
-            date: formData.date?.toISOString(),
-            end_date: formData.end_date?.toISOString() || null,
+            date: applyTime(formData.date, startTime).toISOString(),
+            end_date: formData.end_date ? applyTime(formData.end_date, endTime).toISOString() : null,
             location: formData.location || null,
             is_virtual: formData.is_virtual,
             virtual_link: formData.virtual_link || null,
@@ -626,7 +635,8 @@ export default function CreateEventPage() {
                                             type="time"
                                             className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none"
                                             style={{ color: theme.palette.text }}
-                                            defaultValue="16:00"
+                                            value={startTime}
+                                            onChange={(event) => setStartTime(event.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -653,7 +663,8 @@ export default function CreateEventPage() {
                                             type="time"
                                             className="h-auto w-20 border-none bg-transparent px-0 text-sm font-medium text-right focus:outline-none"
                                             style={{ color: theme.palette.muted }}
-                                            defaultValue="17:00"
+                                            value={endTime}
+                                            onChange={(event) => setEndTime(event.target.value)}
                                         />
                                     </div>
                                 </div>

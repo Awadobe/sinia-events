@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Calendar, MapPin, ArrowRight, Clock, Sparkles } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Clock, Sparkles, Building2 } from "lucide-react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { EventsGrid } from "@/components/events-grid";
@@ -53,9 +53,20 @@ async function getPastEvents() {
   }));
 }
 
+async function getFeaturedOrganizations() {
+  const { data } = await supabaseAdmin
+    .from("hosts")
+    .select("id, name, slug, description, logo_url")
+    .eq("type", "organization")
+    .order("created_at", { ascending: false })
+    .limit(4);
+  return data || [];
+}
+
 export default async function HomePage() {
   const upcomingEvents = await getUpcomingEvents();
   const pastEventsRaw = await getPastEvents();
+  const organizations = await getFeaturedOrganizations();
   const hasMorePastEvents = pastEventsRaw.length > 4;
   const pastEvents = pastEventsRaw.slice(0, 4);
 
@@ -229,6 +240,24 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Compact organization discovery */}
+      {organizations.length > 0 && (
+        <section className="mx-auto max-w-6xl px-4 sm:px-6 pb-14">
+          <div className="mb-5 flex items-end justify-between gap-4">
+            <div><p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Follow the communities you care about</p><h2 className="mt-1 text-xl font-semibold text-zinc-900">Organizations</h2></div>
+            <Link href="/organizations" className="flex items-center gap-1.5 text-sm font-medium text-zinc-500 hover:text-zinc-900">View all <ArrowRight className="h-3.5 w-3.5" /></Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {organizations.map((organization) => (
+              <Link key={organization.id} href={`/hosts/${organization.slug}`} className="flex min-w-[240px] max-w-[280px] items-center gap-3 rounded-2xl border border-black/5 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
+                {organization.logo_url ? <Image src={organization.logo_url} alt={organization.name} width={44} height={44} className="h-11 w-11 rounded-xl object-cover" unoptimized /> : <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-100 text-zinc-500"><Building2 className="h-5 w-5" /></div>}
+                <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-zinc-900">{organization.name}</h3><p className="mt-0.5 truncate text-xs text-zinc-400">View events and follow</p></div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Upcoming Events — Searchable & Filterable */}
       <section id="upcoming-events" className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
