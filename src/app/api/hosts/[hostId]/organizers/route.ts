@@ -97,3 +97,27 @@ export async function POST(
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ status: "invited" }, { status: 201 });
 }
+
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { hostId: string } }
+) {
+    const user = await requireHostOrganizer(params.hostId);
+    if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const body = await request.json();
+
+    if (body.invitationId) {
+        const { error } = await admin.from("host_invitations").update({ status: "revoked" }).eq("id", body.invitationId).eq("host_id", params.hostId);
+        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ status: "invitation_revoked" });
+    }
+
+    const organizerId = String(body.userId || "");
+    if (!organizerId) return NextResponse.json({ error: "Organizer is required" }, { status: 400 });
+    const { count } = await admin.from("host_organizers").select("*", { count: "exact", head: true }).eq("host_id", params.hostId);
+    if ((count || 0) <= 1) return NextResponse.json({ error: "An organization must keep at least one organizer" }, { status: 409 });
+
+    const { error } = await admin.from("host_organizers").delete().eq("host_id", params.hostId).eq("user_id", organizerId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ status: "organizer_removed" });
+}
