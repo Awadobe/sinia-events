@@ -93,6 +93,10 @@ export async function PATCH(
             return NextResponse.json({ error: 'registrationId is required' }, { status: 400 });
         }
 
+        if (status && !['pending', 'confirmed', 'cancelled'].includes(status)) {
+            return NextResponse.json({ error: 'Invalid registration status' }, { status: 400 });
+        }
+
         const updateData: Record<string, unknown> = {};
         if (status) updateData.status = status;
         if (checked_in !== undefined) {
@@ -110,17 +114,22 @@ export async function PATCH(
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
-        const { data, error } = await supabaseAdmin
+        let updateQuery = supabaseAdmin
             .from('registrations')
             .update(updateData)
             .eq('id', registrationId)
-            .eq('event_id', managedEvent.id)
-            .select()
-            .single();
+            .eq('event_id', managedEvent.id);
+        if (checked_in === true) updateQuery = updateQuery.eq('status', 'confirmed');
+
+        const { data, error } = await updateQuery.select().maybeSingle();
 
         if (error) {
             console.error('❌ Registration update error:', error);
             return NextResponse.json({ error: error.message }, { status: 500 });
+        }
+
+        if (!data) {
+            return NextResponse.json({ error: checked_in === true ? 'Only confirmed attendees can be checked in' : 'Registration not found for this event' }, { status: 409 });
         }
 
         return NextResponse.json({ registration: data });

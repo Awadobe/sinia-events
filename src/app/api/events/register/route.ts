@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, max_attendees, require_approval, date, location, slug, organizer_id, organizer:profiles!organizer_id(email, name, org_name)')
+            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, organizer_id, organizer:profiles!organizer_id(email, name, org_name)')
             .eq('id', event_id)
             .single();
 
@@ -47,12 +47,22 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Event not found.' }, { status: 404 });
         }
 
+        if (event.status !== 'published') {
+            return NextResponse.json({ error: 'Registration is not open for this event.' }, { status: 409 });
+        }
+
+        const eventEnd = event.end_date ? new Date(event.end_date) : new Date(event.date);
+        if (eventEnd.getTime() < Date.now()) {
+            return NextResponse.json({ error: 'This event has already ended.' }, { status: 409 });
+        }
+
         // Check capacity
         if (event.max_attendees) {
             const { count } = await supabaseAdmin
                 .from('registrations')
                 .select('*', { count: 'exact', head: true })
-                .eq('event_id', event_id);
+                .eq('event_id', event_id)
+                .neq('status', 'cancelled');
 
             if (count !== null && count >= event.max_attendees) {
                 return NextResponse.json({ error: 'This event is at full capacity.' }, { status: 409 });
