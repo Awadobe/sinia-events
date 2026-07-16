@@ -100,10 +100,21 @@ export async function PATCH(
             updateData.checked_in_at = checked_in ? new Date().toISOString() : null;
         }
 
+        const { data: managedEvent } = await supabaseAdmin
+            .from('events')
+            .select('id')
+            .eq('slug', params.slug)
+            .maybeSingle();
+
+        if (!managedEvent) {
+            return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+        }
+
         const { data, error } = await supabaseAdmin
             .from('registrations')
             .update(updateData)
             .eq('id', registrationId)
+            .eq('event_id', managedEvent.id)
             .select()
             .single();
 

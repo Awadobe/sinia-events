@@ -20,6 +20,8 @@ type EventData = {
     status: string;
     event_type: string;
     is_virtual: boolean;
+    public_slug: string;
+    host: { slug: string } | null;
 };
 
 const TABS = [
@@ -55,9 +57,12 @@ export default function ManageEventLayout({
     }, [slug]);
 
     const activeTab = TABS.find(t => pathname.includes(`/manage/${t.href}`))?.id || "overview";
+    const publicEventPath = event?.host?.slug && event.public_slug
+        ? `/hosts/${event.host.slug}/events/${event.public_slug}`
+        : `/events/${slug}`;
 
     const copyLink = async () => {
-        await navigator.clipboard.writeText(`${window.location.origin}/events/${slug}`);
+        await navigator.clipboard.writeText(`${window.location.origin}${publicEventPath}`);
         toast.success("Event link copied!");
     };
 
@@ -100,7 +105,7 @@ export default function ManageEventLayout({
                                 Copy Link
                             </button>
                             <Link
-                                href={`/events/${slug}`}
+                                href={publicEventPath}
                                 target="_blank"
                                 className="flex items-center gap-1.5 rounded-xl bg-zinc-100 px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-200 transition-colors"
                             >

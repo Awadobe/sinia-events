@@ -9,6 +9,10 @@ const admin = createClient(
 );
 
 export async function POST(request: NextRequest, { params }: { params: { hostId: string } }) {
+    if (process.env.NEXT_PUBLIC_ORG_SUBSCRIPTIONS_ENABLED !== "true") {
+        return NextResponse.json({ error: "Organization email updates are not available yet." }, { status: 503 });
+    }
+
     const body = await request.json();
     const email = String(body.email || "").trim().toLowerCase();
 

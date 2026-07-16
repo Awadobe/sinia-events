@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Plus, Users } from "lucide-react";
+import { ArrowLeft, Loader2, Plus, Save, Users } from "lucide-react";
 import { toast } from "sonner";
 
 type Organizer = { user_id: string; profile: { name: string | null; email: string | null } | null };
@@ -17,6 +17,9 @@ export default function HostOrganizersPage() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [hostName, setHostName] = useState("");
+    const [description, setDescription] = useState("");
+    const [savingDetails, setSavingDetails] = useState(false);
 
     const load = useCallback(async () => {
         const response = await fetch(`/api/hosts/${hostId}/organizers`);
@@ -29,6 +32,25 @@ export default function HostOrganizersPage() {
     }, [hostId]);
 
     useEffect(() => { load(); }, [load]);
+
+    useEffect(() => {
+        fetch(`/api/hosts/${hostId}`).then((response) => response.json()).then((result) => {
+            if (result.host) {
+                setHostName(result.host.name || "");
+                setDescription(result.host.description || "");
+            }
+        });
+    }, [hostId]);
+
+    async function saveDetails(event: React.FormEvent) {
+        event.preventDefault();
+        setSavingDetails(true);
+        const response = await fetch(`/api/hosts/${hostId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: hostName, description }) });
+        const result = await response.json();
+        setSavingDetails(false);
+        if (!response.ok) return toast.error(result.error || "Could not save organization");
+        toast.success("Organization updated");
+    }
 
     async function addOrganizer(event: React.FormEvent) {
         event.preventDefault();
@@ -55,6 +77,12 @@ export default function HostOrganizersPage() {
                     <h1 className="text-3xl font-semibold text-zinc-900 mt-1">Organizers</h1>
                     <p className="text-sm text-zinc-500 mt-2">Every organizer can manage the organization and all its events.</p>
                 </div>
+
+                <form onSubmit={saveDetails} className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm space-y-4">
+                    <div><label className="text-sm font-semibold text-zinc-700">Organization name</label><input required value={hostName} onChange={(event) => setHostName(event.target.value)} className="mt-2 w-full rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200" /></div>
+                    <div><label className="text-sm font-semibold text-zinc-700">Description</label><textarea value={description} onChange={(event) => setDescription(event.target.value)} rows={3} placeholder="Tell visitors what your organization does" className="mt-2 w-full resize-none rounded-xl border border-zinc-200 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-zinc-200" /></div>
+                    <button disabled={savingDetails} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{savingDetails ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save details</button>
+                </form>
 
                 <form onSubmit={addOrganizer} className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
                     <label className="text-sm font-semibold text-zinc-700">Add organizer by email</label>
