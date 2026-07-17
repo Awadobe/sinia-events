@@ -13,6 +13,7 @@ export default function UserLoginPage() {
     const [email, setEmail] = useState("");
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
     const getNextPath = () => {
@@ -64,6 +65,24 @@ export default function UserLoginPage() {
             toast.error("Failed to send magic link. Please try again.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGoogleSignIn = async () => {
+        setGoogleLoading(true);
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: "google",
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
+                queryParams: {
+                    access_type: "offline",
+                    prompt: "select_account",
+                },
+            },
+        });
+        if (error) {
+            toast.error(error.message || "Google sign-in is not available yet.");
+            setGoogleLoading(false);
         }
     };
 
@@ -119,9 +138,23 @@ export default function UserLoginPage() {
                                     Sign in to Radius
                                 </h1>
                                 <p className="text-sm text-zinc-500 pb-2">
-                                    Enter your email to sign in or create a new account. We&apos;ll send you a magic link — no password needed.
+                                    Use Google for the quickest sign-in, or receive a secure link by email.
                                 </p>
                             </div>
+
+                            <Button type="button" variant="outline" onClick={handleGoogleSignIn} disabled={googleLoading || loading} className="h-12 w-full border-zinc-200 bg-white text-base font-semibold text-zinc-800 shadow-sm transition hover:bg-zinc-50">
+                                {googleLoading ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-800" /> : (
+                                    <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5">
+                                        <path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.4-.18-2.07H12v3.91h5.38a4.6 4.6 0 0 1-2 3.02v2.54h3.24c1.9-1.75 2.98-4.33 2.98-7.4Z" />
+                                        <path fill="#34A853" d="M12 22c2.7 0 4.97-.9 6.63-2.37l-3.24-2.54c-.9.6-2.05.96-3.39.96-2.61 0-4.82-1.76-5.61-4.13H3.04v2.62A10 10 0 0 0 12 22Z" />
+                                        <path fill="#FBBC05" d="M6.39 13.92A6.02 6.02 0 0 1 6.07 12c0-.67.11-1.32.32-1.92V7.46H3.04A10 10 0 0 0 2 12c0 1.63.39 3.17 1.04 4.54l3.35-2.62Z" />
+                                        <path fill="#EA4335" d="M12 5.95c1.47 0 2.79.5 3.82 1.5l2.88-2.88A9.65 9.65 0 0 0 12 2a10 10 0 0 0-8.96 5.46l3.35 2.62C7.18 7.71 9.39 5.95 12 5.95Z" />
+                                    </svg>
+                                )}
+                                {googleLoading ? "Connecting to Google..." : "Continue with Google"}
+                            </Button>
+
+                            <div className="flex items-center gap-3"><div className="h-px flex-1 bg-zinc-200" /><span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">or use email</span><div className="h-px flex-1 bg-zinc-200" /></div>
 
                             <form onSubmit={handleSendMagicLink} className="space-y-5">
                                 <div className="space-y-2.5">
@@ -147,7 +180,7 @@ export default function UserLoginPage() {
                                         "Sending..."
                                     ) : (
                                         <>
-                                            Continue <ArrowRight className="ml-2 h-4 w-4" />
+                                            Email me a sign-in link <ArrowRight className="ml-2 h-4 w-4" />
                                         </>
                                     )}
                                 </Button>
