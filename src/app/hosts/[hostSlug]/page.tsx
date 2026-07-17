@@ -32,7 +32,7 @@ function EventCard({ event, hostSlug, past = false }: { event: HostEvent; hostSl
 }
 
 export default async function PublicHostPage({ params }: { params: { hostSlug: string } }) {
-    const { data: host } = await admin.from("hosts").select("id, type, name, slug, description, logo_url").eq("slug", params.hostSlug).maybeSingle();
+    const { data: host } = await admin.from("hosts").select("id, type, name, slug, description, logo_url").eq("slug", params.hostSlug).eq("status", "active").maybeSingle();
     if (!host) notFound();
 
     const { data } = await admin.from("events").select("id, title, date, location, event_type, public_slug, image_url").eq("host_id", host.id).eq("status", "published").order("date", { ascending: true });

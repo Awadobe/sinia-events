@@ -72,9 +72,10 @@ export async function updateSession(request: NextRequest) {
     );
     const { data: event } = await admin
       .from('events')
-      .select('slug, host:hosts!inner(slug)')
+      .select('slug, host:hosts!inner(slug, status)')
       .eq('public_slug', decodeURIComponent(publicEventMatch[2]))
       .eq('hosts.slug', decodeURIComponent(publicEventMatch[1]))
+      .eq('hosts.status', 'active')
       .maybeSingle();
 
     if (event) {

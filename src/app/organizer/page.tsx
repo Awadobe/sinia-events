@@ -17,6 +17,10 @@ export default async function OrganizerDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) redirect("/login");
 
+    const { data: platformStaff } = user.email
+        ? await admin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle()
+        : { data: null };
+
     const { data: memberships } = await admin
         .from("host_organizers")
         .select("host_id, host:hosts(id, type, name, slug, description, logo_url)")
@@ -36,6 +40,7 @@ export default async function OrganizerDashboard() {
                 <div className="mx-auto max-w-6xl flex items-center justify-between px-5 py-4">
                     <Link href="/" className="font-semibold text-zinc-900">Radius</Link>
                     <div className="flex items-center gap-3">
+                        {platformStaff && <Link href="/platform-admin" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">Platform admin</Link>}
                         <span className="hidden sm:inline text-xs font-semibold uppercase tracking-widest text-zinc-400">Organizer account</span>
                         <form action="/auth/signout" method="post"><button className="text-sm text-zinc-500 hover:text-zinc-900">Log out</button></form>
                     </div>

@@ -18,9 +18,10 @@ async function getUpcomingEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, is_featured, host:hosts(slug)")
+    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, is_featured, host:hosts!inner(slug, status)")
     .neq("status", "cancelled")
     .gte("date", now)
+    .eq("hosts.status", "active")
     .order("date", { ascending: true });
 
   if (error) {
@@ -37,9 +38,10 @@ async function getPastEvents() {
   const now = new Date().toISOString();
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, host:hosts(slug)")
+    .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, host:hosts!inner(slug, status)")
     .neq("status", "cancelled")
     .lt("date", now)
+    .eq("hosts.status", "active")
     .order("date", { ascending: false })
     .limit(5);
 
@@ -58,6 +60,7 @@ async function getFeaturedOrganizations() {
     .from("hosts")
     .select("id, name, slug, description, logo_url")
     .eq("type", "organization")
+    .eq("status", "active")
     .order("created_at", { ascending: false })
     .limit(4);
   return data || [];
@@ -107,6 +110,11 @@ export default async function HomePage() {
               <>
                 {isOrganizer ? (
                   <>
+                    {legacyOrganizer && (
+                      <Link href="/platform-admin" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                        Platform admin
+                      </Link>
+                    )}
                     <Link href="/organizer" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
                       Organizer account
                     </Link>

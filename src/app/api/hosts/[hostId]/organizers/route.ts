@@ -8,6 +8,10 @@ const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
     process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder"
 );
+const authClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder"
+);
 
 async function requireHostOrganizer(hostId: string) {
     const supabase = createClient();
@@ -78,23 +82,32 @@ export async function POST(
         .maybeSingle();
 
     if (profile) {
-        const { error } = await admin.from("host_organizers").upsert({
-            host_id: params.hostId,
-            user_id: profile.id,
-            added_by: user.id,
-        });
-        if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-        return NextResponse.json({ status: "added" }, { status: 201 });
+        const { data: existingMembership } = await admin.from("host_organizers").select("host_id").eq("host_id", params.hostId).eq("user_id", profile.id).maybeSingle();
+        if (existingMembership) return NextResponse.json({ error: "This person is already an organizer" }, { status: 409 });
     }
 
-    const { error } = await admin.from("host_invitations").upsert({
+    const { data: invitation, error } = await admin.from("host_invitations").upsert({
         host_id: params.hostId,
         email,
         invited_by: user.id,
         status: "pending",
-    }, { onConflict: "host_id,email" });
+        accept_token: crypto.randomUUID(),
+    }, { onConflict: "host_id,email" }).select("accept_token").single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error || !invitation) return NextResponse.json({ error: error?.message || "Could not create invitation" }, { status: 500 });
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+    const acceptancePath = `/organizer/invitations/accept?token=${invitation.accept_token}`;
+    const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(acceptancePath)}`;
+    const { error: emailError } = await authClient.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: callbackUrl },
+    });
+
+    if (emailError) {
+        console.error("Organizer invitation email failed:", emailError);
+        return NextResponse.json({ error: `Invitation was saved, but the email could not be sent: ${emailError.message}` }, { status: 502 });
+    }
     return NextResponse.json({ status: "invited" }, { status: 201 });
 }
 

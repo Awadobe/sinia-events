@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, Loader2, Plus, Save, Trash2, Upload, Users, X } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Plus, Save, Trash2, Upload, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 type Organizer = { user_id: string; profile: { name: string | null; email: string | null } | null };
@@ -99,8 +99,20 @@ export default function HostOrganizersPage() {
         const result = await response.json();
         setSaving(false);
         if (!response.ok) return toast.error(result.error || "Could not add organizer");
-        toast.success(result.status === "added" ? "Organizer added" : "Invitation recorded");
+        toast.success("Invitation email sent");
         setEmail("");
+        await load();
+    }
+
+    async function resendInvitation(invitationEmail: string) {
+        const response = await fetch(`/api/hosts/${hostId}/organizers`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: invitationEmail }),
+        });
+        const result = await response.json();
+        if (!response.ok) return toast.error(result.error || "Could not resend invitation");
+        toast.success("Invitation email resent");
         await load();
     }
 
@@ -139,7 +151,7 @@ export default function HostOrganizersPage() {
                             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add
                         </button>
                     </div>
-                    <p className="text-xs text-zinc-400 mt-2">If they do not have an account yet, access activates when they sign up with this email.</p>
+                    <p className="text-xs text-zinc-400 mt-2">They will receive an email. They must open its link and sign in with this exact email address to accept access.</p>
                 </form>
 
                 <section className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
@@ -147,7 +159,7 @@ export default function HostOrganizersPage() {
                     {loading ? <div className="p-8 text-center"><Loader2 className="h-5 w-5 animate-spin mx-auto" /></div> : (
                         <div className="divide-y divide-zinc-100">
                             {organizers.map((organizer) => <div key={organizer.user_id} className="flex items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium text-zinc-800">{organizer.profile?.name || organizer.profile?.email || "Organizer"}</p><p className="text-sm text-zinc-400">{organizer.profile?.email}</p></div><button type="button" onClick={() => removeOrganizer(organizer.user_id)} disabled={organizers.length <= 1} title={organizers.length <= 1 ? "An organization must keep one organizer" : "Remove organizer"} className="rounded-lg p-2 text-zinc-300 hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-30"><Trash2 className="h-4 w-4" /></button></div>)}
-                            {invitations.filter((invite) => invite.status === "pending").map((invite) => <div key={invite.id} className="flex items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium text-zinc-700">{invite.email}</p><p className="text-xs text-amber-600">Pending account signup</p></div><button type="button" onClick={() => cancelInvitation(invite.id)} title="Cancel invitation" className="rounded-lg p-2 text-zinc-300 hover:bg-zinc-100 hover:text-zinc-600"><X className="h-4 w-4" /></button></div>)}
+                            {invitations.filter((invite) => invite.status === "pending").map((invite) => <div key={invite.id} className="flex items-center justify-between gap-4 px-5 py-4"><div><p className="font-medium text-zinc-700">{invite.email}</p><p className="text-xs text-amber-600">Waiting for the invited person to accept</p></div><div className="flex items-center gap-1"><button type="button" onClick={() => resendInvitation(invite.email)} title="Resend invitation email" className="rounded-lg p-2 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"><Mail className="h-4 w-4" /></button><button type="button" onClick={() => cancelInvitation(invite.id)} title="Cancel invitation" className="rounded-lg p-2 text-zinc-300 hover:bg-zinc-100 hover:text-zinc-600"><X className="h-4 w-4" /></button></div></div>)}
                         </div>
                     )}
                 </section>

@@ -4,12 +4,14 @@ import {
     LayoutDashboard,
     LogOut,
     BarChart3,
+    ShieldCheck,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
+    { label: "Platform Admin", href: "/platform-admin", icon: ShieldCheck },
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
     { label: "Events", href: "/admin/events", icon: Calendar },
     { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },

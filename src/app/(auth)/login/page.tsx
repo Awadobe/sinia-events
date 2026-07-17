@@ -15,13 +15,17 @@ export default function UserLoginPage() {
     const [loading, setLoading] = useState(false);
     const supabase = createClient();
     const router = useRouter();
+    const getNextPath = () => {
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        return requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/organizer";
+    };
 
     // Check if user is already signed in (e.g. redirected here after magic link)
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
                 if (event === "SIGNED_IN" && session) {
-                    router.replace("/organizer");
+                    router.replace(getNextPath());
                 }
             }
         );
@@ -29,7 +33,7 @@ export default function UserLoginPage() {
         // Also check existing session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                router.replace("/organizer");
+                router.replace(getNextPath());
             }
         });
 
@@ -46,7 +50,7 @@ export default function UserLoginPage() {
                 email,
                 options: {
                     shouldCreateUser: true,
-                    emailRedirectTo: `${window.location.origin}/auth/callback?next=/organizer`,
+                    emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(getNextPath())}`,
                 },
             });
 
