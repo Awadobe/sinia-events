@@ -103,6 +103,7 @@ export default function EditTabPage() {
     const [status, setStatus] = useState("published");
     const [requireApproval, setRequireApproval] = useState(false);
     const [coverImage, setCoverImage] = useState<string | null>(null);
+    const [coverFile, setCoverFile] = useState<File | null>(null);
     const [editingCapacity, setEditingCapacity] = useState(false);
 
     // Theme state
@@ -163,6 +164,22 @@ export default function EditTabPage() {
         }
         setSaving(true);
 
+        let savedCoverImage = coverImage;
+        if (coverFile) {
+            const coverData = new FormData();
+            coverData.append("coverFile", coverFile);
+            const coverResponse = await fetch(`/api/events/${slug}/cover`, { method: "POST", body: coverData });
+            const coverResult = await coverResponse.json();
+            if (!coverResponse.ok) {
+                setSaving(false);
+                toast.error(`Could not update the event image: ${coverResult.error}`);
+                return;
+            }
+            savedCoverImage = coverResult.image_url;
+            setCoverImage(savedCoverImage);
+            setCoverFile(null);
+        }
+
         const finalDate = applyTime(date, startTime);
         const finalEndDate = endDate ? applyTime(endDate, endTime) : null;
 
@@ -175,7 +192,7 @@ export default function EditTabPage() {
             location: location || null,
             is_virtual: isVirtual,
             virtual_link: virtualLink || null,
-            image_url: coverImage || null,
+            image_url: savedCoverImage || null,
             max_attendees: maxAttendees,
             status,
             require_approval: requireApproval,
@@ -246,7 +263,7 @@ export default function EditTabPage() {
                             </button>
                         )}
                     </div>
-                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={() => toast.info("Image upload for edit coming soon")} />
+                    <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (!file) return; if (file.size > 5 * 1024 * 1024) { toast.error("Choose an image smaller than 5 MB."); return; } setCoverFile(file); setCoverImage(URL.createObjectURL(file)); toast.success("New image selected. Click Save Changes to publish it."); }} />
 
                     {/* Theme Strip */}
                     <div className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
