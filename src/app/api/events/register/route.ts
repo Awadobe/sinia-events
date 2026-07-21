@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { sendConfirmationEmail, sendOrganizerNotificationEmail } from '@/lib/email';
+import { createClient as createServerClient } from '@/lib/supabase/server';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest) {
         }
 
         const normalizedEmail = String(email).trim().toLowerCase();
+        const serverClient = createServerClient();
+        const { data: { user } } = await serverClient.auth.getUser();
+        const registrationUserId = user?.email?.toLowerCase() === normalizedEmail ? user.id : null;
         const [{ data: legacyOrganizer }, { data: organizerProfile }] = await Promise.all([
             supabaseAdmin.from('staff_allowlist').select('id').ilike('email', normalizedEmail).maybeSingle(),
             supabaseAdmin.from('profiles').select('id').ilike('email', normalizedEmail).maybeSingle(),
@@ -73,7 +77,7 @@ export async function POST(req: NextRequest) {
         const status = event.require_approval ? 'pending' : 'confirmed';
         const { data: registration, error: regError } = await supabaseAdmin
             .from('registrations')
-            .insert([{ event_id, name, email: normalizedEmail, phone: phone || null, status }])
+            .insert([{ event_id, name, email: normalizedEmail, phone: phone || null, status, user_id: registrationUserId }])
             .select()
             .single();
 

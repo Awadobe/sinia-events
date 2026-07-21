@@ -325,9 +325,10 @@ export default function PublicEventPage() {
 
     useEffect(() => {
         async function load() {
-            const [res, accessRes] = await Promise.all([
+            const [res, accessRes, accountRegistrationRes] = await Promise.all([
                 fetch(`/api/events/${slug}?t=${Date.now()}`),
                 fetch(`/api/events/${slug}/access?t=${Date.now()}`),
+                fetch(`/api/events/${slug}/registration?t=${Date.now()}`),
             ]);
             if (!res.ok) {
                 setNotFound(true);
@@ -342,6 +343,22 @@ export default function PublicEventPage() {
                 setCanManage(Boolean(access.can_manage));
             }
             setLoading(false);
+
+            if (accountRegistrationRes.ok) {
+                const accountRegistration = await accountRegistrationRes.json();
+                if (accountRegistration.registration) {
+                    setRegistered(true);
+                    setRegistrationId(accountRegistration.registration.id);
+                    try {
+                        localStorage.setItem(`registered_${slug}`, JSON.stringify({
+                            email: accountRegistration.registration.email,
+                            name: accountRegistration.registration.name,
+                            registrationId: accountRegistration.registration.id,
+                        }));
+                    } catch {}
+                    return;
+                }
+            }
 
             // Check if user already registered (from localStorage)
             try {
