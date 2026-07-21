@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { createClient } from "@supabase/supabase-js";
-import { ArrowLeft, ArrowRight, Building2, CalendarDays, Sparkles, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Building2, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ const palettes = [
 ];
 
 export default async function OrganizationsPage() {
-    const { data: hosts } = await admin.from("hosts").select("id, name, slug, description, logo_url, events(id, date, status)").eq("type", "organization").eq("status", "active").order("name");
+    const { data: hosts } = await admin.from("hosts").select("id, name, slug, description, logo_url, events(id, date, status)").eq("type", "organization").eq("status", "active").neq("slug", "radius-legacy").order("name");
     const now = Date.now();
     const organizations = hosts || [];
 
@@ -35,15 +35,12 @@ export default async function OrganizationsPage() {
                         <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-600"><Sparkles className="h-3.5 w-3.5" /> Radius communities</div>
                         <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-900 sm:text-5xl">Find the communities creating experiences that matter.</h1>
                         <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">Discover the people and organizations behind events across Sierra Leone and online. Visit a community to explore everything they have hosted.</p>
-                        <div className="mt-8 flex flex-wrap gap-3 text-sm">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-white"><Building2 className="h-4 w-4" /> {organizations.length} organization{organizations.length === 1 ? "" : "s"}</span>
-                            <span className="inline-flex items-center gap-2 rounded-full border border-black/5 bg-white/80 px-4 py-2 text-zinc-600"><CalendarDays className="h-4 w-4 text-orange-500" /> Upcoming and past events</span>
-                        </div>
+                        <p className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-zinc-600"><Building2 className="h-4 w-4 text-orange-600" /> Browse {organizations.length} organization{organizations.length === 1 ? "" : "s"} and their upcoming and past events.</p>
                     </div>
                 </section>
 
                 <section className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
-                    <div className="mb-8 flex items-end justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Community directory</p><h2 className="mt-2 text-2xl font-semibold text-zinc-900">Explore organizations</h2></div><Users className="hidden h-7 w-7 text-zinc-300 sm:block" /></div>
+                    <div id="organizations" className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Community directory</p><h2 className="mt-2 text-2xl font-semibold text-zinc-900">Explore organizations</h2></div>
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {organizations.map((host, index) => {
                             const published = (host.events || []).filter((event) => event.status === "published");

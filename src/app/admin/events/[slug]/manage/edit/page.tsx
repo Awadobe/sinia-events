@@ -157,6 +157,10 @@ export default function EditTabPage() {
     }
 
     const handleSave = async () => {
+        if (registrationFields.some((field) => !field.label.trim())) {
+            toast.error("Write a question before saving, or remove the empty question.");
+            return;
+        }
         setSaving(true);
 
         const finalDate = applyTime(date, startTime);
@@ -196,7 +200,10 @@ export default function EditTabPage() {
             return;
         }
 
-        toast.success("Event updated!");
+        const result = await res.json();
+        const savedRegistrationFields = Array.isArray(result.event?.registration_fields) ? result.event.registration_fields : [];
+        setRegistrationFields(savedRegistrationFields);
+        toast.success(`Event updated with ${savedRegistrationFields.length} registration question${savedRegistrationFields.length === 1 ? "" : "s"}.`);
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };

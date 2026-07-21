@@ -345,7 +345,7 @@ export default function PublicEventPage() {
     useEffect(() => {
         async function load() {
             const [res, accessRes, accountRegistrationRes] = await Promise.all([
-                fetch(`/api/events/${slug}?t=${Date.now()}`),
+                fetch(`/api/events/${slug}?t=${Date.now()}`, { cache: "no-store" }),
                 fetch(`/api/events/${slug}/access?t=${Date.now()}`),
                 fetch(`/api/events/${slug}/registration?t=${Date.now()}`),
             ]);

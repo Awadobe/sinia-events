@@ -44,7 +44,7 @@ export async function GET(
             event: data,
             attendee_count: confirmedCount ?? 0,
             confirmed_count: confirmedCount ?? 0,
-        }, { status: 200 });
+        }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
