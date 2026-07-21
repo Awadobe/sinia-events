@@ -106,7 +106,7 @@ export async function updateSession(request: NextRequest) {
     const { data: staff } = await supabase
       .from('staff_allowlist')
       .select('id')
-      .eq('email', user.email)
+      .ilike('email', user.email.trim())
       .single();
 
     const manageMatch = pathname.match(/^\/admin\/events\/([^/]+)\/manage(?:\/|$)/);
