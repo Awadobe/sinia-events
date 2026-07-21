@@ -139,7 +139,11 @@ export default function OverviewPage() {
             });
             const data = await res.json();
             if (res.ok) {
-                toast.success(`${data.sent} invite${data.sent !== 1 ? 's' : ''} sent!${data.skipped ? ` (${data.skipped} skipped)` : ''}`);
+                if (data.errors) {
+                    toast.warning(`${data.sent} sent and ${data.errors} could not be delivered.`);
+                } else {
+                    toast.success(`${data.sent} invite${data.sent !== 1 ? 's' : ''} sent!${data.skipped ? ` (${data.skipped} skipped)` : ''}`);
+                }
                 setShowInviteModal(false);
                 setSelectedEmails([]);
                 setManualEmails('');

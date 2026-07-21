@@ -362,7 +362,7 @@ export async function sendInviteEmail({
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
-    return { success: true, skipped: true };
+    return { success: false, skipped: true, error: 'Email delivery is not configured.' };
   }
 
   const eventUrl = `${appUrl}/events/${eventSlug}`;

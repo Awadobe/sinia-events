@@ -219,8 +219,23 @@ export async function POST(
             if (emailResult.success) {
                 results.sent++;
             } else {
+                // Do not leave an undelivered email marked as "sent". Removing
+                // it also lets the organizer retry after email is configured.
+                await supabaseAdmin
+                    .from('invites')
+                    .delete()
+                    .eq('event_id', event.id)
+                    .eq('email', email);
                 results.errors++;
             }
+        }
+
+        if (results.errors > 0 && results.sent === 0) {
+            return NextResponse.json({
+                success: false,
+                ...results,
+                error: 'The invitation was not delivered. Resend testing mode can only email the address connected to your Resend account. A verified sending domain is required for other recipients.',
+            }, { status: 502 });
         }
 
         return NextResponse.json({ success: true, ...results });

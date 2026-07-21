@@ -94,6 +94,29 @@ export async function PUT(
             return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
         }
 
+        // Do not report a successful save from the update response alone.
+        // Re-read the durable row so the editor and public page use the same
+        // source of truth.
+        const { data: verifiedEvent, error: verificationError } = await supabaseAdmin
+            .from('events')
+            .select('*')
+            .eq('id', data.id)
+            .single();
+
+        if (verificationError || !verifiedEvent) {
+            console.error('❌ Event verification error:', verificationError);
+            return NextResponse.json({ error: 'The event was updated but could not be verified. Please try again.' }, { status: 500 });
+        }
+
+        if ('registration_fields' in updatePayload) {
+            const expectedFields = sanitizeRegistrationFields(updatePayload.registration_fields);
+            const savedFields = sanitizeRegistrationFields(verifiedEvent.registration_fields);
+            if (JSON.stringify(savedFields) !== JSON.stringify(expectedFields)) {
+                console.error('❌ Registration questions did not persist for event:', data.id);
+                return NextResponse.json({ error: 'The registration questions did not persist. Please try saving again.' }, { status: 500 });
+            }
+        }
+
         if (previousEvent?.status !== 'published' && data.status === 'published') {
             const [{ data: host }, { data: subscribers }] = await Promise.all([
                 supabaseAdmin.from('hosts').select('name, slug').eq('id', data.host_id).maybeSingle(),
@@ -111,7 +134,7 @@ export async function PUT(
             })));
         }
 
-        return NextResponse.json({ event: data }, { status: 200 });
+        return NextResponse.json({ event: verifiedEvent }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
