@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { sendConfirmationEmail, sendOrganizerNotificationEmail } from '@/lib/email';
 import { createClient as createServerClient } from '@/lib/supabase/server';
+import { sanitizeRegistrationFields, validateRegistrationAnswers } from '@/lib/registration-fields';
 
 const supabaseAdmin = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
@@ -12,7 +13,7 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { event_id, name, email, phone } = body;
+        const { event_id, name, email, phone, custom_answers } = body;
 
         if (!event_id || !name || !email) {
             return NextResponse.json(
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
         // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, organizer_id, organizer:profiles!organizer_id(email, name, org_name)')
+            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, organizer_id, registration_fields, organizer:profiles!organizer_id(email, name, org_name)')
             .eq('id', event_id)
             .single();
 
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
         if (event.status !== 'published') {
             return NextResponse.json({ error: 'Registration is not open for this event.' }, { status: 409 });
         }
+
+        const registrationFields = sanitizeRegistrationFields(event.registration_fields);
+        const answerValidation = validateRegistrationAnswers(registrationFields, custom_answers);
+        if (answerValidation.error) return NextResponse.json({ error: answerValidation.error }, { status: 400 });
 
         const eventEnd = event.end_date ? new Date(event.end_date) : new Date(event.date);
         if (eventEnd.getTime() < Date.now()) {
@@ -77,7 +82,7 @@ export async function POST(req: NextRequest) {
         const status = event.require_approval ? 'pending' : 'confirmed';
         const { data: registration, error: regError } = await supabaseAdmin
             .from('registrations')
-            .insert([{ event_id, name, email: normalizedEmail, phone: phone || null, status, user_id: registrationUserId }])
+            .insert([{ event_id, name, email: normalizedEmail, phone: phone || null, status, user_id: registrationUserId, custom_answers: answerValidation.answers }])
             .select()
             .single();
 

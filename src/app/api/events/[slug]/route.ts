@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendNewHostEventEmail } from '@/lib/email';
+import { sanitizeRegistrationFields } from '@/lib/registration-fields';
 
 // Prevent Next.js from caching GET responses — ensures edits reflect immediately
 export const dynamic = 'force-dynamic';
@@ -73,11 +74,13 @@ export async function PUT(
             'location', 'is_virtual', 'virtual_link', 'image_url',
             'max_attendees', 'status', 'require_approval',
             'theme_style', 'theme_color', 'theme_font', 'theme_mode',
+            'registration_fields',
         ];
         const updatePayload: Record<string, unknown> = {};
         for (const key of allowedFields) {
             if (key in body) updatePayload[key] = body[key];
         }
+        if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
 
         const { data, error } = await supabaseAdmin
             .from('events')

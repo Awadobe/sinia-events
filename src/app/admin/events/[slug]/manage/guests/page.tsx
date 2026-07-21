@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Search, Download, UserCheck, XCircle, Check, Loader2, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import type { RegistrationAnswers, RegistrationField } from "@/lib/registration-fields";
 
 type Registration = {
     id: string;
@@ -16,6 +17,7 @@ type Registration = {
     checked_in: boolean;
     checked_in_at: string | null;
     created_at: string;
+    custom_answers: RegistrationAnswers;
 };
 
 export default function GuestsPage() {
@@ -26,12 +28,14 @@ export default function GuestsPage() {
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [updating, setUpdating] = useState<string | null>(null);
+    const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
 
     const fetchGuests = async () => {
         const res = await fetch(`/api/events/${slug}/registrations`);
         if (res.ok) {
             const data = await res.json();
             setRegistrations(data.registrations);
+            setRegistrationFields(data.registrationFields || []);
         }
         setLoading(false);
     };
@@ -74,7 +78,7 @@ export default function GuestsPage() {
     };
 
     const exportCSV = () => {
-        const headers = ["Name", "Email", "Phone", "Status", "Checked In", "Registered"];
+        const headers = ["Name", "Email", "Phone", "Status", "Checked In", "Registered", ...registrationFields.map((field) => field.label)];
         const rows = filteredGuests.map(r => [
             r.name,
             r.email,
@@ -82,6 +86,7 @@ export default function GuestsPage() {
             r.status,
             r.checked_in ? "Yes" : "No",
             format(new Date(r.created_at), "yyyy-MM-dd HH:mm"),
+            ...registrationFields.map((field) => { const answer = r.custom_answers?.[field.id]; return Array.isArray(answer) ? answer.join("; ") : answer === true ? "Yes" : answer === false ? "No" : String(answer ?? ""); }),
         ]);
         const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(",")).join("\n");
         const blob = new Blob([csv], { type: "text/csv" });
@@ -191,6 +196,7 @@ export default function GuestsPage() {
                                                         {reg.name}
                                                     </button>
                                                     <div className="text-xs text-zinc-400">{reg.email}</div>
+                                                    {registrationFields.length > 0 && <div className="mt-2 max-w-md space-y-1">{registrationFields.map((field) => { const answer = reg.custom_answers?.[field.id]; if (answer === undefined || answer === "" || (Array.isArray(answer) && !answer.length)) return null; return <p key={field.id} className="text-[11px] leading-relaxed text-zinc-500"><span className="font-semibold text-zinc-600">{field.label}:</span> {Array.isArray(answer) ? answer.join(", ") : answer === true ? "Yes" : String(answer)}</p>; })}</div>}
                                                 </div>
                                             </div>
                                         </td>

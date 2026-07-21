@@ -31,6 +31,8 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
+import type { RegistrationField } from "@/lib/registration-fields";
 
 /* ───── Theme Options ───── */
 const THEME_COLORS = [
@@ -109,6 +111,7 @@ export default function EditTabPage() {
     const [themeFont, setThemeFont] = useState("standard");
     const [themeMode, setThemeMode] = useState("light");
     const [showTheme, setShowTheme] = useState(false);
+    const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
 
     useEffect(() => {
         async function load() {
@@ -138,6 +141,7 @@ export default function EditTabPage() {
             setThemeColor(event.theme_color || "slate");
             setThemeFont(event.theme_font || "standard");
             setThemeMode(event.theme_mode || "light");
+            setRegistrationFields(Array.isArray(event.registration_fields) ? event.registration_fields : []);
             setLoading(false);
         }
         load();
@@ -175,6 +179,7 @@ export default function EditTabPage() {
             theme_color: themeColor,
             theme_font: themeFont,
             theme_mode: themeMode,
+            registration_fields: registrationFields,
         };
 
         const res = await fetch(`/api/events/${slug}`, {
@@ -433,6 +438,8 @@ export default function EditTabPage() {
                     <div className="rounded-2xl border border-black/5 bg-white shadow-sm px-5 py-4">
                         <Textarea placeholder="Add a description..." rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="border-none bg-transparent px-0 text-sm font-normal resize-none focus-visible:ring-0 placeholder:text-zinc-300 min-h-0 py-0 leading-relaxed" />
                     </div>
+
+                    <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 
                     {/* Options */}
                     <div className="space-y-2.5">

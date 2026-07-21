@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { findAvailableSlug, slugify } from '@/lib/slugs';
 import { sendNewHostEventEmail } from '@/lib/email';
+import { sanitizeRegistrationFields } from '@/lib/registration-fields';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
         }
 
         const payload = JSON.parse(payloadJson);
+        payload.registration_fields = sanitizeRegistrationFields(payload.registration_fields);
 
         if (!payload.title || !payload.date) {
             return NextResponse.json(

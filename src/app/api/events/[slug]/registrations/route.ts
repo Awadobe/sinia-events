@@ -25,7 +25,7 @@ export async function GET(
         // Get event by slug first
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id')
+            .select('id, registration_fields')
             .eq('slug', slug)
             .single();
 
@@ -68,6 +68,7 @@ export async function GET(
             registrations: registrations || [],
             stats: { total: registrations?.length || 0, confirmed, pending, cancelled, checkedIn },
             dailyBreakdown,
+            registrationFields: event.registration_fields || [],
         });
     } catch (err) {
         console.error('❌ Unexpected error:', err);

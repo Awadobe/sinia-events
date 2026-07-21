@@ -32,6 +32,8 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
+import type { RegistrationField } from "@/lib/registration-fields";
 
 /* ───── Event Categories with Default Covers ───── */
 const EVENT_CATEGORIES = [
@@ -210,6 +212,7 @@ export default function CreateEventPage() {
     const [selectedHostId, setSelectedHostId] = useState("");
     const [startTime, setStartTime] = useState("16:00");
     const [endTime, setEndTime] = useState("17:00");
+    const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
 
     useEffect(() => {
         fetch("/api/hosts")
@@ -262,6 +265,7 @@ export default function CreateEventPage() {
             status: formData.status, slug: formData.slug,
             theme_style: themeStyle, theme_color: themeColor, theme_font: themeFont, theme_mode: themeMode,
             require_approval: formData.require_approval,
+            registration_fields: registrationFields,
             host_id: selectedHostId,
         };
         const submitData = new FormData();
@@ -281,6 +285,7 @@ export default function CreateEventPage() {
         setTimeout(() => {
             setSubmitSuccess(false); setFormData(initialFormData);
             setCoverImage(null); setCoverFile(null); setCoverSource(null);
+            setRegistrationFields([]);
             const selectedHost = hosts.find((host) => host.id === selectedHostId);
             router.push(selectedHost
                 ? `/hosts/${selectedHost.slug}/events/${result.event.public_slug}`
@@ -449,6 +454,8 @@ export default function CreateEventPage() {
                             <div className="rounded-2xl shadow-sm px-5 py-4 transition-colors duration-300" style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}>
                                 <textarea id="description" placeholder="Add a description... Tell people what your event is about" rows={4} value={formData.description} onChange={(e) => updateField("description", e.target.value)} className="w-full border-none bg-transparent text-sm font-normal resize-none outline-none leading-relaxed" style={{ color: theme.palette.text, caretColor: theme.palette.accent }} />
                             </div>
+
+                            <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 
                             <div className="space-y-2.5">
                                 <p className="text-xs font-semibold uppercase tracking-widest px-1" style={theme.textMuted}>Event Options</p>

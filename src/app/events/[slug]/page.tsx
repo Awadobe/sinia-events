@@ -7,6 +7,7 @@ import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { RegistrationAnswers, RegistrationField } from "@/lib/registration-fields";
 
 import { resolveTheme } from "@/lib/theme";
 import {
@@ -57,6 +58,7 @@ type EventData = {
     theme_font: string;
     theme_mode: string;
     require_approval: boolean;
+    registration_fields: RegistrationField[];
     organizer: OrganizerData | null;
     host: HostData | null;
 };
@@ -151,6 +153,19 @@ function getOrganizerInitials(organizer: OrganizerData | null, host?: HostData |
 /*           REGISTRATION MODAL               */
 /* ═══════════════════════════════════════════ */
 
+function CustomRegistrationField({ field, value, onChange }: { field: RegistrationField; value: RegistrationAnswers[string] | undefined; onChange: (value: RegistrationAnswers[string]) => void }) {
+    const inputClass = "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 outline-none placeholder:text-zinc-400 focus:border-transparent focus:ring-2 focus:ring-zinc-300";
+    const options = (field.options || []).filter(Boolean);
+    return <div><label className="mb-2 block text-sm font-medium text-zinc-700">{field.label}{field.required && <span className="text-zinc-400"> *</span>}</label>{field.description && <p className="mb-2 text-xs leading-relaxed text-zinc-400">{field.description}</p>}
+        {field.type === "long_text" ? <textarea required={field.required} rows={4} value={String(value || "")} onChange={(e) => onChange(e.target.value)} className={`${inputClass} resize-none`} />
+        : field.type === "select" ? <select required={field.required} value={String(value || "")} onChange={(e) => onChange(e.target.value)} className={inputClass}><option value="">Select an option</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select>
+        : field.type === "radio" ? <div className="space-y-2">{options.map((option) => <label key={option} className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700"><input type="radio" name={field.id} required={field.required} checked={value === option} onChange={() => onChange(option)} className="accent-zinc-900" />{option}</label>)}</div>
+        : field.type === "multi_select" ? <div className="space-y-2">{options.map((option) => { const selected = Array.isArray(value) ? value : []; return <label key={option} className="flex cursor-pointer items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700"><input type="checkbox" checked={selected.includes(option)} onChange={(e) => onChange(e.target.checked ? [...selected, option] : selected.filter((item) => item !== option))} className="accent-zinc-900" />{option}</label>; })}</div>
+        : field.type === "checkbox" ? <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700"><input type="checkbox" required={field.required} checked={Boolean(value)} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 accent-zinc-900" />Yes</label>
+        : <input type={field.type === "number" ? "number" : field.type === "phone" ? "tel" : "text"} required={field.required} value={String(value || "")} onChange={(e) => onChange(e.target.value)} className={inputClass} />}
+    </div>;
+}
+
 function RegistrationModal({
     event,
     onClose,
@@ -163,6 +178,7 @@ function RegistrationModal({
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [customAnswers, setCustomAnswers] = useState<RegistrationAnswers>({});
     const overlayRef = useRef<HTMLDivElement>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -178,6 +194,7 @@ function RegistrationModal({
                     name,
                     email,
                     phone: null,
+                    custom_answers: customAnswers,
                 }),
             });
             const result = await res.json();
@@ -219,7 +236,7 @@ function RegistrationModal({
 
             {/* Modal */}
             <div
-                className="relative z-10 w-full max-w-md mx-4 rounded-2xl bg-white border border-black/5 shadow-2xl"
+                className="relative z-10 max-h-[90vh] w-full max-w-md mx-4 overflow-y-auto rounded-2xl bg-white border border-black/5 shadow-2xl"
                 style={{ animation: "modalSlideUp 0.3s ease-out" }}
             >
                 {/* Close button */}
@@ -261,6 +278,8 @@ function RegistrationModal({
                                 className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-800 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-300 focus:border-transparent transition-all"
                             />
                         </div>
+
+                        {(event.registration_fields || []).map((field) => <CustomRegistrationField key={field.id} field={field} value={customAnswers[field.id]} onChange={(value) => setCustomAnswers((answers) => ({ ...answers, [field.id]: value }))} />)}
 
                         <button
                             type="submit"
