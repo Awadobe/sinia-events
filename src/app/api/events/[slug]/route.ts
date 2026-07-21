@@ -85,34 +85,28 @@ export async function PUT(
         }
         if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
 
-        // Registration questions have their own narrowly scoped database
-        // operation so migrated/older events are updated as reliably as new
-        // events. The function is restricted to the service role.
-        if ('registration_fields' in updatePayload) {
-            const fields = updatePayload.registration_fields;
-            delete updatePayload.registration_fields;
-            const { error: fieldsError } = await supabaseAdmin.rpc('set_event_registration_fields', {
-                target_event_id: previousEvent.id,
-                new_fields: fields,
-            });
-            if (fieldsError) {
-                console.error('❌ Registration questions update error:', fieldsError);
-                return NextResponse.json({ error: 'Could not save registration questions. Please try again.' }, { status: 400 });
-            }
-            updatePayload.registration_fields = fields;
-        }
-
+        // Use one database-side operation for the complete edit. This avoids
+        // differences between migrated events and newly created events.
         const { data, error } = await supabaseAdmin
-            .from('events')
-            .update(updatePayload)
-            .eq('slug', slug)
-            .select()
+            .rpc('update_event_details', {
+                target_event_id: previousEvent.id,
+                event_patch: updatePayload,
+            })
             .single();
 
         if (error) {
             console.error('❌ Event update error:', error);
             return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
         }
+        const updatedEvent = data as {
+            id: string;
+            status: string;
+            host_id: string;
+            title: string;
+            public_slug: string;
+            date: string;
+            location: string | null;
+        };
 
         // Do not report a successful save from the update response alone.
         // Re-read the durable row so the editor and public page use the same
@@ -120,7 +114,7 @@ export async function PUT(
         const { data: verifiedEvent, error: verificationError } = await supabaseAdmin
             .from('events')
             .select('*')
-            .eq('id', data.id)
+            .eq('id', updatedEvent.id)
             .single();
 
         if (verificationError || !verifiedEvent) {
@@ -132,25 +126,25 @@ export async function PUT(
             const expectedFields = sanitizeRegistrationFields(updatePayload.registration_fields);
             const savedFields = sanitizeRegistrationFields(verifiedEvent.registration_fields);
             if (JSON.stringify(savedFields) !== JSON.stringify(expectedFields)) {
-                console.error('❌ Registration questions did not persist for event:', data.id);
+                console.error('❌ Registration questions did not persist for event:', updatedEvent.id);
                 return NextResponse.json({ error: 'The registration questions did not persist. Please try saving again.' }, { status: 500 });
             }
         }
 
-        if (previousEvent?.status !== 'published' && data.status === 'published') {
+        if (previousEvent.status !== 'published' && updatedEvent.status === 'published') {
             const [{ data: host }, { data: subscribers }] = await Promise.all([
-                supabaseAdmin.from('hosts').select('name, slug').eq('id', data.host_id).maybeSingle(),
-                supabaseAdmin.from('host_subscriptions').select('email, unsubscribe_token').eq('host_id', data.host_id).eq('status', 'active'),
+                supabaseAdmin.from('hosts').select('name, slug').eq('id', updatedEvent.host_id).maybeSingle(),
+                supabaseAdmin.from('host_subscriptions').select('email, unsubscribe_token').eq('host_id', updatedEvent.host_id).eq('status', 'active'),
             ]);
             if (host) await Promise.allSettled((subscribers || []).map((subscriber) => sendNewHostEventEmail({
                 toEmail: subscriber.email,
                 unsubscribeToken: subscriber.unsubscribe_token,
                 hostName: host.name,
                 hostSlug: host.slug,
-                eventTitle: data.title,
-                eventPublicSlug: data.public_slug,
-                eventDate: data.date,
-                eventLocation: data.location,
+                eventTitle: updatedEvent.title,
+                eventPublicSlug: updatedEvent.public_slug,
+                eventDate: updatedEvent.date,
+                eventLocation: updatedEvent.location,
             })));
         }
 
