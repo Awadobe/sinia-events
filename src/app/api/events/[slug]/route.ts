@@ -65,7 +65,10 @@ export async function PUT(
 
         const { slug } = params;
         const body = await req.json();
-        const { data: previousEvent } = await supabaseAdmin.from('events').select('status').eq('slug', slug).maybeSingle();
+        const { data: previousEvent } = await supabaseAdmin.from('events').select('id, status').eq('slug', slug).maybeSingle();
+        if (!previousEvent) {
+            return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+        }
 
         // Whitelist only valid event columns to avoid Supabase errors
         // from extra fields like joined organizer objects
@@ -81,6 +84,23 @@ export async function PUT(
             if (key in body) updatePayload[key] = body[key];
         }
         if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
+
+        // Registration questions have their own narrowly scoped database
+        // operation so migrated/older events are updated as reliably as new
+        // events. The function is restricted to the service role.
+        if ('registration_fields' in updatePayload) {
+            const fields = updatePayload.registration_fields;
+            delete updatePayload.registration_fields;
+            const { error: fieldsError } = await supabaseAdmin.rpc('set_event_registration_fields', {
+                target_event_id: previousEvent.id,
+                new_fields: fields,
+            });
+            if (fieldsError) {
+                console.error('❌ Registration questions update error:', fieldsError);
+                return NextResponse.json({ error: 'Could not save registration questions. Please try again.' }, { status: 400 });
+            }
+            updatePayload.registration_fields = fields;
+        }
 
         const { data, error } = await supabaseAdmin
             .from('events')
