@@ -44,6 +44,7 @@ const EVENT_CATEGORIES = [
     { id: "Meetup", label: "Meetup", cover: "/covers/meetup.png", emoji: "🤝" },
     { id: "Conference", label: "Conference", cover: "/covers/conference.png", emoji: "🎤" },
     { id: "Webinar", label: "Webinar", cover: "/covers/webinar.png", emoji: "💻" },
+    { id: "Wedding", label: "Wedding", cover: null, emoji: "💍" },
 ];
 
 /* ───── Theme Options ───── */

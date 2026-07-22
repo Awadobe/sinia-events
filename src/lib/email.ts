@@ -350,6 +350,7 @@ interface SendInviteEmailProps {
   eventSlug: string;
   organizerName?: string;
   invitationToken?: string;
+  eventType?: string;
 }
 
 export async function sendInviteEmail({
@@ -361,19 +362,23 @@ export async function sendInviteEmail({
   eventSlug,
   organizerName,
   invitationToken,
+  eventType,
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
     return { success: false, skipped: true, error: 'Email delivery is not configured.' };
   }
 
-  const eventUrl = `${appUrl}/events/${eventSlug}${invitationToken ? `?invite=${encodeURIComponent(invitationToken)}` : ''}`;
+  const eventUrl = invitationToken
+    ? `${appUrl}/invitations/${encodeURIComponent(invitationToken)}`
+    : `${appUrl}/events/${eventSlug}`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");
   const firstName = attendeeName.split(' ')[0];
 
-  const subject = `🎉 You're invited to ${eventTitle}`;
+  const isWedding = eventType?.toLowerCase() === 'wedding';
+  const subject = isWedding ? `💍 You're invited to ${eventTitle}` : `🎉 You're invited to ${eventTitle}`;
 
   try {
     const { data, error } = await resend.emails.send({
@@ -387,7 +392,7 @@ export async function sendInviteEmail({
             <tr>
               <td style="padding: 32px 32px 0;">
                 <p style="margin: 0 0 6px; font-size: 14px; color: #a1a1aa; font-weight: 600;">
-                  🎉 YOU'RE INVITED
+                  ${isWedding ? '💍 WEDDING INVITATION' : "🎉 YOU'RE INVITED"}
                 </p>
                 <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #18181b; line-height: 1.3;">
                   ${eventTitle}
@@ -400,7 +405,9 @@ export async function sendInviteEmail({
             <tr>
               <td style="padding: 20px 32px;">
                 <p style="margin: 0; font-size: 15px; color: #3f3f46; line-height: 1.6;">
-                  Hey ${firstName}! You've been personally invited to join this event. We'd love to see you there!
+                  ${isWedding
+                    ? `Dear ${firstName}, <strong>${organizerName || 'the couple'}</strong> warmly invites you to celebrate their wedding ceremony.`
+                    : `Hey ${firstName}! <strong>${organizerName || 'The host'}</strong> has personally invited you. We'd love to see you there!`}
                 </p>
               </td>
             </tr>
@@ -425,7 +432,7 @@ export async function sendInviteEmail({
             <tr>
               <td style="padding: 0 32px 12px;">
                 <a href="${eventUrl}" style="display: block; background-color: #6366f1; color: #ffffff; text-decoration: none; text-align: center; padding: 16px 24px; border-radius: 12px; font-size: 15px; font-weight: 700;">
-                  Register Now →
+                  Accept Invitation →
                 </a>
               </td>
             </tr>
@@ -433,7 +440,7 @@ export async function sendInviteEmail({
             <tr>
               <td style="padding: 0 32px 28px;">
                 <p style="margin: 0; font-size: 12px; color: #a1a1aa; text-align: center;">
-                  Click the button above to view details and register
+                  Click the button above to review and accept your invitation
                 </p>
               </td>
             </tr>

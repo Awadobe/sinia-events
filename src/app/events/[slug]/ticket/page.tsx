@@ -57,6 +57,7 @@ export default function TicketPage() {
     const searchParams = useSearchParams();
     const slug = params.slug as string;
     const regId = searchParams.get("id");
+    const invitationToken = searchParams.get("invite");
 
     const [loading, setLoading] = useState(true);
     const [event, setEvent] = useState<EventData | null>(null);
@@ -75,7 +76,7 @@ export default function TicketPage() {
         async function load() {
             try {
                 // Fetch event
-                const evRes = await fetch(`/api/events/${slug}?t=${Date.now()}`);
+                const evRes = await fetch(`/api/events/${slug}?t=${Date.now()}${invitationToken ? `&invite=${encodeURIComponent(invitationToken)}` : ""}`);
                 if (!evRes.ok) { setError("Event not found."); setLoading(false); return; }
                 const evData = await evRes.json();
                 setEvent(evData.event);
@@ -114,7 +115,7 @@ export default function TicketPage() {
             }
         }
         load();
-    }, [slug, regId]);
+    }, [slug, regId, invitationToken]);
 
     const accent = COLORS[event?.theme_color || "zinc"] || "#18181b";
 

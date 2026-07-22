@@ -26,7 +26,7 @@ export async function GET(
         // Get event
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, date, location, slug, organizer:profiles!organizer_id(org_name, name)')
+            .select('id, title, date, location, slug, organizer:profiles!organizer_id(id, org_name, name)')
             .eq('slug', slug)
             .single();
 
@@ -146,7 +146,7 @@ export async function POST(
         // Get event
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, date, location, slug, organizer:profiles!organizer_id(org_name, name)')
+            .select('id, title, date, location, slug, event_type, host:hosts(name)')
             .eq('slug', slug)
             .single();
 
@@ -154,8 +154,8 @@ export async function POST(
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
-        const organizerName = (event.organizer as { org_name?: string; name?: string })?.org_name
-            || (event.organizer as { name?: string })?.name || 'Radius';
+        const eventHost = Array.isArray(event.host) ? event.host[0] : event.host;
+        const organizerName = (eventHost as { name?: string } | null)?.name || 'the host';
 
         const results = { sent: 0, skipped: 0, errors: 0 };
 
@@ -217,6 +217,7 @@ export async function POST(
                 eventSlug: event.slug,
                 organizerName,
                 invitationToken: insertedInvite.invitation_token,
+                eventType: event.event_type,
             });
 
             if (emailResult.success) {
