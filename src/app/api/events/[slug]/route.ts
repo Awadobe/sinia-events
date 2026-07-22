@@ -33,9 +33,16 @@ export async function GET(
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
+        const managerAccess = data.status === 'draft' || data.visibility === 'invite_only'
+            ? await requireEventManager(slug)
+            : { authorized: false };
+
+        if (data.status === 'draft' && !managerAccess.authorized) {
+            return NextResponse.json({ error: 'This event is still a draft.' }, { status: 403 });
+        }
+
         if (data.visibility === 'invite_only') {
             const token = req.nextUrl.searchParams.get('invite');
-            const managerAccess = await requireEventManager(slug);
             const { data: invitation } = token
                 ? await supabaseAdmin.from('invites').select('id').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
                 : { data: null };

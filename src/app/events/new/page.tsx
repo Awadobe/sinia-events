@@ -173,7 +173,7 @@ const initialFormData: EventFormData = {
     is_virtual: false,
     virtual_link: "",
     max_attendees: null,
-    status: "published",
+    status: "draft",
     slug: "",
     require_approval: false,
     visibility: "public",
@@ -256,6 +256,8 @@ export default function CreateEventPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.date) { toast.error("Please pick a date for your event."); return; }
+        const submitter = (e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+        const requestedStatus = submitter?.value === "published" ? "published" : "draft";
         setIsSubmitting(true);
         const payload = {
             title: formData.title, description: formData.description || null,
@@ -264,7 +266,7 @@ export default function CreateEventPage() {
             is_virtual: formData.is_virtual, virtual_link: formData.virtual_link || null,
             image_url: coverSource === "category" ? coverImage : null,
             max_attendees: formData.max_attendees ? parseInt(formData.max_attendees.toString()) : null,
-            status: formData.status, slug: formData.slug,
+            status: requestedStatus, slug: formData.slug,
             theme_style: themeStyle, theme_color: themeColor, theme_font: themeFont, theme_mode: themeMode,
             require_approval: formData.require_approval,
             visibility: formData.visibility,
@@ -283,7 +285,7 @@ export default function CreateEventPage() {
             else toast.error(`Failed to create event: ${result.error}`);
             return;
         }
-        toast.success("Event created successfully!");
+        toast.success(requestedStatus === "published" ? "Event published successfully!" : "Draft saved successfully!");
         setSubmitSuccess(true);
         setTimeout(() => {
             setSubmitSuccess(false); setFormData(initialFormData);
@@ -480,9 +482,12 @@ export default function CreateEventPage() {
                                 </div>
                             </div>
 
-                            <div className="pt-4">
-                                <button type="submit" disabled={!isFormValid || isSubmitting} className={cn("w-full rounded-2xl py-5 text-base font-semibold shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] hover:shadow-xl", (!isFormValid || isSubmitting) && "opacity-50 cursor-not-allowed hover:scale-100")} style={theme.btnPrimary}>
-                                    {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin inline" /> : submitSuccess ? <span className="flex items-center justify-center gap-2"><Check className="h-5 w-5" /> Event Created!</span> : "Create Event"}
+                            <div className="pt-4 grid gap-3 sm:grid-cols-[1fr_1.4fr]">
+                                <button type="submit" name="status" value="draft" disabled={!isFormValid || isSubmitting} className={cn("rounded-2xl border py-4 text-sm font-semibold transition-all hover:bg-black/5", (!isFormValid || isSubmitting) && "opacity-50 cursor-not-allowed")} style={{ color: theme.palette.text, borderColor: theme.palette.cardBorder }}>
+                                    Save as draft
+                                </button>
+                                <button type="submit" name="status" value="published" disabled={!isFormValid || isSubmitting} className={cn("rounded-2xl py-4 text-base font-semibold shadow-lg transition-all hover:scale-[1.01] active:scale-[0.99] hover:shadow-xl", (!isFormValid || isSubmitting) && "opacity-50 cursor-not-allowed hover:scale-100")} style={theme.btnPrimary}>
+                                    {isSubmitting ? <Loader2 className="mr-2 h-5 w-5 animate-spin inline" /> : submitSuccess ? <span className="flex items-center justify-center gap-2"><Check className="h-5 w-5" /> Event Created!</span> : "Publish event"}
                                 </button>
                             </div>
                         </div>

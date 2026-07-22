@@ -53,7 +53,8 @@ async function getOrgUpcomingEvents(organizerId: string) {
     .from("events")
     .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual, is_featured")
     .eq("organizer_id", organizerId)
-    .neq("status", "cancelled")
+    .eq("status", "published")
+    .eq("visibility", "public")
     .gte("date", now)
     .order("date", { ascending: true });
 
@@ -70,7 +71,8 @@ async function getOrgPastEvents(organizerId: string) {
     .from("events")
     .select("id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual")
     .eq("organizer_id", organizerId)
-    .neq("status", "cancelled")
+    .eq("status", "published")
+    .eq("visibility", "public")
     .lt("date", now)
     .order("date", { ascending: false });
 

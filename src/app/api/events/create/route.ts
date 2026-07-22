@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
         const payload = JSON.parse(payloadJson);
         payload.registration_fields = sanitizeRegistrationFields(payload.registration_fields);
         if (!['public', 'unlisted', 'invite_only'].includes(payload.visibility)) payload.visibility = 'public';
+        if (!['draft', 'published'].includes(payload.status)) payload.status = 'draft';
 
         if (!payload.title || !payload.date) {
             return NextResponse.json(

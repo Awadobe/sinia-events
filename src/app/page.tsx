@@ -19,7 +19,7 @@ async function getUpcomingEvents() {
   const { data, error } = await supabaseAdmin
     .from("events")
     .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, is_featured, host:hosts!inner(slug, status)")
-    .neq("status", "cancelled")
+    .eq("status", "published")
     .eq("visibility", "public")
     .gte("date", now)
     .eq("hosts.status", "active")
@@ -40,7 +40,7 @@ async function getPastEvents() {
   const { data, error } = await supabaseAdmin
     .from("events")
     .select("id, title, date, end_date, location, image_url, event_type, slug, public_slug, theme_color, is_virtual, host:hosts!inner(slug, status)")
-    .neq("status", "cancelled")
+    .eq("status", "published")
     .eq("visibility", "public")
     .lt("date", now)
     .eq("hosts.status", "active")
