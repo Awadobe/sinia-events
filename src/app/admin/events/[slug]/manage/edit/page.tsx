@@ -219,7 +219,6 @@ export default function EditTabPage() {
             max_attendees: maxAttendees,
             status,
             require_approval: requireApproval,
-            visibility,
             theme_style: themeStyle,
             theme_color: themeColor,
             theme_font: themeFont,
