@@ -58,6 +58,7 @@ export default function TicketPage() {
     const slug = params.slug as string;
     const regId = searchParams.get("id");
     const invitationToken = searchParams.get("invite");
+    const eventHref = `/events/${slug}${invitationToken ? `?invite=${encodeURIComponent(invitationToken)}` : ""}`;
 
     const [loading, setLoading] = useState(true);
     const [event, setEvent] = useState<EventData | null>(null);
@@ -136,7 +137,7 @@ export default function TicketPage() {
                     <span className="text-2xl">😕</span>
                 </div>
                 <h1 className="text-xl font-bold text-zinc-900">{error || "Ticket not found"}</h1>
-                <Link href={`/events/${slug}`} className="text-sm font-medium text-zinc-500 hover:text-zinc-900 flex items-center gap-1.5 transition-colors">
+                <Link href={eventHref} className="text-sm font-medium text-zinc-500 hover:text-zinc-900 flex items-center gap-1.5 transition-colors">
                     <ArrowLeft className="h-4 w-4" /> Back to Event
                 </Link>
             </div>
@@ -153,7 +154,7 @@ export default function TicketPage() {
             {/* ─── Header bar ─── */}
             <header className="bg-white border-b border-zinc-100 sticky top-0 z-50">
                 <div className="max-w-lg mx-auto flex items-center justify-between px-5 py-3">
-                    <Link href={`/events/${slug}`} className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
+                    <Link href={eventHref} className="flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
                         <ArrowLeft className="h-4 w-4" />
                         Back to Event
                     </Link>
@@ -277,7 +278,7 @@ export default function TicketPage() {
                 {/* ─── Actions ─── */}
                 <div className="flex gap-3">
                     <Link
-                        href={`/events/${slug}`}
+                        href={eventHref}
                         className="flex-1 text-center rounded-2xl py-3.5 text-sm font-bold text-white shadow-sm hover:opacity-90 transition-opacity"
                         style={{ backgroundColor: accent }}
                     >

@@ -41,14 +41,27 @@ export async function GET(
             return NextResponse.json({ error: 'This event is still a draft.' }, { status: 403 });
         }
 
+        let invitation: { id: string; email: string; status: string } | null = null;
         if (data.visibility === 'invite_only') {
             const token = req.nextUrl.searchParams.get('invite');
-            const { data: invitation } = token
-                ? await supabaseAdmin.from('invites').select('id').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
+            const { data: matchedInvitation } = token
+                ? await supabaseAdmin.from('invites').select('id, email, status').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
                 : { data: null };
+            invitation = matchedInvitation;
             if (!managerAccess.authorized && !invitation) {
                 return NextResponse.json({ error: 'A valid invitation is required.' }, { status: 403 });
             }
+        }
+
+        let invitationRegistrationId: string | null = null;
+        if (invitation?.status === 'accepted') {
+            const { data: invitedRegistration } = await supabaseAdmin
+                .from('registrations')
+                .select('id')
+                .eq('event_id', data.id)
+                .ilike('email', invitation.email)
+                .maybeSingle();
+            invitationRegistrationId = invitedRegistration?.id || null;
         }
 
         // Get registration counts
@@ -67,6 +80,7 @@ export async function GET(
             event: data,
             attendee_count: confirmedCount ?? 0,
             confirmed_count: confirmedCount ?? 0,
+            invitation_registration_id: invitationRegistrationId,
         }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
     } catch (err) {
         console.error('❌ Unexpected error:', err);

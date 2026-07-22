@@ -362,6 +362,10 @@ export default function PublicEventPage() {
             const data = await res.json();
             setEvent(data.event);
             setAttendeeCount(data.attendee_count ?? 0);
+            if (data.invitation_registration_id) {
+                setRegistered(true);
+                setRegistrationId(data.invitation_registration_id);
+            }
             if (accessRes.ok) {
                 const access = await accessRes.json();
                 setCanManage(Boolean(access.can_manage));
@@ -618,7 +622,7 @@ export default function PublicEventPage() {
                                         <div className="flex flex-col gap-2 pt-2">
                                             {registrationId && (
                                                 <a
-                                                    href={`/events/${slug}/ticket?id=${registrationId}`}
+                                                    href={`/events/${slug}/ticket?id=${registrationId}${invitationToken ? `&invite=${encodeURIComponent(invitationToken)}` : ""}`}
                                                     className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white transition-colors hover:opacity-90"
                                                     style={{ backgroundColor: theme.primary }}
                                                 >
