@@ -1,6 +1,7 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { requireEventManager } from "@/lib/auth";
+import { sendEventCollaboratorEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +20,13 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     const access = await requireEventManager(params.slug);
-    if (!access.authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!access.authorized || access.isCheckInStaff) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const eventId = await getEventId(params.slug);
     if (!eventId) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 
     const { data, error } = await admin
         .from("event_collaborators")
-        .select("id, email, status, created_at")
+        .select("id, email, role, status, created_at")
         .eq("event_id", eventId)
         .neq("status", "revoked")
         .order("created_at");
@@ -44,6 +45,7 @@ export async function POST(
 
     const body = await request.json();
     const email = String(body.email || "").trim().toLowerCase();
+    const role = body.role === "check_in" ? "check_in" : "manager";
     if (!email || !email.includes("@")) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
 
     const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
@@ -52,11 +54,14 @@ export async function POST(
         email,
         user_id: profile?.id || null,
         added_by: access.user.id,
+        role,
         status: "active",
     }, { onConflict: "event_id,email" });
 
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ status: "added" }, { status: 201 });
+    const { data: event } = await admin.from("events").select("title, slug").eq("id", eventId).single();
+    const emailResult = event ? await sendEventCollaboratorEmail({ toEmail: email, eventTitle: event.title, eventSlug: event.slug, role }) : null;
+    return NextResponse.json({ status: "added", email_sent: Boolean(emailResult?.success) }, { status: 201 });
 }
 
 export async function DELETE(

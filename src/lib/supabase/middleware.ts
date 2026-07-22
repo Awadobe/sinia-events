@@ -111,6 +111,7 @@ export async function updateSession(request: NextRequest) {
 
     const manageMatch = pathname.match(/^\/admin\/events\/([^/]+)\/manage(?:\/|$)/);
     let ownsManagedEvent = false;
+    let checkInOnly = false;
 
     if (manageMatch) {
       const admin = createSupabaseClient(
@@ -125,16 +126,24 @@ export async function updateSession(request: NextRequest) {
       if (event) {
         const [{ data: membership }, { data: collaborationByUser }, { data: collaborationByEmail }] = await Promise.all([
           admin.from('host_organizers').select('host_id').eq('host_id', event.host_id).eq('user_id', user.id).maybeSingle(),
-          admin.from('event_collaborators').select('id').eq('event_id', event.id).eq('user_id', user.id).eq('status', 'active').maybeSingle(),
-          admin.from('event_collaborators').select('id').eq('event_id', event.id).ilike('email', user.email).eq('status', 'active').maybeSingle(),
+          admin.from('event_collaborators').select('id, role').eq('event_id', event.id).eq('user_id', user.id).eq('status', 'active').maybeSingle(),
+          admin.from('event_collaborators').select('id, role').eq('event_id', event.id).ilike('email', user.email).eq('status', 'active').maybeSingle(),
         ]);
         ownsManagedEvent = Boolean(membership || collaborationByUser || collaborationByEmail || event.organizer_id === user.id);
+        const collaborationRole = collaborationByUser?.role || collaborationByEmail?.role;
+        checkInOnly = !membership && event.organizer_id !== user.id && collaborationRole === 'check_in';
       }
     }
 
     if (!staff && !user.user_metadata?.is_admin && !ownsManagedEvent) {
       const url = request.nextUrl.clone();
       url.pathname = '/'; // redirect to home if not staff
+      return NextResponse.redirect(url);
+    }
+
+    if (checkInOnly && manageMatch && !pathname.endsWith('/manage/checkin')) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/admin/events/${manageMatch[1]}/manage/checkin`;
       return NextResponse.redirect(url);
     }
   }

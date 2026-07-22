@@ -43,13 +43,18 @@ export default function ManageEventLayout({
     const slug = params.slug as string;
     const [event, setEvent] = useState<EventData | null>(null);
     const [loading, setLoading] = useState(true);
+    const [checkInOnly, setCheckInOnly] = useState(false);
 
     useEffect(() => {
         async function load() {
-            const res = await fetch(`/api/events/${slug}`);
+            const [res, accessRes] = await Promise.all([fetch(`/api/events/${slug}`), fetch(`/api/events/${slug}/access`)]);
             if (res.ok) {
                 const { event } = await res.json();
                 setEvent(event);
+            }
+            if (accessRes.ok) {
+                const access = await accessRes.json();
+                setCheckInOnly(Boolean(access.is_check_in_staff));
             }
             setLoading(false);
         }
@@ -149,7 +154,7 @@ export default function ManageEventLayout({
 
                     {/* Row 3: Tabs */}
                     <div className="flex gap-0 -mb-px">
-                        {TABS.map(tab => (
+                        {TABS.filter((tab) => !checkInOnly || tab.id === "checkin").map(tab => (
                             <Link
                                 key={tab.id}
                                 href={`/admin/events/${slug}/manage/${tab.href}`}

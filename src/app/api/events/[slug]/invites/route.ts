@@ -16,8 +16,8 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireEventManager(params.slug);
-        if (!authorized) {
+        const access = await requireEventManager(params.slug);
+        if (!access.authorized || access.isCheckInStaff) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -130,8 +130,8 @@ export async function POST(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireEventManager(params.slug);
-        if (!authorized) {
+        const access = await requireEventManager(params.slug);
+        if (!access.authorized || access.isCheckInStaff) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

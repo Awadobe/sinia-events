@@ -95,8 +95,8 @@ export async function PUT(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireEventManager(params.slug);
-        if (!authorized) {
+        const access = await requireEventManager(params.slug);
+        if (!access.authorized || access.isCheckInStaff) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 

@@ -15,8 +15,8 @@ const admin = createClient(
 );
 
 export async function POST(request: NextRequest, { params }: { params: { slug: string } }) {
-    const { authorized } = await requireEventManager(params.slug);
-    if (!authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const access = await requireEventManager(params.slug);
+    if (!access.authorized || access.isCheckInStaff) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { visibility } = await request.json();
     if (!["public", "unlisted", "invite_only"].includes(visibility)) {

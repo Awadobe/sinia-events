@@ -15,8 +15,8 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireEventManager(params.slug);
-        if (!authorized) {
+        const access = await requireEventManager(params.slug);
+        if (!access.authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
@@ -82,13 +82,17 @@ export async function PATCH(
     { params }: { params: { slug: string } }
 ) {
     try {
-        const { authorized } = await requireEventManager(params.slug);
-        if (!authorized) {
+        const access = await requireEventManager(params.slug);
+        if (!access.authorized) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
         const body = await req.json();
         const { registrationId, status, checked_in } = body;
+
+        if (access.isCheckInStaff && (status !== undefined || typeof checked_in !== 'boolean')) {
+            return NextResponse.json({ error: 'Check-in staff can only update check-in status.' }, { status: 403 });
+        }
 
         if (!registrationId) {
             return NextResponse.json({ error: 'registrationId is required' }, { status: 400 });

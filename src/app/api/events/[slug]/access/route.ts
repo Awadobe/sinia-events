@@ -14,5 +14,7 @@ export async function GET(
         can_manage: access.authorized,
         is_admin: access.isAdmin,
         is_owner: access.isOwner,
+        collaborator_role: access.collaboratorRole,
+        is_check_in_staff: access.isCheckInStaff,
     });
 }

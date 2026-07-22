@@ -38,7 +38,7 @@ export async function requireEventManager(slug: string) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user || !user.email) {
-        return { authorized: false, user: null, isAdmin: false, isOwner: false };
+        return { authorized: false, user: null, isAdmin: false, isOwner: false, isCollaborator: false, collaboratorRole: null, isCheckInStaff: false };
     }
 
     const admin = createAdminClient();
@@ -51,13 +51,15 @@ export async function requireEventManager(slug: string) {
     const [{ data: hostMembership }, { data: collaborationByUser }, { data: collaborationByEmail }] = event
         ? await Promise.all([
             admin.from("host_organizers").select("host_id").eq("host_id", event.host_id).eq("user_id", user.id).maybeSingle(),
-            admin.from("event_collaborators").select("id").eq("event_id", event.id).eq("user_id", user.id).eq("status", "active").maybeSingle(),
-            admin.from("event_collaborators").select("id").eq("event_id", event.id).ilike("email", user.email).eq("status", "active").maybeSingle(),
+            admin.from("event_collaborators").select("id, role").eq("event_id", event.id).eq("user_id", user.id).eq("status", "active").maybeSingle(),
+            admin.from("event_collaborators").select("id, role").eq("event_id", event.id).ilike("email", user.email).eq("status", "active").maybeSingle(),
         ])
         : [{ data: null }, { data: null }, { data: null }];
     const hostCreator = event?.host as { created_by?: string | null } | null;
     const isOwner = Boolean(hostMembership || event?.organizer_id === user.id || hostCreator?.created_by === user.id);
     const isCollaborator = Boolean(collaborationByUser || collaborationByEmail);
+    const collaboratorRole = collaborationByUser?.role || collaborationByEmail?.role || null;
+    const isCheckInStaff = isCollaborator && collaboratorRole === "check_in";
 
     return {
         authorized: isAdmin || isOwner || isCollaborator,
@@ -65,5 +67,7 @@ export async function requireEventManager(slug: string) {
         isAdmin,
         isOwner,
         isCollaborator,
+        collaboratorRole,
+        isCheckInStaff,
     };
 }
