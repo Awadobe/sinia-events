@@ -96,13 +96,12 @@ export async function PUT(
             if (key in body) updatePayload[key] = body[key];
         }
         if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
+        let nextVisibility: string | null = null;
         if ('visibility' in updatePayload) {
-            const nextVisibility = String(updatePayload.visibility);
+            nextVisibility = String(updatePayload.visibility);
             if (!['public', 'unlisted', 'invite_only'].includes(nextVisibility)) {
                 return NextResponse.json({ error: 'Invalid event visibility.' }, { status: 400 });
             }
-            const { error: visibilityError } = await supabaseAdmin.rpc('set_event_visibility', { target_event_id: previousEvent.id, new_visibility: nextVisibility });
-            if (visibilityError) return NextResponse.json({ error: 'Could not update event visibility.' }, { status: 400 });
             delete updatePayload.visibility;
         }
 
@@ -129,6 +128,16 @@ export async function PUT(
             location: string | null;
         };
 
+        // Visibility is deliberately written last so the broader event update
+        // cannot restore the previous value.
+        if (nextVisibility) {
+            const { error: visibilityError } = await supabaseAdmin.rpc('set_event_visibility', { target_event_id: previousEvent.id, new_visibility: nextVisibility });
+            if (visibilityError) {
+                console.error('❌ Event visibility update error:', visibilityError);
+                return NextResponse.json({ error: 'Could not update event visibility.' }, { status: 400 });
+            }
+        }
+
         // Do not report a successful save from the update response alone.
         // Re-read the durable row so the editor and public page use the same
         // source of truth.
@@ -141,6 +150,11 @@ export async function PUT(
         if (verificationError || !verifiedEvent) {
             console.error('❌ Event verification error:', verificationError);
             return NextResponse.json({ error: 'The event was updated but could not be verified. Please try again.' }, { status: 500 });
+        }
+
+        if (nextVisibility && verifiedEvent.visibility !== nextVisibility) {
+            console.error('❌ Event visibility did not persist:', { expected: nextVisibility, actual: verifiedEvent.visibility });
+            return NextResponse.json({ error: 'The event visibility did not persist. Please try again.' }, { status: 500 });
         }
 
         if ('registration_fields' in updatePayload) {
