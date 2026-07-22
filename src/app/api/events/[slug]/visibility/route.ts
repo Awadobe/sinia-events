@@ -21,12 +21,17 @@ export async function POST(request: NextRequest, { params }: { params: { slug: s
     const { data: event } = await admin.from("events").select("id").eq("slug", params.slug).maybeSingle();
     if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 });
 
-    const { error } = await admin.rpc("set_event_visibility", { target_event_id: event.id, new_visibility: visibility });
+    const { data: updated, error } = await admin
+        .from("events")
+        .update({ visibility, updated_at: new Date().toISOString() })
+        .eq("id", event.id)
+        .select("visibility, updated_at")
+        .single();
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-    const { data: verified } = await admin.from("events").select("visibility").eq("id", event.id).single();
+    const { data: verified } = await admin.from("events").select("visibility, updated_at").eq("id", event.id).single();
     if (!verified || verified.visibility !== visibility) {
         return NextResponse.json({ error: "The visibility change did not persist." }, { status: 500 });
     }
-    return NextResponse.json({ visibility: verified.visibility }, { headers: { "Cache-Control": "no-store" } });
+    return NextResponse.json({ visibility: verified.visibility, updated_at: updated.updated_at }, { headers: { "Cache-Control": "no-store" } });
 }
