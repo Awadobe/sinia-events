@@ -104,6 +104,7 @@ export default function EditTabPage() {
     const [status, setStatus] = useState("published");
     const [requireApproval, setRequireApproval] = useState(false);
     const [visibility, setVisibility] = useState<"public" | "unlisted" | "invite_only">("public");
+    const [savingVisibility, setSavingVisibility] = useState(false);
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [editingCapacity, setEditingCapacity] = useState(false);
@@ -159,6 +160,25 @@ export default function EditTabPage() {
         result.setHours(h, m, 0, 0);
         return result;
     }
+
+    const updateVisibility = async (nextVisibility: typeof visibility) => {
+        const previousVisibility = visibility;
+        setVisibility(nextVisibility);
+        setSavingVisibility(true);
+        const response = await fetch(`/api/events/${slug}/visibility`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ visibility: nextVisibility }),
+        });
+        const result = await response.json();
+        setSavingVisibility(false);
+        if (!response.ok || result.visibility !== nextVisibility) {
+            setVisibility(previousVisibility);
+            toast.error(result.error || "Could not update event visibility.");
+            return;
+        }
+        toast.success(`Visibility changed to ${nextVisibility === "invite_only" ? "Invite only" : nextVisibility === "unlisted" ? "Unlisted" : "Public"}.`);
+    };
 
     const handleSave = async () => {
         if (registrationFields.some((field) => !field.label.trim())) {
@@ -473,7 +493,7 @@ export default function EditTabPage() {
                     <div className="space-y-2.5">
                         <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest px-1">Event Options</p>
                         <div className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
-                            <div className="px-5 py-4 border-b border-zinc-50"><label className="text-sm text-zinc-500">Who can find this event?</label><select value={visibility} onChange={(event) => setVisibility(event.target.value as typeof visibility)} className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium outline-none"><option value="public">Public — listed on Radius</option><option value="unlisted">Unlisted — anyone with the link</option><option value="invite_only">Invite only — approved guest list</option></select></div>
+                            <div className="px-5 py-4 border-b border-zinc-50"><div className="flex items-center justify-between gap-3"><label className="text-sm text-zinc-500">Who can find this event?</label>{savingVisibility && <span className="text-xs text-zinc-400">Saving…</span>}</div><select value={visibility} disabled={savingVisibility} onChange={(event) => updateVisibility(event.target.value as typeof visibility)} className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium outline-none disabled:opacity-60"><option value="public">Public — listed on Radius</option><option value="unlisted">Unlisted — anyone with the link</option><option value="invite_only">Invite only — approved guest list</option></select><p className="mt-2 text-xs text-zinc-400">Visibility saves immediately.</p></div>
                             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-50">
                                 <span className="text-sm text-zinc-500">Require Approval</span>
                                 <button type="button" onClick={() => setRequireApproval(!requireApproval)} className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors", requireApproval ? "bg-zinc-900" : "bg-zinc-200")}>
