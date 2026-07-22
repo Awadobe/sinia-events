@@ -453,7 +453,10 @@ export default function PublicEventPage() {
     const fullDate = format(eventDate, "MMMM d");
     const startTime = format(eventDate, "h:mm a");
     const endTime = event.end_date ? format(new Date(event.end_date), "h:mm a") : null;
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone.split("/").pop()?.replace(/_/g, " ") || "GMT";
+    const resolvedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const timeZone = ["Africa/Freetown", "Africa/Monrovia", "Africa/Abidjan", "GMT", "UTC"].includes(resolvedTimeZone)
+        ? "GMT (Sierra Leone)"
+        : resolvedTimeZone.split("/").pop()?.replace(/_/g, " ") || "GMT";
 
     const theme = resolveTheme({
         color: event.theme_color,
