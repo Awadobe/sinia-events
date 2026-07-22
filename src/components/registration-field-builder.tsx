@@ -16,7 +16,7 @@ export function RegistrationFieldBuilder({ fields, onChange }: { fields: Registr
   };
 
   return <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-    <div><h3 className="font-semibold text-zinc-900">Registration questions</h3><p className="mt-1 text-xs leading-relaxed text-zinc-500">Name and email are always collected. Add any other information you need.</p></div>
+    <div><h3 className="font-semibold text-zinc-900">Registration questions</h3><p className="mt-1 text-xs leading-relaxed text-zinc-500">Name and email are always collected. Saved questions remain here so you can review, reorder, or edit them later.</p></div>
     {fields.length === 0 ? <div className="mt-5 rounded-xl border border-dashed border-zinc-200 bg-zinc-50/60 p-6 text-center text-sm text-zinc-400">No custom questions. Attendees will enter only their name and email.</div> : <div className="mt-5 space-y-3">{fields.map((field, index) => {
       const hasOptions = ["select", "radio", "multi_select"].includes(field.type);
       return <div key={field.id} className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-4">

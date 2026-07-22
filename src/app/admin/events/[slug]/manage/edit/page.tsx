@@ -243,7 +243,7 @@ export default function EditTabPage() {
         const result = await res.json();
         const savedRegistrationFields = Array.isArray(result.event?.registration_fields) ? result.event.registration_fields : [];
         setRegistrationFields(savedRegistrationFields);
-        toast.success(`Event updated with ${savedRegistrationFields.length} registration question${savedRegistrationFields.length === 1 ? "" : "s"}.`);
+        toast.success("Event changes saved.");
         setSaved(true);
         setTimeout(() => router.push(`/admin/events/${slug}/manage/overview`), 700);
     };
