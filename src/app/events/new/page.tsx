@@ -158,6 +158,7 @@ type EventFormData = {
     status: string;
     slug: string;
     require_approval: boolean;
+    visibility: "public" | "unlisted" | "invite_only";
 };
 
 type HostOption = { id: string; type: "individual" | "organization"; name: string; slug: string };
@@ -175,6 +176,7 @@ const initialFormData: EventFormData = {
     status: "published",
     slug: "",
     require_approval: false,
+    visibility: "public",
 };
 
 function generateSlug(title: string): string {
@@ -265,6 +267,7 @@ export default function CreateEventPage() {
             status: formData.status, slug: formData.slug,
             theme_style: themeStyle, theme_color: themeColor, theme_font: themeFont, theme_mode: themeMode,
             require_approval: formData.require_approval,
+            visibility: formData.visibility,
             registration_fields: registrationFields,
             host_id: selectedHostId,
         };
@@ -461,6 +464,7 @@ export default function CreateEventPage() {
                                 <p className="text-xs font-semibold uppercase tracking-widest px-1" style={theme.textMuted}>Event Options</p>
                                 <div className="rounded-2xl shadow-sm overflow-hidden transition-colors duration-300" style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}>
                                     <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}30` }}><span className="text-sm" style={theme.textMuted}>Ticket Price</span><span className="text-sm font-medium" style={theme.textPrimary}>Free</span></div>
+                                    <div className="px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}30` }}><label className="text-sm" style={theme.textMuted}>Who can find this event?</label><select value={formData.visibility} onChange={(event) => updateField("visibility", event.target.value as EventFormData["visibility"])} className="mt-2 w-full rounded-xl border bg-transparent px-3 py-2.5 text-sm font-medium outline-none" style={{ color: theme.palette.text, borderColor: theme.palette.cardBorder }}><option value="public">Public — listed on Radius</option><option value="unlisted">Unlisted — anyone with the link</option><option value="invite_only">Invite only — approved guest list</option></select></div>
                                     <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${theme.palette.cardBorder}30` }}>
                                         <span className="text-sm" style={theme.textMuted}>Require Approval</span>
                                         <button type="button" onClick={() => updateField("require_approval", !formData.require_approval)} className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors" style={{ backgroundColor: formData.require_approval ? theme.palette.accent : theme.palette.cardBorder }}><span className={cn("pointer-events-none block h-3.5 w-3.5 rounded-full bg-white shadow-sm transition-transform", formData.require_approval ? "translate-x-[18px]" : "translate-x-[3px]")} /></button>

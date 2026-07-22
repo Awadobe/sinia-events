@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
 export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const { event_id, name, email, phone, custom_answers } = body;
+        const { event_id, name, email, phone, custom_answers, invitation_token } = body;
 
         if (!event_id || !name || !email) {
             return NextResponse.json(
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, organizer_id, registration_fields, organizer:profiles!organizer_id(email, name, org_name)')
+            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, visibility, organizer_id, registration_fields, organizer:profiles!organizer_id(email, name, org_name)')
             .eq('id', event_id)
             .single();
 
@@ -54,6 +54,14 @@ export async function POST(req: NextRequest) {
 
         if (event.status !== 'published') {
             return NextResponse.json({ error: 'Registration is not open for this event.' }, { status: 409 });
+        }
+
+        let matchedInvitation: { id: string } | null = null;
+        if (event.visibility === 'invite_only') {
+            if (!invitation_token) return NextResponse.json({ error: 'A personal invitation is required for this event.' }, { status: 403 });
+            const { data: invitation } = await supabaseAdmin.from('invites').select('id').eq('event_id', event.id).eq('invitation_token', invitation_token).ilike('email', normalizedEmail).maybeSingle();
+            if (!invitation) return NextResponse.json({ error: 'This invitation does not match that email address.' }, { status: 403 });
+            matchedInvitation = invitation;
         }
 
         const registrationFields = sanitizeRegistrationFields(event.registration_fields);
@@ -95,6 +103,10 @@ export async function POST(req: NextRequest) {
             }
             console.error('❌ Registration error:', regError);
             return NextResponse.json({ error: regError.message }, { status: 500 });
+        }
+
+        if (matchedInvitation) {
+            await supabaseAdmin.from('invites').update({ status: 'accepted', accepted_at: new Date().toISOString() }).eq('id', matchedInvitation.id);
         }
 
         // Extract organizer info for email

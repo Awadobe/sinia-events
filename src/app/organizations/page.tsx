@@ -14,7 +14,7 @@ const palettes = [
 ];
 
 export default async function OrganizationsPage() {
-    const { data: hosts } = await admin.from("hosts").select("id, name, slug, description, logo_url, events(id, date, status)").eq("type", "organization").eq("status", "active").neq("slug", "radius-legacy").order("name");
+    const { data: hosts } = await admin.from("hosts").select("id, name, slug, description, logo_url, events(id, date, status, visibility)").eq("type", "organization").eq("status", "active").neq("slug", "radius-legacy").order("name");
     const now = Date.now();
     const organizations = hosts || [];
 
@@ -43,7 +43,7 @@ export default async function OrganizationsPage() {
                     <div id="organizations" className="mb-8"><p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Community directory</p><h2 className="mt-2 text-2xl font-semibold text-zinc-900">Explore organizations</h2></div>
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                         {organizations.map((host, index) => {
-                            const published = (host.events || []).filter((event) => event.status === "published");
+                            const published = (host.events || []).filter((event) => event.status === "published" && event.visibility === "public");
                             const upcoming = published.filter((event) => new Date(event.date).getTime() >= now).length;
                             const past = published.length - upcoming;
                             return (

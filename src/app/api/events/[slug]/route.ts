@@ -28,6 +28,17 @@ export async function GET(
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
+        if (data.visibility === 'invite_only') {
+            const token = req.nextUrl.searchParams.get('invite');
+            const managerAccess = await requireEventManager(slug);
+            const { data: invitation } = token
+                ? await supabaseAdmin.from('invites').select('id').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
+                : { data: null };
+            if (!managerAccess.authorized && !invitation) {
+                return NextResponse.json({ error: 'A valid invitation is required.' }, { status: 403 });
+            }
+        }
+
         // Get registration counts
         const { count: confirmedCount, error: countError } = await supabaseAdmin
             .from('registrations')
@@ -78,12 +89,22 @@ export async function PUT(
             'max_attendees', 'status', 'require_approval',
             'theme_style', 'theme_color', 'theme_font', 'theme_mode',
             'registration_fields',
+            'visibility',
         ];
         const updatePayload: Record<string, unknown> = {};
         for (const key of allowedFields) {
             if (key in body) updatePayload[key] = body[key];
         }
         if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
+        if ('visibility' in updatePayload) {
+            const nextVisibility = String(updatePayload.visibility);
+            if (!['public', 'unlisted', 'invite_only'].includes(nextVisibility)) {
+                return NextResponse.json({ error: 'Invalid event visibility.' }, { status: 400 });
+            }
+            const { error: visibilityError } = await supabaseAdmin.rpc('set_event_visibility', { target_event_id: previousEvent.id, new_visibility: nextVisibility });
+            if (visibilityError) return NextResponse.json({ error: 'Could not update event visibility.' }, { status: 400 });
+            delete updatePayload.visibility;
+        }
 
         // Use one database-side operation for the complete edit. This avoids
         // differences between migrated events and newly created events.

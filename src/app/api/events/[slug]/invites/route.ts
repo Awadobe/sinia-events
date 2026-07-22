@@ -190,14 +190,16 @@ export async function POST(
             }
 
             // Insert invite record
-            const { error: insertError } = await supabaseAdmin
+            const { data: insertedInvite, error: insertError } = await supabaseAdmin
                 .from('invites')
                 .insert({
                     event_id: event.id,
                     email,
                     name: entry.name || null,
                     status: 'sent',
-                });
+                })
+                .select('invitation_token')
+                .single();
 
             if (insertError) {
                 console.error('❌ Invite insert error:', insertError);
@@ -214,6 +216,7 @@ export async function POST(
                 eventLocation: event.location,
                 eventSlug: event.slug,
                 organizerName,
+                invitationToken: insertedInvite.invitation_token,
             });
 
             if (emailResult.success) {

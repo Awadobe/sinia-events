@@ -349,6 +349,7 @@ interface SendInviteEmailProps {
   eventLocation: string | null;
   eventSlug: string;
   organizerName?: string;
+  invitationToken?: string;
 }
 
 export async function sendInviteEmail({
@@ -359,13 +360,14 @@ export async function sendInviteEmail({
   eventLocation,
   eventSlug,
   organizerName,
+  invitationToken,
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
     return { success: false, skipped: true, error: 'Email delivery is not configured.' };
   }
 
-  const eventUrl = `${appUrl}/events/${eventSlug}`;
+  const eventUrl = `${appUrl}/events/${eventSlug}${invitationToken ? `?invite=${encodeURIComponent(invitationToken)}` : ''}`;
   const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 
   const formattedDate = format(new Date(eventDate), "EEEE, MMMM d · h:mm a");

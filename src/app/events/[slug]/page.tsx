@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { format } from "date-fns";
@@ -168,10 +168,12 @@ function CustomRegistrationField({ field, value, onChange }: { field: Registrati
 
 function RegistrationModal({
     event,
+    invitationToken,
     onClose,
     onSuccess,
 }: {
     event: EventData;
+    invitationToken?: string | null;
     onClose: () => void;
     onSuccess: (regId?: string) => void;
 }) {
@@ -195,6 +197,7 @@ function RegistrationModal({
                     email,
                     phone: null,
                     custom_answers: customAnswers,
+                    invitation_token: invitationToken,
                 }),
             });
             const result = await res.json();
@@ -324,7 +327,9 @@ function RegistrationModal({
 
 export default function PublicEventPage() {
     const params = useParams();
+    const searchParams = useSearchParams();
     const slug = params.slug as string;
+    const invitationToken = searchParams.get("invite");
 
     const [event, setEvent] = useState<EventData | null>(null);
     const [attendeeCount, setAttendeeCount] = useState(0);
@@ -345,7 +350,7 @@ export default function PublicEventPage() {
     useEffect(() => {
         async function load() {
             const [res, accessRes, accountRegistrationRes] = await Promise.all([
-                fetch(`/api/events/${slug}?t=${Date.now()}`, { cache: "no-store" }),
+                fetch(`/api/events/${slug}?t=${Date.now()}${invitationToken ? `&invite=${encodeURIComponent(invitationToken)}` : ""}`, { cache: "no-store" }),
                 fetch(`/api/events/${slug}/access?t=${Date.now()}`),
                 fetch(`/api/events/${slug}/registration?t=${Date.now()}`),
             ]);
@@ -399,7 +404,7 @@ export default function PublicEventPage() {
             } catch {}
         }
         load();
-    }, [slug]);
+    }, [slug, invitationToken]);
 
     // Close share dropdown when clicking outside
     useEffect(() => {
@@ -761,6 +766,7 @@ export default function PublicEventPage() {
             {showModal && (
                 <RegistrationModal
                     event={event}
+                    invitationToken={invitationToken}
                     onClose={() => setShowModal(false)}
                     onSuccess={(regId) => {
                         setShowModal(false);

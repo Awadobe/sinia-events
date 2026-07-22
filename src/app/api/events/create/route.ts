@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
 
         const payload = JSON.parse(payloadJson);
         payload.registration_fields = sanitizeRegistrationFields(payload.registration_fields);
+        if (!['public', 'unlisted', 'invite_only'].includes(payload.visibility)) payload.visibility = 'public';
 
         if (!payload.title || !payload.date) {
             return NextResponse.json(
@@ -133,7 +134,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
         }
 
-        if (data.status === 'published') {
+        if (data.status === 'published' && data.visibility === 'public') {
             const { data: subscribers } = await supabaseAdmin
                 .from('host_subscriptions')
                 .select('email, unsubscribe_token')

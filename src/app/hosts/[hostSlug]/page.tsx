@@ -36,7 +36,7 @@ export default async function PublicHostPage({ params }: { params: { hostSlug: s
     const { data: host } = await admin.from("hosts").select("id, type, name, slug, description, logo_url").eq("slug", params.hostSlug).eq("status", "active").maybeSingle();
     if (!host) notFound();
 
-    const { data } = await admin.from("events").select("id, title, date, location, event_type, public_slug, image_url, theme_color").eq("host_id", host.id).eq("status", "published").order("date", { ascending: true });
+    const { data } = await admin.from("events").select("id, title, date, location, event_type, public_slug, image_url, theme_color").eq("host_id", host.id).eq("status", "published").eq("visibility", "public").order("date", { ascending: true });
     const now = Date.now();
     const events = (data || []) as HostEvent[];
     const upcoming = events.filter((event) => new Date(event.date).getTime() >= now);

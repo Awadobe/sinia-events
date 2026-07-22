@@ -20,6 +20,7 @@ async function getAllPastEvents() {
       "id, title, date, end_date, location, image_url, event_type, slug, theme_color, is_virtual"
     )
     .neq("status", "cancelled")
+    .eq("visibility", "public")
     .lt("date", now)
     .order("date", { ascending: false });
 

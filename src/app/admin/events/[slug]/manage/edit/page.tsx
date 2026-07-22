@@ -103,6 +103,7 @@ export default function EditTabPage() {
     const [maxAttendees, setMaxAttendees] = useState<number | null>(null);
     const [status, setStatus] = useState("published");
     const [requireApproval, setRequireApproval] = useState(false);
+    const [visibility, setVisibility] = useState<"public" | "unlisted" | "invite_only">("public");
     const [coverImage, setCoverImage] = useState<string | null>(null);
     const [coverFile, setCoverFile] = useState<File | null>(null);
     const [editingCapacity, setEditingCapacity] = useState(false);
@@ -138,6 +139,7 @@ export default function EditTabPage() {
             setMaxAttendees(event.max_attendees);
             setStatus(event.status || "published");
             setRequireApproval(event.require_approval || false);
+            setVisibility(["public", "unlisted", "invite_only"].includes(event.visibility) ? event.visibility : "public");
             setCoverImage(event.image_url);
             setThemeStyle(event.theme_style || "minimal");
             setThemeColor(event.theme_color || "slate");
@@ -197,6 +199,7 @@ export default function EditTabPage() {
             max_attendees: maxAttendees,
             status,
             require_approval: requireApproval,
+            visibility,
             theme_style: themeStyle,
             theme_color: themeColor,
             theme_font: themeFont,
@@ -470,6 +473,7 @@ export default function EditTabPage() {
                     <div className="space-y-2.5">
                         <p className="text-xs font-semibold text-zinc-400 uppercase tracking-widest px-1">Event Options</p>
                         <div className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
+                            <div className="px-5 py-4 border-b border-zinc-50"><label className="text-sm text-zinc-500">Who can find this event?</label><select value={visibility} onChange={(event) => setVisibility(event.target.value as typeof visibility)} className="mt-2 w-full rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm font-medium outline-none"><option value="public">Public — listed on Radius</option><option value="unlisted">Unlisted — anyone with the link</option><option value="invite_only">Invite only — approved guest list</option></select></div>
                             <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-50">
                                 <span className="text-sm text-zinc-500">Require Approval</span>
                                 <button type="button" onClick={() => setRequireApproval(!requireApproval)} className={cn("relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full transition-colors", requireApproval ? "bg-zinc-900" : "bg-zinc-200")}>
