@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
     Loader2,
@@ -81,6 +81,7 @@ const THEME_MODES = [
 
 export default function EditTabPage() {
     const params = useParams();
+    const router = useRouter();
     const slug = params.slug as string;
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -222,7 +223,7 @@ export default function EditTabPage() {
         setRegistrationFields(savedRegistrationFields);
         toast.success(`Event updated with ${savedRegistrationFields.length} registration question${savedRegistrationFields.length === 1 ? "" : "s"}.`);
         setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        setTimeout(() => router.push(`/admin/events/${slug}/manage/overview`), 700);
     };
 
     if (loading) {

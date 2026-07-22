@@ -52,7 +52,7 @@ export function validateRegistrationAnswers(fields: RegistrationField[], value: 
   const answers: RegistrationAnswers = {};
   for (const field of fields) {
     const raw = source[field.id];
-    const empty = raw === undefined || raw === null || raw === "" || (Array.isArray(raw) && raw.length === 0) || raw === false;
+    const empty = raw === undefined || raw === null || raw === "" || (Array.isArray(raw) && raw.length === 0);
     if (field.required && empty) return { error: `${field.label} is required.`, answers: null };
     if (empty) continue;
     if (field.type === "multi_select") {
