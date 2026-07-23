@@ -141,7 +141,8 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (checkInOnly && manageMatch && !pathname.endsWith('/manage/checkin')) {
+    const checkInStaffPath = pathname.endsWith('/manage/checkin') || pathname.endsWith('/manage/guests');
+    if (checkInOnly && manageMatch && !checkInStaffPath) {
       const url = request.nextUrl.clone();
       url.pathname = `/admin/events/${manageMatch[1]}/manage/checkin`;
       return NextResponse.redirect(url);

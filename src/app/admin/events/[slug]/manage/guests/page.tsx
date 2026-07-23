@@ -29,6 +29,7 @@ export default function GuestsPage() {
     const [statusFilter, setStatusFilter] = useState<string>("all");
     const [updating, setUpdating] = useState<string | null>(null);
     const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
+    const [checkInOnly, setCheckInOnly] = useState(false);
 
     const fetchGuests = async () => {
         const res = await fetch(`/api/events/${slug}/registrations`);
@@ -42,6 +43,10 @@ export default function GuestsPage() {
 
     useEffect(() => {
         fetchGuests();
+        fetch(`/api/events/${slug}/access`)
+            .then((res) => res.ok ? res.json() : null)
+            .then((access) => setCheckInOnly(Boolean(access?.is_check_in_staff)))
+            .catch(() => {});
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [slug]);
 
@@ -116,6 +121,11 @@ export default function GuestsPage() {
 
     return (
         <div className="space-y-5">
+            {checkInOnly && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    You have check-in access. Search for a guest, then use the Check In button beside their name.
+                </div>
+            )}
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row gap-3">
                 <div className="relative flex-1">
@@ -143,13 +153,15 @@ export default function GuestsPage() {
                             {s}
                         </button>
                     ))}
-                    <button
-                        onClick={exportCSV}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 bg-white border border-black/5 hover:bg-zinc-50 transition-colors"
-                    >
-                        <Download className="h-3 w-3" />
-                        CSV
-                    </button>
+                    {!checkInOnly && (
+                        <button
+                            onClick={exportCSV}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-zinc-600 bg-white border border-black/5 hover:bg-zinc-50 transition-colors"
+                        >
+                            <Download className="h-3 w-3" />
+                            CSV
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -236,7 +248,7 @@ export default function GuestsPage() {
                                         </td>
                                         <td className="px-5 py-3.5 text-right">
                                             <div className="flex items-center justify-end gap-1.5">
-                                                {reg.status === "pending" && (
+                                                {!checkInOnly && reg.status === "pending" && (
                                                     <>
                                                         <button
                                                             onClick={() => updateStatus(reg.id, "confirmed")}
@@ -256,7 +268,7 @@ export default function GuestsPage() {
                                                         </button>
                                                     </>
                                                 )}
-                                                {reg.status === "confirmed" && (
+                                                {!checkInOnly && reg.status === "confirmed" && (
                                                     <a
                                                         href={`mailto:${reg.email}`}
                                                         className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold bg-zinc-50 text-zinc-500 hover:bg-zinc-100 transition-colors"

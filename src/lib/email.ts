@@ -100,18 +100,11 @@ export async function sendConfirmationEmail({
                       <!-- Buttons -->
                       <table width="100%" cellpadding="0" cellspacing="0">
                         <tr>
-                          <td style="padding-right: ${registrationId ? '6px' : '0'};">
-                            <a href="${eventUrl}" style="display: block; background-color: #18181b; color: #ffffff; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 700;">
-                              View Event
+                          <td>
+                            <a href="${status === 'confirmed' && registrationId ? ticketUrl : eventUrl}" style="display: block; background-color: #18181b; color: #ffffff; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 700;">
+                              ${status === 'confirmed' && registrationId ? '🎫 View My Ticket' : 'View Event'}
                             </a>
                           </td>
-                          ${registrationId ? `
-                          <td style="padding-left: 6px;">
-                            <a href="${ticketUrl}" style="display: block; background-color: #f4f4f5; color: #18181b; text-decoration: none; text-align: center; padding: 14px 16px; border-radius: 12px; font-size: 14px; font-weight: 700; border: 1px solid #e4e4e7;">
-                              🎫 My Ticket
-                            </a>
-                          </td>
-                          ` : ''}
                         </tr>
                       </table>
                     </td>

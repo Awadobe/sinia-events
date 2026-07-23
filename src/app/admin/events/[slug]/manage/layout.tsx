@@ -154,7 +154,7 @@ export default function ManageEventLayout({
 
                     {/* Row 3: Tabs */}
                     <div className="flex gap-0 -mb-px">
-                        {TABS.filter((tab) => !checkInOnly || tab.id === "checkin").map(tab => (
+                        {TABS.filter((tab) => !checkInOnly || tab.id === "checkin" || tab.id === "guests").map(tab => (
                             <Link
                                 key={tab.id}
                                 href={`/admin/events/${slug}/manage/${tab.href}`}

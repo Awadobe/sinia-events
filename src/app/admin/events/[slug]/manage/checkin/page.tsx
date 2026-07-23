@@ -237,6 +237,7 @@ export default function CheckInScannerPage() {
                             <div className="text-center space-y-1">
                                 <h2 className="text-lg font-bold text-white">Ready to Scan</h2>
                                 <p className="text-sm text-zinc-400">Point the camera at the attendee&apos;s QR code</p>
+                                <p className="text-xs text-zinc-500">Your browser will ask for camera permission the first time. Choose Allow to scan tickets.</p>
                             </div>
                             <button
                                 onClick={startScanner}
