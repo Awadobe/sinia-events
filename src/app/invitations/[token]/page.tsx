@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CalendarDays, Check, Loader2, MapPin } from "lucide-react";
+import { CalendarDays, Check, Loader2, MapPin, X } from "lucide-react";
 import { format } from "date-fns";
 
 type Invitation = {
@@ -29,7 +29,8 @@ export default function InvitationPage() {
     const router = useRouter();
     const [invitation, setInvitation] = useState<Invitation | null>(null);
     const [loading, setLoading] = useState(true);
-    const [accepting, setAccepting] = useState(false);
+    const [responding, setResponding] = useState<"accept" | "decline" | null>(null);
+    const [declined, setDeclined] = useState(false);
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -38,21 +39,44 @@ export default function InvitationPage() {
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error);
                 setInvitation(result.invitation);
+                setDeclined(result.invitation.status === "declined");
             })
             .catch((reason) => setError(reason.message || "Could not open this invitation."))
             .finally(() => setLoading(false));
     }, [token]);
 
     const accept = async () => {
-        setAccepting(true);
-        const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, { method: "POST" });
+        setResponding("accept");
+        const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ response: "accept" }),
+        });
         const result = await response.json();
         if (!response.ok) {
             setError(result.error || "Could not accept this invitation.");
-            setAccepting(false);
+            setResponding(null);
             return;
         }
         router.push(result.ticket_url);
+    };
+
+    const decline = async () => {
+        setResponding("decline");
+        const response = await fetch(`/api/invitations/${encodeURIComponent(token)}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ response: "decline" }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            setError(result.error || "Could not decline this invitation.");
+            setResponding(null);
+            return;
+        }
+        setDeclined(true);
+        setInvitation((current) => current ? { ...current, status: "declined" } : current);
+        setResponding(null);
     };
 
     if (loading) return <main className="min-h-screen grid place-items-center bg-stone-50"><Loader2 className="h-6 w-6 animate-spin text-stone-400" /></main>;
@@ -75,11 +99,29 @@ export default function InvitationPage() {
                         {event.location && <p className="flex gap-3"><MapPin className="h-4 w-4 shrink-0" />{event.location}</p>}
                     </div>
                     <p className="mt-6 text-xs text-stone-400">This invitation is reserved for {invitation.email}.</p>
-                    <button onClick={accept} disabled={accepting} className="mt-7 flex w-full items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-4 text-sm font-bold text-white disabled:opacity-60">
-                        {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                        {accepting ? "Accepting…" : "Accept invitation"}
-                    </button>
-                    <p className="mt-3 text-xs text-stone-400">Your QR entry ticket will appear immediately after acceptance.</p>
+                    {declined ? (
+                        <div className="mt-7 rounded-2xl bg-stone-50 p-5">
+                            <X className="mx-auto h-7 w-7 text-stone-400" />
+                            <p className="mt-2 font-semibold text-stone-800">Invitation declined</p>
+                            <p className="mt-1 text-xs text-stone-500">The host will see your response. If your plans change, you can still accept below.</p>
+                            <button onClick={accept} disabled={responding !== null} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">
+                                {responding === "accept" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                Accept instead
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                            <button onClick={decline} disabled={responding !== null || invitation.status === "accepted"} className="flex items-center justify-center gap-2 rounded-2xl border border-stone-200 px-5 py-4 text-sm font-bold text-stone-600 disabled:opacity-50">
+                                {responding === "decline" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+                                Decline
+                            </button>
+                            <button onClick={accept} disabled={responding !== null} className="flex items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-4 text-sm font-bold text-white disabled:opacity-60">
+                                {responding === "accept" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+                                {invitation.status === "accepted" ? "View my ticket" : "Accept invitation"}
+                            </button>
+                        </div>
+                    )}
+                    {!declined && <p className="mt-3 text-xs text-stone-400">Your QR entry ticket will appear immediately after acceptance.</p>}
                 </div>
             </section>
         </main>

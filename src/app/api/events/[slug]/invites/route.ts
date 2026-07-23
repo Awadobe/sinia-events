@@ -45,6 +45,14 @@ export async function GET(
         const total = invites?.length || 0;
         const accepted = invites?.filter(i => i.status === 'accepted').length || 0;
         const declined = invites?.filter(i => i.status === 'declined').length || 0;
+        const awaiting = invites?.filter(i => i.status === 'sent').length || 0;
+        const { data: checkedInRegistrations } = await supabaseAdmin
+            .from('registrations')
+            .select('email')
+            .eq('event_id', event.id)
+            .eq('checked_in', true);
+        const checkedInEmails = new Set((checkedInRegistrations || []).map((registration) => registration.email.toLowerCase()));
+        const checkedIn = (invites || []).filter((invite) => invite.status === 'accepted' && checkedInEmails.has(invite.email.toLowerCase())).length;
 
         // Recently accepted
         const recentlyAccepted = invites
@@ -113,7 +121,7 @@ export async function GET(
 
         return NextResponse.json({
             invites: invites || [],
-            stats: { total, accepted, declined },
+            stats: { total, awaiting, accepted, declined, checkedIn },
             recentlyAccepted,
             suggestions,
             pastEvents,

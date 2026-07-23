@@ -8,7 +8,7 @@ import { Users, UserCheck, Clock, QrCode, ArrowRight, Loader2, Check, TrendingUp
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
-type InviteStats = { total: number; accepted: number; declined: number };
+type InviteStats = { total: number; awaiting: number; accepted: number; declined: number; checkedIn: number };
 type Invite = { id: string; email: string; name: string | null; status: string; sent_at: string; accepted_at: string | null };
 type Suggestion = { name: string; email: string; phone?: string; eventTitle: string; eventDate: string; guestCount: number };
 type PastEvent = { id: string; title: string; date: string };
@@ -54,8 +54,8 @@ export default function OverviewPage() {
     const [loading, setLoading] = useState(true);
 
     // Invites state
-    const [inviteStats, setInviteStats] = useState<InviteStats>({ total: 0, accepted: 0, declined: 0 });
-    const [recentlyAccepted, setRecentlyAccepted] = useState<Invite[]>([]);
+    const [inviteStats, setInviteStats] = useState<InviteStats>({ total: 0, awaiting: 0, accepted: 0, declined: 0, checkedIn: 0 });
+    const [inviteResponses, setInviteResponses] = useState<Invite[]>([]);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [pastEvents, setPastEvents] = useState<PastEvent[]>([]);
@@ -71,7 +71,7 @@ export default function OverviewPage() {
             if (res.ok) {
                 const data = await res.json();
                 setInviteStats(data.stats);
-                setRecentlyAccepted(data.recentlyAccepted || []);
+                setInviteResponses(data.invites || []);
                 setSuggestions(data.suggestions || []);
                 setPastEvents(data.pastEvents || []);
             }
@@ -507,25 +507,22 @@ export default function OverviewPage() {
                                 <ArrowRight className="h-4 w-4" />
                             </Link>
                         </div>
-                        <div className="flex gap-4 mt-4 pt-3 border-t border-zinc-50">
-                            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <Mail className="h-3 w-3" />
-                                <span>{inviteStats.total} Sent</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                                <span>{inviteStats.declined} Declined</span>
-                            </div>
+                        <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-zinc-50 sm:grid-cols-4">
+                            <div className="text-xs text-zinc-400"><span className="block font-bold text-zinc-700">{inviteStats.awaiting}</span>Awaiting</div>
+                            <div className="text-xs text-zinc-400"><span className="block font-bold text-emerald-600">{inviteStats.accepted}</span>Accepted</div>
+                            <div className="text-xs text-zinc-400"><span className="block font-bold text-red-500">{inviteStats.declined}</span>Declined</div>
+                            <div className="text-xs text-zinc-400"><span className="block font-bold text-indigo-600">{inviteStats.checkedIn}</span>Checked in</div>
                         </div>
                     </div>
 
-                    {/* Recently accepted */}
+                    {/* Guest responses */}
                     <div className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm">
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Recently Accepted</p>
-                        {recentlyAccepted.length === 0 ? (
-                            <p className="text-sm text-zinc-300 py-4 text-center">No accepted invites yet</p>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-3">Guest responses</p>
+                        {inviteResponses.length === 0 ? (
+                            <p className="text-sm text-zinc-300 py-4 text-center">No invitations sent yet</p>
                         ) : (
                             <div className="space-y-2.5">
-                                {recentlyAccepted.slice(0, 4).map((inv) => (
+                                {inviteResponses.slice(0, 5).map((inv) => (
                                     <div key={inv.id} className="flex items-center gap-3">
                                         <div className="h-7 w-7 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700 shrink-0">
                                             {(inv.name || inv.email).charAt(0).toUpperCase()}
@@ -534,6 +531,14 @@ export default function OverviewPage() {
                                             <span className="text-sm font-medium text-zinc-900">{inv.name || inv.email.split('@')[0]}</span>
                                             <span className="text-xs text-zinc-400 ml-2">{inv.email}</span>
                                         </div>
+                                        <span className={cn(
+                                            "rounded-full px-2 py-1 text-[9px] font-bold uppercase",
+                                            inv.status === "accepted" ? "bg-emerald-50 text-emerald-700" :
+                                            inv.status === "declined" ? "bg-red-50 text-red-600" :
+                                            "bg-amber-50 text-amber-700"
+                                        )}>
+                                            {inv.status === "sent" ? "Awaiting" : inv.status}
+                                        </span>
                                     </div>
                                 ))}
                             </div>

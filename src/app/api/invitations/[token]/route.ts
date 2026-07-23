@@ -23,22 +23,39 @@ export async function GET(_request: Request, { params }: { params: { token: stri
     return NextResponse.json({ invitation: data }, { headers: { "Cache-Control": "no-store" } });
 }
 
-export async function POST(_request: Request, { params }: { params: { token: string } }) {
+export async function POST(request: Request, { params }: { params: { token: string } }) {
     const { data: invitation, error } = await findInvitation(params.token);
     if (error || !invitation) return NextResponse.json({ error: "This invitation is invalid or no longer available." }, { status: 404 });
 
     const event = Array.isArray(invitation.event) ? invitation.event[0] : invitation.event;
     if (!event || event.status !== "published") return NextResponse.json({ error: "This event is not currently accepting invitations." }, { status: 409 });
+    const body = await request.json().catch(() => ({}));
+    const response = body.response === "decline" ? "decline" : "accept";
 
     const { data: existing } = await admin
         .from("registrations")
-        .select("id")
+        .select("id, status")
         .eq("event_id", event.id)
         .ilike("email", invitation.email)
         .maybeSingle();
 
+    if (response === "decline") {
+        if (existing) {
+            await admin
+                .from("registrations")
+                .update({ status: "cancelled", checked_in: false, checked_in_at: null })
+                .eq("id", existing.id);
+        }
+        await admin.from("invites").update({ status: "declined", accepted_at: null }).eq("id", invitation.id);
+        return NextResponse.json({ response: "declined" });
+    }
+
     let registrationId = existing?.id;
-    if (!registrationId) {
+    if (registrationId) {
+        if (existing?.status !== "confirmed") {
+            await admin.from("registrations").update({ status: "confirmed" }).eq("id", registrationId);
+        }
+    } else {
         if (event.max_attendees) {
             const { count } = await admin.from("registrations").select("*", { count: "exact", head: true }).eq("event_id", event.id).neq("status", "cancelled");
             if ((count || 0) >= event.max_attendees) return NextResponse.json({ error: "This event has reached capacity." }, { status: 409 });
@@ -57,6 +74,7 @@ export async function POST(_request: Request, { params }: { params: { token: str
     await admin.from("invites").update({ status: "accepted", accepted_at: new Date().toISOString() }).eq("id", invitation.id);
 
     return NextResponse.json({
+        response: "accepted",
         ticket_url: `/events/${event.slug}/ticket?id=${registrationId}&invite=${encodeURIComponent(params.token)}`,
     });
 }
