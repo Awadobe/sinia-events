@@ -9,6 +9,25 @@ const supabaseAdmin = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
 );
 
+async function reserveReminder(eventId: string, email: string, reminderType: '24h' | '1h') {
+    const { error } = await supabaseAdmin
+        .from('reminder_deliveries')
+        .insert({ event_id: eventId, email: email.trim().toLowerCase(), reminder_type: reminderType });
+
+    if (!error) return true;
+    if (error.code === '23505') return false;
+    throw error;
+}
+
+async function releaseReminder(eventId: string, email: string, reminderType: '24h' | '1h') {
+    await supabaseAdmin
+        .from('reminder_deliveries')
+        .delete()
+        .eq('event_id', eventId)
+        .ilike('email', email.trim())
+        .eq('reminder_type', reminderType);
+}
+
 export async function GET(req: NextRequest) {
     // Verify cron secret for security
     const authHeader = req.headers.get('authorization');
@@ -22,9 +41,10 @@ export async function GET(req: NextRequest) {
         const results = { sent24h: 0, sent1h: 0, errors: 0 };
 
         // ── 24-hour reminders ──
-        // Events happening between 23h and 25h from now
-        const in23h = new Date(now.getTime() + 23 * 60 * 60 * 1000).toISOString();
-        const in25h = new Date(now.getTime() + 25 * 60 * 60 * 1000).toISOString();
+        // One-hour window centred on 24h. With an hourly scheduler, an event
+        // is selected by one run instead of receiving duplicate reminders.
+        const in23h = new Date(now.getTime() + 23.5 * 60 * 60 * 1000).toISOString();
+        const in25h = new Date(now.getTime() + 24.5 * 60 * 60 * 1000).toISOString();
 
         const { data: events24h } = await supabaseAdmin
             .from('events')
@@ -44,6 +64,7 @@ export async function GET(req: NextRequest) {
                 || (event.organizer as { name?: string })?.name || undefined;
 
             for (const reg of registrations || []) {
+                if (!(await reserveReminder(event.id, reg.email, '24h'))) continue;
                 const result = await sendReminderEmail({
                     toEmail: reg.email,
                     attendeeName: reg.name,
@@ -54,15 +75,18 @@ export async function GET(req: NextRequest) {
                     reminderType: '24h',
                     organizerName: orgName,
                 });
-                if (result.success) results.sent24h++;
-                else results.errors++;
+                if (result.success && !result.skipped) results.sent24h++;
+                else {
+                    await releaseReminder(event.id, reg.email, '24h');
+                    if (!result.skipped) results.errors++;
+                }
             }
         }
 
         // ── 1-hour reminders ──
-        // Events happening between 50min and 70min from now
-        const in50m = new Date(now.getTime() + 50 * 60 * 1000).toISOString();
-        const in70m = new Date(now.getTime() + 70 * 60 * 1000).toISOString();
+        // One-hour window centred on 1h for the same hourly cadence.
+        const in50m = new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+        const in70m = new Date(now.getTime() + 90 * 60 * 1000).toISOString();
 
         const { data: events1h } = await supabaseAdmin
             .from('events')
@@ -82,6 +106,7 @@ export async function GET(req: NextRequest) {
                 || (event.organizer as { name?: string })?.name || undefined;
 
             for (const reg of registrations || []) {
+                if (!(await reserveReminder(event.id, reg.email, '1h'))) continue;
                 const result = await sendReminderEmail({
                     toEmail: reg.email,
                     attendeeName: reg.name,
@@ -92,8 +117,11 @@ export async function GET(req: NextRequest) {
                     reminderType: '1h',
                     organizerName: orgName,
                 });
-                if (result.success) results.sent1h++;
-                else results.errors++;
+                if (result.success && !result.skipped) results.sent1h++;
+                else {
+                    await releaseReminder(event.id, reg.email, '1h');
+                    if (!result.skipped) results.errors++;
+                }
             }
         }
 

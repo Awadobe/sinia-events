@@ -54,7 +54,8 @@ export async function GET(request: Request) {
     .select(
       "id, title, description, date, end_date, location, is_virtual, slug, event_type"
     )
-    .neq("status", "cancelled")
+    .eq("status", "published")
+    .eq("visibility", "public")
     .order("date", { ascending: true });
 
   if (organizerId) {

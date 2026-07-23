@@ -29,13 +29,27 @@ export async function generateMetadata(
     // Fetch event details for metadata
     const { data: event } = await supabaseAdmin
         .from('events')
-        .select('title, description, date, image_url')
+        .select('title, description, date, image_url, status, visibility')
         .eq('slug', slug)
         .single();
 
     if (!event) {
         return {
             title: 'Event Not Found | Radius',
+        };
+    }
+
+    if (event.status === 'draft' || event.visibility === 'invite_only') {
+        return {
+            title: 'Private Event | Radius',
+            description: 'This is a private event on Radius. A valid invitation or event-team account is required.',
+            robots: { index: false, follow: false },
+            openGraph: {
+                title: 'Private Event',
+                description: 'A valid invitation is required to view this event.',
+                siteName: 'Radius',
+                type: 'website',
+            },
         };
     }
 

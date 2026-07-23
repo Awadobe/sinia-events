@@ -30,11 +30,20 @@ export async function POST(req: NextRequest) {
             supabaseAdmin.from('staff_allowlist').select('id').ilike('email', normalizedEmail).maybeSingle(),
             supabaseAdmin.from('profiles').select('id').ilike('email', normalizedEmail).maybeSingle(),
         ]);
-        const { data: organizerMembership } = organizerProfile
-            ? await supabaseAdmin.from('host_organizers').select('host_id').eq('user_id', organizerProfile.id).limit(1).maybeSingle()
-            : { data: null };
+        const [{ data: organizationMembership }, { data: createdEvent }] = organizerProfile
+            ? await Promise.all([
+                supabaseAdmin
+                    .from('host_organizers')
+                    .select('host_id, host:hosts!inner(type)')
+                    .eq('user_id', organizerProfile.id)
+                    .eq('hosts.type', 'organization')
+                    .limit(1)
+                    .maybeSingle(),
+                supabaseAdmin.from('events').select('id').eq('organizer_id', organizerProfile.id).limit(1).maybeSingle(),
+            ])
+            : [{ data: null }, { data: null }];
 
-        if (legacyOrganizer || organizerMembership) {
+        if (legacyOrganizer || organizationMembership || createdEvent) {
             return NextResponse.json(
                 { error: 'This email belongs to an organizer account. Please use a different email to register as an attendee.' },
                 { status: 409 }

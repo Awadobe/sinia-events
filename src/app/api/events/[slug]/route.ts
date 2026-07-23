@@ -168,7 +168,7 @@ export async function PUT(
             }
         }
 
-        if (previousEvent.status !== 'published' && updatedEvent.status === 'published') {
+        if (previousEvent.status !== 'published' && updatedEvent.status === 'published' && verifiedEvent.visibility === 'public') {
             const [{ data: host }, { data: subscribers }] = await Promise.all([
                 supabaseAdmin.from('hosts').select('name, slug').eq('id', updatedEvent.host_id).maybeSingle(),
                 supabaseAdmin.from('host_subscriptions').select('email, unsubscribe_token').eq('host_id', updatedEvent.host_id).eq('status', 'active'),

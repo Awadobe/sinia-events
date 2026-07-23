@@ -442,6 +442,7 @@ export default function PublicEventPage() {
 
     const eventDate = new Date(event.date);
     const isPast = eventDate.getTime() < Date.now();
+    const isCancelled = event.status === "cancelled";
     const spotsLeft = event.max_attendees ? event.max_attendees - attendeeCount : null;
     const isFull = spotsLeft !== null && spotsLeft <= 0;
     const organizerName = getOrganizerName(event.organizer, event.host);
@@ -634,6 +635,14 @@ export default function PublicEventPage() {
                                         >
                                             {teamRole === "check_in" ? "Open check-in" : "Manage event"}
                                         </Link>
+                                    </div>
+                                ) : isCancelled ? (
+                                    <div className="py-6 text-center">
+                                        <X className="mx-auto h-11 w-11 text-red-400" />
+                                        <h4 className="mt-3 text-lg font-semibold" style={{ color: theme.text }}>Event cancelled</h4>
+                                        <p className="mt-1 text-sm" style={{ color: theme.textMuted }}>
+                                            This event is no longer taking registrations. Please contact the host if you need more information.
+                                        </p>
                                     </div>
                                 ) : registered ? (
                                     /* ── Success state ── */

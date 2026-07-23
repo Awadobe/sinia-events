@@ -27,10 +27,21 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Missing payload' }, { status: 400 });
         }
 
-        const payload = JSON.parse(payloadJson);
+        const rawPayload = JSON.parse(payloadJson);
+        const allowedFields = [
+            'title', 'description', 'event_type', 'date', 'end_date',
+            'location', 'is_virtual', 'virtual_link', 'image_url',
+            'max_attendees', 'status', 'slug', 'theme_style', 'theme_color',
+            'theme_font', 'theme_mode', 'require_approval', 'visibility',
+            'registration_fields', 'host_id',
+        ];
+        const payload: Record<string, unknown> = {};
+        for (const field of allowedFields) {
+            if (field in rawPayload) payload[field] = rawPayload[field];
+        }
         payload.registration_fields = sanitizeRegistrationFields(payload.registration_fields);
-        if (!['public', 'unlisted', 'invite_only'].includes(payload.visibility)) payload.visibility = 'public';
-        if (!['draft', 'published'].includes(payload.status)) payload.status = 'draft';
+        if (typeof payload.visibility !== 'string' || !['public', 'unlisted', 'invite_only'].includes(payload.visibility)) payload.visibility = 'public';
+        if (typeof payload.status !== 'string' || !['draft', 'published'].includes(payload.status)) payload.status = 'draft';
 
         if (!payload.title || !payload.date) {
             return NextResponse.json(
@@ -66,7 +77,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'You cannot create events for this host.' }, { status: 403 });
         }
 
-        const requestedPublicSlug = slugify(payload.slug || payload.title);
+        const requestedPublicSlug = slugify(String(payload.slug || payload.title));
         const publicSlug = await findAvailableSlug(requestedPublicSlug, async (candidate) => {
             const { data } = await supabaseAdmin.from('events').select('id').eq('host_id', hostId!).eq('public_slug', candidate).maybeSingle();
             return Boolean(data);

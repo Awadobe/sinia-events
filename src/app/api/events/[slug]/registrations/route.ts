@@ -64,11 +64,23 @@ export async function GET(
             dailyBreakdown.push({ date: dayStr, count });
         }
 
+        const visibleRegistrations = access.isCheckInStaff
+            ? (registrations || []).map((registration) => ({
+                id: registration.id,
+                name: registration.name,
+                email: registration.email,
+                status: registration.status,
+                checked_in: registration.checked_in,
+                checked_in_at: registration.checked_in_at,
+                created_at: registration.created_at,
+            }))
+            : registrations || [];
+
         return NextResponse.json({
-            registrations: registrations || [],
+            registrations: visibleRegistrations,
             stats: { total: registrations?.length || 0, confirmed, pending, cancelled, checkedIn },
             dailyBreakdown,
-            registrationFields: event.registration_fields || [],
+            registrationFields: access.isCheckInStaff ? [] : event.registration_fields || [],
         });
     } catch (err) {
         console.error('❌ Unexpected error:', err);

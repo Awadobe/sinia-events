@@ -106,10 +106,10 @@ export default function UserLoginPage() {
                 
                 <div className="relative z-10 max-w-sm">
                     <h2 className="text-4xl font-semibold text-white leading-tight mb-4">
-                        Create & Share Events.
+                        Your events, all in one place.
                     </h2>
                     <p className="text-lg text-zinc-400">
-                        Sign in to create events, share them with your audience, and build your community on Radius.
+                        Discover events, keep your tickets, or manage the events and teams you are responsible for.
                     </p>
                 </div>
                 
@@ -211,7 +211,7 @@ export default function UserLoginPage() {
                     )}
                     
                     <div className="mt-8 border-t border-black/5 pt-8 text-center lg:text-left text-sm text-zinc-400">
-                        By signing in, you can create events, manage your calendar, and build your community.
+                        Sign in to access your tickets, event assignments, organizations and events you create.
                     </div>
                 </div>
             </div>
