@@ -63,7 +63,12 @@ export default function EventTeamPage() {
                     <select value={role} onChange={(event) => setRole(event.target.value as "manager" | "check_in")} className="rounded-xl border border-zinc-200 bg-white px-3 py-3 text-sm outline-none"><option value="manager">Event manager</option><option value="check_in">Check-in staff</option></select>
                     <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-3 text-sm font-semibold text-white disabled:opacity-50">{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add</button>
                 </div>
-                <p className="text-xs text-zinc-400 mt-2"><strong>Event managers</strong> can edit and manage guests. <strong>Check-in staff</strong> can only view guests and check them in. Access activates when they sign in with this email.</p>
+                <p className="text-xs text-zinc-400 mt-2">
+                    {role === "manager"
+                        ? <><strong>Event manager:</strong> can edit the event, manage guests, send invitations and check people in.</>
+                        : <><strong>Check-in staff:</strong> can only view the guest list, scan tickets and check people in.</>}
+                    {" "}Access activates when they sign in with this email.
+                </p>
             </form>
             <div className="rounded-2xl border border-black/5 bg-white shadow-sm overflow-hidden">
                 <div className="flex items-center gap-2 border-b border-zinc-100 px-5 py-4"><UserRoundCog className="h-4 w-4" /><h3 className="font-semibold">Collaborators</h3></div>
