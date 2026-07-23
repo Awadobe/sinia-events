@@ -38,7 +38,8 @@ export default function EventTeamPage() {
         const result = await response.json();
         setSaving(false);
         if (!response.ok) return toast.error(result.error || "Could not add collaborator");
-        toast.success(result.email_sent ? "Team member added and notified" : "Team member added");
+        if (result.email_sent) toast.success("Team member added and notified");
+        else toast.warning(result.email_notice || "Team member added, but the notification email was not delivered.");
         setEmail("");
         await load();
     }

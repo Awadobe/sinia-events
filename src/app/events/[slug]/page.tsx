@@ -334,6 +334,7 @@ export default function PublicEventPage() {
     const [event, setEvent] = useState<EventData | null>(null);
     const [attendeeCount, setAttendeeCount] = useState(0);
     const [canManage, setCanManage] = useState(false);
+    const [teamRole, setTeamRole] = useState<"manager" | "check_in" | null>(null);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
 
@@ -369,6 +370,7 @@ export default function PublicEventPage() {
             if (accessRes.ok) {
                 const access = await accessRes.json();
                 setCanManage(Boolean(access.can_manage));
+                setTeamRole(access.collaborator_role === "check_in" ? "check_in" : access.can_manage ? "manager" : null);
             }
             setLoading(false);
 
@@ -478,11 +480,11 @@ export default function PublicEventPage() {
                     <div className="flex items-center gap-3">
                         {canManage && (
                             <Link
-                                href={`/admin/events/${slug}/manage`}
+                                href={`/admin/events/${slug}/manage/${teamRole === "check_in" ? "checkin" : "overview"}`}
                                 className="flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 transition-colors shadow-sm"
                             >
                                 <Settings className="h-4 w-4" />
-                                Manage
+                                {teamRole === "check_in" ? "Check in" : "Manage"}
                             </Link>
                         )}
 
@@ -614,7 +616,26 @@ export default function PublicEventPage() {
                             </div>
 
                             <div className="px-6 pb-6">
-                                {registered ? (
+                                {canManage ? (
+                                    <div className="py-5 text-center">
+                                        <Settings className="mx-auto h-10 w-10" style={{ color: theme.primary }} />
+                                        <h4 className="mt-3 text-lg font-semibold" style={{ color: theme.text }}>
+                                            You&apos;re on the event team
+                                        </h4>
+                                        <p className="mt-1 text-sm" style={{ color: theme.textMuted }}>
+                                            {teamRole === "check_in"
+                                                ? "You have check-in access for this event."
+                                                : "You have event management access."}
+                                        </p>
+                                        <Link
+                                            href={`/admin/events/${slug}/manage/${teamRole === "check_in" ? "checkin" : "overview"}`}
+                                            className="mt-5 inline-flex w-full items-center justify-center rounded-xl px-4 py-3 text-sm font-bold text-white"
+                                            style={{ backgroundColor: theme.primary }}
+                                        >
+                                            {teamRole === "check_in" ? "Open check-in" : "Manage event"}
+                                        </Link>
+                                    </div>
+                                ) : registered ? (
                                     /* ── Success state ── */
                                     <div className="text-center py-6 space-y-3">
                                         <CheckCircle2 className="h-12 w-12 text-emerald-500 mx-auto" />

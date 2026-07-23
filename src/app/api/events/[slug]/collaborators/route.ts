@@ -61,7 +61,13 @@ export async function POST(
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     const { data: event } = await admin.from("events").select("title, slug").eq("id", eventId).single();
     const emailResult = event ? await sendEventCollaboratorEmail({ toEmail: email, eventTitle: event.title, eventSlug: event.slug, role }) : null;
-    return NextResponse.json({ status: "added", email_sent: Boolean(emailResult?.success) }, { status: 201 });
+    return NextResponse.json({
+        status: "added",
+        email_sent: Boolean(emailResult?.success),
+        email_notice: emailResult?.success
+            ? null
+            : "Access was added, but the notification email was not delivered. Resend testing mode only delivers to the email connected to your Resend account.",
+    }, { status: 201 });
 }
 
 export async function DELETE(
