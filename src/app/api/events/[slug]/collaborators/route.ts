@@ -1,13 +1,16 @@
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { requireEventManager } from "@/lib/auth";
-import { sendEventCollaboratorEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
 const admin = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
     process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder"
+);
+const authClient = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder"
 );
 
 async function getEventId(slug: string) {
@@ -49,24 +52,33 @@ export async function POST(
     if (!email || !email.includes("@")) return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
 
     const { data: profile } = await admin.from("profiles").select("id").ilike("email", email).maybeSingle();
-    const { error } = await admin.from("event_collaborators").upsert({
+    const { data: collaborator, error } = await admin.from("event_collaborators").upsert({
         event_id: eventId,
         email,
         user_id: profile?.id || null,
         added_by: access.user.id,
         role,
         status: "active",
-    }, { onConflict: "event_id,email" });
+        accept_token: crypto.randomUUID(),
+    }, { onConflict: "event_id,email" }).select("accept_token").single();
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    const { data: event } = await admin.from("events").select("title, slug").eq("id", eventId).single();
-    const emailResult = event ? await sendEventCollaboratorEmail({ toEmail: email, eventTitle: event.title, eventSlug: event.slug, role }) : null;
+    if (error || !collaborator) return NextResponse.json({ error: error?.message || "Could not add this team member." }, { status: 500 });
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+    const acceptancePath = `/event-team/invitations/accept?token=${collaborator.accept_token}`;
+    const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(acceptancePath)}`;
+    const { error: emailError } = await authClient.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: callbackUrl },
+    });
+
+    if (emailError) console.error("Event collaborator invitation email failed:", emailError);
     return NextResponse.json({
         status: "added",
-        email_sent: Boolean(emailResult?.success),
-        email_notice: emailResult?.success
+        email_sent: !emailError,
+        email_notice: !emailError
             ? null
-            : "Access was added, but the notification email was not delivered. Resend testing mode only delivers to the email connected to your Resend account.",
+            : `Access was added, but the sign-in email was not delivered: ${emailError.message}`,
     }, { status: 201 });
 }
 

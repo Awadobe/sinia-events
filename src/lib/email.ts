@@ -470,39 +470,6 @@ export async function sendInviteEmail({
   }
 }
 
-export async function sendEventCollaboratorEmail({
-  toEmail,
-  eventTitle,
-  eventSlug,
-  role,
-}: {
-  toEmail: string;
-  eventTitle: string;
-  eventSlug: string;
-  role: 'manager' | 'check_in';
-}) {
-  if (!process.env.RESEND_API_KEY) return { success: false, skipped: true };
-  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
-  const isCheckIn = role === 'check_in';
-  const destination = `${appUrl}/admin/events/${eventSlug}/manage/${isCheckIn ? 'checkin' : 'overview'}`;
-  const roleLabel = isCheckIn ? 'Check-in staff' : 'Event manager';
-  const { data, error } = await resend.emails.send({
-    from: `Radius <${fromEmail}>`,
-    to: [toEmail],
-    subject: `You've been added to ${eventTitle}`,
-    html: `
-      <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:520px;margin:0 auto;padding:32px;color:#18181b">
-        <p style="font-size:12px;font-weight:700;letter-spacing:2px;color:#a1a1aa">RADIUS EVENT TEAM</p>
-        <h1 style="font-size:24px;margin:12px 0">You've been added to ${eventTitle}</h1>
-        <p style="font-size:15px;line-height:1.6;color:#52525b">Your role is <strong>${roleLabel}</strong>. ${isCheckIn ? 'You can view the guest list, scan QR tickets and check guests in.' : 'You can help edit the event, manage guests, send invitations and check guests in.'}</p>
-        <a href="${destination}" style="display:block;margin-top:24px;background:#18181b;color:#fff;text-decoration:none;text-align:center;padding:15px;border-radius:12px;font-weight:700">Open event workspace</a>
-        <p style="font-size:12px;color:#a1a1aa;margin-top:16px;text-align:center">Sign in to Radius using this email address.</p>
-      </div>`,
-  });
-  if (error) return { success: false, error };
-  return { success: true, data };
-}
-
 export async function sendNewHostEventEmail({
   toEmail,
   unsubscribeToken,
