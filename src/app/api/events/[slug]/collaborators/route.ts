@@ -66,7 +66,10 @@ export async function POST(
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
     const acceptancePath = `/event-team/invitations/accept?token=${collaborator.accept_token}`;
-    const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(acceptancePath)}`;
+    // This invitation is initiated on the server, so Supabase returns its
+    // session in the URL hash. The client confirmation page can consume that
+    // hash and then continue to the exact event assignment.
+    const callbackUrl = `${appUrl}/auth/confirm?next=${encodeURIComponent(acceptancePath)}`;
     const { error: emailError } = await authClient.auth.signInWithOtp({
         email,
         options: { shouldCreateUser: true, emailRedirectTo: callbackUrl },

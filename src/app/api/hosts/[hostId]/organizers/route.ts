@@ -98,7 +98,7 @@ export async function POST(
 
     const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
     const acceptancePath = `/organizer/invitations/accept?token=${invitation.accept_token}`;
-    const callbackUrl = `${appUrl}/auth/callback?next=${encodeURIComponent(acceptancePath)}`;
+    const callbackUrl = `${appUrl}/auth/confirm?next=${encodeURIComponent(acceptancePath)}`;
     const { error: emailError } = await authClient.auth.signInWithOtp({
         email,
         options: { shouldCreateUser: true, emailRedirectTo: callbackUrl },

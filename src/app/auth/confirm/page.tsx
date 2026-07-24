@@ -11,15 +11,18 @@ export default function AuthConfirmPage() {
     const supabase = createClient();
 
     useEffect(() => {
+        const requestedNext = new URLSearchParams(window.location.search).get("next");
+        const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+            ? requestedNext
+            : "/profile";
         // The Supabase client library automatically detects the token in the URL hash
         // and exchanges it for a session via onAuthStateChange
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
                 if (event === "SIGNED_IN" && session) {
-                    // Successfully signed in — redirect to create event
-                    router.replace("/events/new");
+                    router.replace(nextPath);
                 } else if (event === "TOKEN_REFRESHED") {
-                    router.replace("/events/new");
+                    router.replace(nextPath);
                 }
             }
         );
@@ -27,7 +30,7 @@ export default function AuthConfirmPage() {
         // Also check if user is already signed in (in case the event fired before we subscribed)
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
-                router.replace("/events/new");
+                router.replace(nextPath);
             }
         });
 
