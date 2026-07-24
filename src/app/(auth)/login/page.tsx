@@ -14,6 +14,7 @@ export default function UserLoginPage() {
     const [sent, setSent] = useState(false);
     const [loading, setLoading] = useState(false);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [invitationSignIn, setInvitationSignIn] = useState(false);
     const supabase = createClient();
     const router = useRouter();
     const getNextPath = () => {
@@ -23,6 +24,7 @@ export default function UserLoginPage() {
 
     // Check if user is already signed in (e.g. redirected here after magic link)
     useEffect(() => {
+        setInvitationSignIn(new URLSearchParams(window.location.search).get("reason") === "link");
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
             (event, session) => {
                 if (event === "SIGNED_IN" && session) {
@@ -138,7 +140,9 @@ export default function UserLoginPage() {
                                     Sign in to Radius
                                 </h1>
                                 <p className="text-sm text-zinc-500 pb-2">
-                                    Use Google for the quickest sign-in, or receive a secure link by email.
+                                    {invitationSignIn
+                                        ? "Sign in with the invited email. After sign-in, we’ll take you directly to your assigned event."
+                                        : "Use Google for the quickest sign-in, or receive a secure link by email."}
                                 </p>
                             </div>
 

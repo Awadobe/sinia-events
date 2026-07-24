@@ -7,14 +7,17 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type");
-  const next = searchParams.get("next") ?? "/profile";
+  const requestedNext = searchParams.get("next");
+  const next = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
+    ? requestedNext
+    : "/profile";
   const error_param = searchParams.get("error");
 
   // If Supabase sent an error (e.g. expired OTP), redirect to login
   if (error_param) {
     const errorDesc = searchParams.get("error_description") || "Authentication failed";
     console.error("❌ Auth error from Supabase:", errorDesc);
-    return NextResponse.redirect(`${origin}/login`);
+    return NextResponse.redirect(`${origin}/login?next=${encodeURIComponent(next)}&reason=link`);
   }
 
   const cookieStore = cookies();
@@ -60,5 +63,5 @@ export async function GET(request: Request) {
   }
 
   // Fallback: redirect to login on error
-  return NextResponse.redirect(`${origin}/login`);
+  return NextResponse.redirect(`${origin}/login?next=${encodeURIComponent(next)}&reason=link`);
 }
