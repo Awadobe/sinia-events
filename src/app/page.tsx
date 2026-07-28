@@ -108,42 +108,47 @@ export default async function HomePage() {
 
             {user ? (
               <>
-                {isOrganizer ? (
-                  <>
-                    {platformAdmin && (
-                      <Link href="/platform-admin" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                        Platform admin
-                      </Link>
-                    )}
-                    <Link href="/organizer" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                      Organizer account
-                    </Link>
+                {isOrganizer && (
                     <Link
                       href="/events/new"
                       className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors"
                     >
                       + Create Event
                     </Link>
-                  </>
-                ) : hasEventAssignments ? (
-                  <>
-                    <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                      My profile
-                    </Link>
-                    <Link href="/organizer" className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors">
-                      Assigned events
-                    </Link>
-                  </>
-                ) : (
-                    <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                      My profile
-                    </Link>
-                  )}
-                <form action="/auth/signout" method="post">
-                  <button type="submit" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
-                    Log out
-                  </button>
-                </form>
+                )}
+                <details className="group relative">
+                  <summary className="cursor-pointer list-none rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-semibold text-zinc-700 shadow-sm transition hover:border-zinc-300">
+                    {isOrganizer || hasEventAssignments || platformAdmin ? "Dashboard" : "Account"}
+                  </summary>
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-black/5 bg-white p-2 shadow-xl">
+                    {platformAdmin && (
+                      <Link href="/platform-admin" className="block rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                        Platform administration
+                      </Link>
+                    )}
+                    {isOrganizer && (
+                      <Link href="/organizer" className="block rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                        Organizer dashboard
+                      </Link>
+                    )}
+                    {!isOrganizer && hasEventAssignments && (
+                      <Link href="/organizer" className="block rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                        Assigned events
+                      </Link>
+                    )}
+                    {!isOrganizer && (
+                      <Link href="/profile" className="block rounded-xl px-3 py-2.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50">
+                        My profile and tickets
+                      </Link>
+                    )}
+                    <div className="my-1 border-t border-zinc-100" />
+                    <form action="/auth/signout" method="post">
+                      <button type="submit" className="w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900">
+                        Log out
+                      </button>
+                    </form>
+                  </div>
+                </details>
               </>
             ) : (
               <>
