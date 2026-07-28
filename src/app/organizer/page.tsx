@@ -142,6 +142,24 @@ export default async function OrganizerDashboard() {
                 <section className="grid gap-5 md:grid-cols-2">
                     {hosts.map((host) => {
                         const hostEvents = (events || []).filter((event) => event.host_id === host.id);
+                        const orderedHostEvents = [
+                            ...hostEvents.filter((event) => event.status === "draft"),
+                            ...hostEvents.filter((event) => event.status !== "draft"),
+                        ];
+                        const visibleHostEvents = orderedHostEvents.slice(0, 4);
+                        const remainingHostEvents = orderedHostEvents.slice(4);
+                        const eventRow = (event: typeof orderedHostEvents[number]) => (
+                            <Link key={event.id} href={`/admin/events/${event.slug}/manage`} className="flex items-center justify-between gap-3 rounded-xl bg-zinc-50 px-4 py-3 text-sm hover:bg-zinc-100">
+                                <span className="min-w-0 truncate font-medium text-zinc-700">{event.title}</span>
+                                <span className={`flex-shrink-0 rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider ${
+                                    event.status === "draft"
+                                        ? "bg-amber-100 text-amber-700"
+                                        : event.status === "cancelled"
+                                            ? "bg-red-100 text-red-600"
+                                            : "bg-emerald-100 text-emerald-700"
+                                }`}>{event.status}</span>
+                            </Link>
+                        );
                         return (
                             <div key={host.id} className="rounded-3xl border border-black/5 bg-white p-6 shadow-sm">
                                 <div className="flex items-start justify-between gap-4">
@@ -157,12 +175,16 @@ export default async function OrganizerDashboard() {
                                     <Link href={`/hosts/${host.slug}`} className="hover:text-zinc-900">View public page →</Link>
                                 </div>
                                 <div className="mt-5 space-y-2">
-                                    {hostEvents.slice(0, 4).map((event) => (
-                                        <Link key={event.id} href={`/admin/events/${event.slug}/manage`} className="flex items-center justify-between rounded-xl bg-zinc-50 px-4 py-3 text-sm hover:bg-zinc-100">
-                                            <span className="font-medium text-zinc-700">{event.title}</span>
-                                            <span className="text-xs text-zinc-400">{event.status}</span>
-                                        </Link>
-                                    ))}
+                                    {visibleHostEvents.map(eventRow)}
+                                    {remainingHostEvents.length > 0 && (
+                                        <details className="group">
+                                            <summary className="cursor-pointer list-none rounded-xl border border-dashed border-zinc-200 px-4 py-3 text-center text-xs font-semibold text-zinc-500 hover:bg-zinc-50">
+                                                <span className="group-open:hidden">Show {remainingHostEvents.length} more event{remainingHostEvents.length === 1 ? "" : "s"}</span>
+                                                <span className="hidden group-open:inline">Hide additional events</span>
+                                            </summary>
+                                            <div className="mt-2 space-y-2">{remainingHostEvents.map(eventRow)}</div>
+                                        </details>
+                                    )}
                                     {!hostEvents.length && <div className="rounded-xl border border-dashed border-zinc-200 p-5 text-center text-sm text-zinc-400">No events yet</div>}
                                 </div>
                             </div>
