@@ -333,6 +333,82 @@ export async function sendReminderEmail({
   }
 }
 
+/* ───── Important Event Change Email ───── */
+interface SendEventChangeEmailProps {
+  toEmail: string;
+  attendeeName: string;
+  eventTitle: string;
+  eventDate: string;
+  eventLocation: string | null;
+  eventSlug: string;
+  visibility: 'public' | 'unlisted' | 'invite_only';
+  kind: 'updated' | 'cancelled';
+  changes?: string[];
+}
+
+export async function sendEventChangeEmail({
+  toEmail,
+  attendeeName,
+  eventTitle,
+  eventDate,
+  eventLocation,
+  eventSlug,
+  visibility,
+  kind,
+  changes = [],
+}: SendEventChangeEmailProps) {
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('⚠️ RESEND_API_KEY is not set. Skipping event change notification.');
+    return { success: true, skipped: true };
+  }
+
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const eventUrl = `${appUrl}/events/${eventSlug}`;
+  const formattedDate = format(new Date(eventDate), "EEEE, MMMM d, yyyy 'at' h:mm a");
+  const cancelled = kind === 'cancelled';
+  const subject = cancelled ? `Cancelled: ${eventTitle}` : `Important update: ${eventTitle}`;
+  const heading = cancelled ? 'This event has been cancelled' : 'Event details have changed';
+  const accent = cancelled ? '#dc2626' : '#d97706';
+  const background = cancelled ? '#fef2f2' : '#fffbeb';
+  const changeItems = changes.map((change) => `<li style="margin: 6px 0;">${change}</li>`).join('');
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [toEmail],
+      subject,
+      html: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; color: #18181b;">
+          <div style="border: 1px solid #e4e4e7; border-radius: 16px; overflow: hidden; background: #ffffff;">
+            <div style="padding: 20px 28px; background: #18181b; color: #ffffff; font-size: 15px; font-weight: 700; letter-spacing: 1px;">RADIUS</div>
+            <div style="padding: 30px 28px;">
+              <p style="margin: 0 0 8px; color: ${accent}; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em;">Important notice</p>
+              <h1 style="margin: 0 0 14px; font-size: 23px; line-height: 1.3;">${heading}</h1>
+              <p style="margin: 0 0 20px; color: #52525b; line-height: 1.6;">Hi ${attendeeName}, ${cancelled ? `<strong>${eventTitle}</strong> will no longer take place.` : `the organizer changed important details for <strong>${eventTitle}</strong>.`}</p>
+              ${!cancelled && changeItems ? `<div style="margin-bottom: 20px; padding: 14px 18px; border-radius: 12px; background: ${background}; color: #78350f;"><ul style="margin: 0; padding-left: 18px;">${changeItems}</ul></div>` : ''}
+              ${!cancelled ? `<div style="margin-bottom: 22px; padding: 16px 18px; border-radius: 12px; background: #fafafa;">
+                <p style="margin: 0 0 7px; font-size: 13px; font-weight: 700;">📅 ${formattedDate}</p>
+                ${eventLocation ? `<p style="margin: 0; font-size: 13px; color: #52525b;">📍 ${eventLocation}</p>` : ''}
+              </div>` : ''}
+              ${!cancelled && visibility !== 'invite_only' ? `<a href="${eventUrl}" style="display: block; padding: 13px 18px; border-radius: 11px; background: #18181b; color: #ffffff; text-decoration: none; text-align: center; font-size: 14px; font-weight: 700;">View updated event</a>` : ''}
+              <p style="margin: 24px 0 0; color: #a1a1aa; font-size: 12px; line-height: 1.5;">If you have questions, please contact the event organizer.</p>
+            </div>
+          </div>
+        </div>
+      `,
+    });
+
+    if (error) {
+      console.error('❌ Event change email error:', error);
+      return { success: false, error };
+    }
+    return { success: true, data };
+  } catch (err) {
+    console.error('❌ Failed to send event change email:', err);
+    return { success: false, error: err };
+  }
+}
+
 /* ───── Event Invite Email ───── */
 interface SendInviteEmailProps {
   toEmail: string;

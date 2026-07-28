@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
-import { sendNewHostEventEmail } from '@/lib/email';
+import { sendEventChangeEmail, sendNewHostEventEmail } from '@/lib/email';
 import { sanitizeRegistrationFields } from '@/lib/registration-fields';
 
 // Prevent Next.js from caching GET responses — ensures edits reflect immediately
@@ -102,7 +102,11 @@ export async function PUT(
 
         const { slug } = params;
         const body = await req.json();
-        const { data: previousEvent } = await supabaseAdmin.from('events').select('id, status').eq('slug', slug).maybeSingle();
+        const { data: previousEvent } = await supabaseAdmin
+            .from('events')
+            .select('id, status, title, date, end_date, location, is_virtual, virtual_link')
+            .eq('slug', slug)
+            .maybeSingle();
         if (!previousEvent) {
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
@@ -185,7 +189,47 @@ export async function PUT(
             })));
         }
 
-        return NextResponse.json({ event: verifiedEvent }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+        const wasCancelled = previousEvent.status !== 'cancelled' && verifiedEvent.status === 'cancelled';
+        const importantChanges: string[] = [];
+        if (previousEvent.title !== verifiedEvent.title) importantChanges.push('The event title was changed.');
+        if (previousEvent.date !== verifiedEvent.date || previousEvent.end_date !== verifiedEvent.end_date) importantChanges.push('The event date or time was changed.');
+        if (previousEvent.location !== verifiedEvent.location || previousEvent.is_virtual !== verifiedEvent.is_virtual) importantChanges.push('The event location was changed.');
+        if (previousEvent.virtual_link !== verifiedEvent.virtual_link) importantChanges.push('The online event link was changed.');
+
+        const shouldNotifyUpdate = previousEvent.status === 'published'
+            && verifiedEvent.status === 'published'
+            && importantChanges.length > 0;
+        const notificationSummary = { attempted: 0, sent: 0, failed: 0 };
+
+        if (wasCancelled || shouldNotifyUpdate) {
+            const { data: registrations } = await supabaseAdmin
+                .from('registrations')
+                .select('name, email')
+                .eq('event_id', previousEvent.id)
+                .neq('status', 'cancelled');
+
+            notificationSummary.attempted = registrations?.length || 0;
+            const results = await Promise.allSettled((registrations || []).map((registration) => sendEventChangeEmail({
+                toEmail: registration.email,
+                attendeeName: registration.name,
+                eventTitle: verifiedEvent.title,
+                eventDate: verifiedEvent.date,
+                eventLocation: verifiedEvent.location,
+                eventSlug: verifiedEvent.slug,
+                visibility: verifiedEvent.visibility,
+                kind: wasCancelled ? 'cancelled' : 'updated',
+                changes: importantChanges,
+            })));
+            for (const result of results) {
+                if (result.status === 'fulfilled' && result.value.success && !result.value.skipped) notificationSummary.sent++;
+                else notificationSummary.failed++;
+            }
+        }
+
+        return NextResponse.json({
+            event: verifiedEvent,
+            notifications: notificationSummary,
+        }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
