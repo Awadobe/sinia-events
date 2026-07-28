@@ -45,18 +45,15 @@ export default async function UserProfilePage() {
         process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
         process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder"
     );
-    const [{ data: organizationMembership }, { data: createdEvent }, { data: eventCollaboration }, { data: legacyOrganizer }] = await Promise.all([
+    const [{ data: organizationMembership }, { data: createdEvent }, { data: legacyOrganizer }] = await Promise.all([
         admin.from("host_organizers").select("host_id, host:hosts!inner(type)").eq("user_id", user.id).eq("hosts.type", "organization").limit(1).maybeSingle(),
         admin.from("events").select("id").eq("organizer_id", user.id).limit(1).maybeSingle(),
-        user.email
-            ? admin.from("event_collaborators").select("id").or(`user_id.eq.${user.id},email.ilike.${user.email}`).eq("status", "active").limit(1).maybeSingle()
-            : Promise.resolve({ data: null }),
         user.email
             ? admin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle()
             : Promise.resolve({ data: null }),
     ]);
 
-    if (organizationMembership || createdEvent || eventCollaboration || legacyOrganizer) {
+    if (organizationMembership || createdEvent || legacyOrganizer) {
         redirect("/organizer");
     }
 

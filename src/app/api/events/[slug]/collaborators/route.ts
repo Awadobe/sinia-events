@@ -23,7 +23,7 @@ export async function GET(
     { params }: { params: { slug: string } }
 ) {
     const access = await requireEventManager(params.slug);
-    if (!access.authorized || access.isCheckInStaff) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!access.isOwner && !access.isAdmin) return NextResponse.json({ error: "Only an organizer can view the event team" }, { status: 403 });
     const eventId = await getEventId(params.slug);
     if (!eventId) return NextResponse.json({ error: "Event not found" }, { status: 404 });
 

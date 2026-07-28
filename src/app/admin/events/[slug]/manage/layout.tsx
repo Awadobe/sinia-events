@@ -44,6 +44,7 @@ export default function ManageEventLayout({
     const [event, setEvent] = useState<EventData | null>(null);
     const [loading, setLoading] = useState(true);
     const [checkInOnly, setCheckInOnly] = useState(false);
+    const [canManageTeam, setCanManageTeam] = useState(false);
 
     useEffect(() => {
         async function load() {
@@ -55,6 +56,7 @@ export default function ManageEventLayout({
             if (accessRes.ok) {
                 const access = await accessRes.json();
                 setCheckInOnly(Boolean(access.is_check_in_staff));
+                setCanManageTeam(Boolean(access.is_owner || access.is_admin));
             }
             setLoading(false);
         }
@@ -154,7 +156,10 @@ export default function ManageEventLayout({
 
                     {/* Row 3: Tabs */}
                     <div className="flex gap-0 -mb-px">
-                        {TABS.filter((tab) => !checkInOnly || tab.id === "checkin" || tab.id === "guests").map(tab => (
+                        {TABS.filter((tab) => {
+                            if (tab.id === "team" && !canManageTeam) return false;
+                            return !checkInOnly || tab.id === "checkin" || tab.id === "guests";
+                        }).map(tab => (
                             <Link
                                 key={tab.id}
                                 href={`/admin/events/${slug}/manage/${tab.href}`}

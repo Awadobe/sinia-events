@@ -67,6 +67,8 @@ export default async function OrganizerDashboard() {
     const hosts = (memberships || []).map((membership) => membership.host).filter(Boolean) as unknown as Array<{
         id: string; type: "individual" | "organization"; name: string; slug: string; description: string | null; logo_url: string | null;
     }>;
+    const { data: createdEvent } = await admin.from("events").select("id").eq("organizer_id", user.id).limit(1).maybeSingle();
+    const isOrganizerOwner = Boolean(platformStaff || createdEvent || hosts.some((host) => host.type === "organization"));
     const hostIds = hosts.map((host) => host.id);
     const { data: events } = hostIds.length
         ? await admin.from("events").select("id, title, date, status, slug, public_slug, host_id").in("host_id", hostIds).order("date", { ascending: false })
@@ -79,7 +81,7 @@ export default async function OrganizerDashboard() {
                     <Link href="/" className="font-semibold text-zinc-900">Radius</Link>
                     <div className="flex items-center gap-3">
                         {platformStaff && <Link href="/platform-admin" className="text-sm font-medium text-zinc-600 hover:text-zinc-900">Platform admin</Link>}
-                        <span className="hidden sm:inline text-xs font-semibold uppercase tracking-widest text-zinc-400">Organizer account</span>
+                        <span className="hidden sm:inline text-xs font-semibold uppercase tracking-widest text-zinc-400">{isOrganizerOwner ? "Organizer account" : "Event team account"}</span>
                         <form action="/auth/signout" method="post"><button className="text-sm text-zinc-500 hover:text-zinc-900">Log out</button></form>
                     </div>
                 </div>
@@ -88,13 +90,13 @@ export default async function OrganizerDashboard() {
             <main className="mx-auto max-w-6xl px-5 py-10 space-y-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Organizer Dashboard</p>
-                        <h1 className="text-3xl font-semibold text-zinc-900 mt-1">Your hosts and events</h1>
+                        <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">{isOrganizerOwner ? "Organizer Dashboard" : "Event Assignments"}</p>
+                        <h1 className="text-3xl font-semibold text-zinc-900 mt-1">{isOrganizerOwner ? "Your hosts and events" : "Events assigned to you"}</h1>
                     </div>
-                    <div className="flex gap-2">
+                    {isOrganizerOwner && <div className="flex gap-2">
                         <CreateOrganizationForm />
                         <Link href="/events/new" className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Create event</Link>
-                    </div>
+                    </div>}
                 </div>
 
                 {assignedEvents.length > 0 && (
@@ -139,7 +141,7 @@ export default async function OrganizerDashboard() {
                     </section>
                 )}
 
-                <section className="grid gap-5 md:grid-cols-2">
+                {isOrganizerOwner && <section className="grid gap-5 md:grid-cols-2">
                     {hosts.map((host) => {
                         const hostEvents = (events || []).filter((event) => event.host_id === host.id);
                         const orderedHostEvents = [
@@ -190,9 +192,9 @@ export default async function OrganizerDashboard() {
                             </div>
                         );
                     })}
-                </section>
+                </section>}
 
-                {!hosts.length && (
+                {isOrganizerOwner && !hosts.length && (
                     <div className="rounded-3xl border border-dashed border-zinc-200 bg-white p-12 text-center">
                         <Users className="h-8 w-8 text-zinc-300 mx-auto" />
                         <p className="text-zinc-500 mt-3">Your personal host will appear after the database migration is applied.</p>

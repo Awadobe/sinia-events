@@ -73,7 +73,8 @@ export default async function HomePage() {
         supabaseAdmin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle(),
       ])
     : [{ data: null }, { data: null }, { data: null }, { data: null }];
-  const isOrganizer = Boolean(organizationMembership || createdEvent || eventCollaboration || legacyOrganizer);
+  const isOrganizer = Boolean(organizationMembership || createdEvent || legacyOrganizer);
+  const hasEventAssignments = Boolean(eventCollaboration);
 
   return (
     <div className="min-h-screen bg-[#faf9f7]">
@@ -123,11 +124,20 @@ export default async function HomePage() {
                       + Create Event
                     </Link>
                   </>
+                ) : hasEventAssignments ? (
+                  <>
+                    <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                      My profile
+                    </Link>
+                    <Link href="/organizer" className="rounded-full bg-zinc-900 text-white px-4 py-2 text-sm font-semibold shadow-sm hover:bg-zinc-700 transition-colors">
+                      Assigned events
+                    </Link>
+                  </>
                 ) : (
-                  <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
-                    My profile
-                  </Link>
-                )}
+                    <Link href="/profile" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
+                      My profile
+                    </Link>
+                  )}
                 <form action="/auth/signout" method="post">
                   <button type="submit" className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
                     Log out

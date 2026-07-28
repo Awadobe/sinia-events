@@ -112,6 +112,7 @@ export async function updateSession(request: NextRequest) {
     const manageMatch = pathname.match(/^\/admin\/events\/([^/]+)\/manage(?:\/|$)/);
     let ownsManagedEvent = false;
     let checkInOnly = false;
+    let eventManagerOnly = false;
 
     if (manageMatch) {
       const admin = createSupabaseClient(
@@ -132,6 +133,7 @@ export async function updateSession(request: NextRequest) {
         ownsManagedEvent = Boolean(membership || collaborationByUser || collaborationByEmail || event.organizer_id === user.id);
         const collaborationRole = collaborationByUser?.role || collaborationByEmail?.role;
         checkInOnly = !membership && event.organizer_id !== user.id && collaborationRole === 'check_in';
+        eventManagerOnly = !membership && event.organizer_id !== user.id && collaborationRole === 'manager';
       }
     }
 
@@ -145,6 +147,12 @@ export async function updateSession(request: NextRequest) {
     if (checkInOnly && manageMatch && !checkInStaffPath) {
       const url = request.nextUrl.clone();
       url.pathname = `/admin/events/${manageMatch[1]}/manage/checkin`;
+      return NextResponse.redirect(url);
+    }
+
+    if (eventManagerOnly && manageMatch && pathname.endsWith('/manage/team')) {
+      const url = request.nextUrl.clone();
+      url.pathname = `/admin/events/${manageMatch[1]}/manage/overview`;
       return NextResponse.redirect(url);
     }
   }
