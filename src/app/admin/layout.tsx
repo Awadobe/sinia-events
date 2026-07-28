@@ -9,6 +9,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/admin/login/actions";
 import { Button } from "@/components/ui/button";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 
 const navItems = [
     { label: "Platform Admin", href: "/platform-admin", icon: ShieldCheck },
@@ -24,8 +25,12 @@ export default async function AdminLayout({
 }) {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    const admin = createAdminClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co",
+        process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder"
+    );
     const { data: platformStaff } = user?.email
-        ? await supabase.from("staff_allowlist").select("id").eq("email", user.email).maybeSingle()
+        ? await admin.from("platform_admins").select("id").ilike("email", user.email).maybeSingle()
         : { data: null };
 
     return (

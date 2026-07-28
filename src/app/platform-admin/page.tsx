@@ -11,7 +11,7 @@ const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "https:/
 export default async function PlatformAdminPage() {
     const access = await requireAdmin();
     if (!access.user) redirect("/login?next=/platform-admin");
-    if (!access.authorized) redirect("/organizer");
+    if (!access.authorized) redirect("/");
 
     const { data: organizations } = await admin.from("hosts").select("id, name, slug, description, status, created_at, events(id, title, slug, status), host_organizers(user_id)").eq("type", "organization").order("created_at", { ascending: false });
 

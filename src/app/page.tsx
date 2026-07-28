@@ -65,14 +65,15 @@ export default async function HomePage() {
 
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const [{ data: organizationMembership }, { data: createdEvent }, { data: eventCollaboration }, { data: legacyOrganizer }] = user?.email
+  const [{ data: organizationMembership }, { data: createdEvent }, { data: eventCollaboration }, { data: legacyOrganizer }, { data: platformAdmin }] = user?.email
     ? await Promise.all([
         supabaseAdmin.from("host_organizers").select("host_id, host:hosts!inner(type)").eq("user_id", user.id).eq("hosts.type", "organization").limit(1).maybeSingle(),
         supabaseAdmin.from("events").select("id").eq("organizer_id", user.id).limit(1).maybeSingle(),
         supabaseAdmin.from("event_collaborators").select("id").or(`user_id.eq.${user.id},email.ilike.${user.email}`).eq("status", "active").limit(1).maybeSingle(),
         supabaseAdmin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle(),
+        supabaseAdmin.from("platform_admins").select("id").ilike("email", user.email).maybeSingle(),
       ])
-    : [{ data: null }, { data: null }, { data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }, { data: null }, { data: null }];
   const isOrganizer = Boolean(organizationMembership || createdEvent || legacyOrganizer);
   const hasEventAssignments = Boolean(eventCollaboration);
 
@@ -109,7 +110,7 @@ export default async function HomePage() {
               <>
                 {isOrganizer ? (
                   <>
-                    {legacyOrganizer && (
+                    {platformAdmin && (
                       <Link href="/platform-admin" className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors">
                         Platform admin
                       </Link>

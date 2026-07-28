@@ -20,7 +20,7 @@ export async function POST(request: NextRequest, { params }: { params: { hostId:
         return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
     }
 
-    const { data: host } = await admin.from("hosts").select("id, name").eq("id", params.hostId).maybeSingle();
+    const { data: host } = await admin.from("hosts").select("id, name").eq("id", params.hostId).eq("status", "active").maybeSingle();
     if (!host) return NextResponse.json({ error: "Organization not found." }, { status: 404 });
 
     const { error } = await admin.from("host_subscriptions").upsert(

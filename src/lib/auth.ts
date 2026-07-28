@@ -16,17 +16,14 @@ export async function requireAdmin() {
         return { authorized: false, user: null };
     }
 
-    // Check if user is in staff_allowlist
-    // We use the regular client here. If RLS on staff_allowlist allows public viewing, this works.
-    // If not, we might need service_role just to check the allowlist, but currently RLS says:
-    // CREATE POLICY "Public can view staff allowlist" ON staff_allowlist FOR SELECT TO authenticated USING (true);
-    const { data: staff } = await supabase
-        .from('staff_allowlist')
+    const admin = createAdminClient();
+    const { data: platformAdmin } = await admin
+        .from('platform_admins')
         .select('id')
-        .eq('email', user.email)
-        .single();
+        .ilike('email', user.email.trim())
+        .maybeSingle();
 
-    if (!staff && !user.user_metadata?.is_admin) {
+    if (!platformAdmin) {
         return { authorized: false, user };
     }
 
@@ -42,12 +39,12 @@ export async function requireEventManager(slug: string) {
     }
 
     const admin = createAdminClient();
-    const [{ data: staff }, { data: event }] = await Promise.all([
-        admin.from("staff_allowlist").select("id").ilike("email", user.email.trim()).maybeSingle(),
+    const [{ data: platformAdmin }, { data: event }] = await Promise.all([
+        admin.from("platform_admins").select("id").ilike("email", user.email.trim()).maybeSingle(),
         admin.from("events").select("id, host_id, organizer_id, host:hosts(created_by)").eq("slug", slug).maybeSingle(),
     ]);
 
-    const isAdmin = Boolean(staff || user.user_metadata?.is_admin);
+    const isAdmin = Boolean(platformAdmin);
     const [{ data: hostMembership }, { data: collaborationByUser }, { data: collaborationByEmail }] = event
         ? await Promise.all([
             admin.from("host_organizers").select("host_id").eq("host_id", event.host_id).eq("user_id", user.id).maybeSingle(),

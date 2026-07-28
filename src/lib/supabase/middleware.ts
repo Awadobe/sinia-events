@@ -103,11 +103,15 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    const { data: staff } = await supabase
-      .from('staff_allowlist')
+    const platformClient = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder'
+    );
+    const { data: platformAdmin } = await platformClient
+      .from('platform_admins')
       .select('id')
       .ilike('email', user.email.trim())
-      .single();
+      .maybeSingle();
 
     const manageMatch = pathname.match(/^\/admin\/events\/([^/]+)\/manage(?:\/|$)/);
     let ownsManagedEvent = false;
@@ -137,7 +141,7 @@ export async function updateSession(request: NextRequest) {
       }
     }
 
-    if (!staff && !user.user_metadata?.is_admin && !ownsManagedEvent) {
+    if (!platformAdmin && !ownsManagedEvent) {
       const url = request.nextUrl.clone();
       url.pathname = '/'; // redirect to home if not staff
       return NextResponse.redirect(url);

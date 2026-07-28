@@ -52,10 +52,11 @@ export async function GET(request: Request) {
   let query = supabaseAdmin
     .from("events")
     .select(
-      "id, title, description, date, end_date, location, is_virtual, slug, event_type"
+      "id, title, description, date, end_date, location, is_virtual, slug, event_type, host:hosts!inner(status)"
     )
     .eq("status", "published")
     .eq("visibility", "public")
+    .eq("hosts.status", "active")
     .order("date", { ascending: true });
 
   if (organizerId) {

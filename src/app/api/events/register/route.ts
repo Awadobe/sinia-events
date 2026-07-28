@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         // Check if event exists and get details + organizer info
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, visibility, organizer_id, registration_fields, organizer:profiles!organizer_id(email, name, org_name)')
+            .select('id, title, max_attendees, require_approval, date, end_date, location, slug, status, visibility, organizer_id, registration_fields, host:hosts!inner(status), organizer:profiles!organizer_id(email, name, org_name)')
             .eq('id', event_id)
             .single();
 
@@ -63,6 +63,10 @@ export async function POST(req: NextRequest) {
 
         if (event.status !== 'published') {
             return NextResponse.json({ error: 'Registration is not open for this event.' }, { status: 409 });
+        }
+        const eventHost = Array.isArray(event.host) ? event.host[0] : event.host;
+        if (eventHost?.status === 'suspended') {
+            return NextResponse.json({ error: 'Registration is unavailable while this organization is suspended.' }, { status: 409 });
         }
 
         let matchedInvitation: { id: string } | null = null;

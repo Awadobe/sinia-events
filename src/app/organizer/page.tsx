@@ -18,7 +18,7 @@ export default async function OrganizerDashboard() {
     if (!user) redirect("/login");
 
     const { data: platformStaff } = user.email
-        ? await admin.from("staff_allowlist").select("id").ilike("email", user.email).maybeSingle()
+        ? await admin.from("platform_admins").select("id").ilike("email", user.email).maybeSingle()
         : { data: null };
 
     const { data: memberships } = await admin

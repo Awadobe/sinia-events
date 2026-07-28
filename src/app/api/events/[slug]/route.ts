@@ -25,7 +25,7 @@ export async function GET(
 
         const { data, error } = await supabaseAdmin
             .from('events')
-            .select('*, host:hosts(id, type, name, slug, logo_url), organizer:profiles!organizer_id(id, org_name, name, avatar_url)')
+            .select('*, host:hosts(id, type, name, slug, logo_url, status), organizer:profiles!organizer_id(id, org_name, name, avatar_url)')
             .eq('slug', slug)
             .single();
 
@@ -33,9 +33,14 @@ export async function GET(
             return NextResponse.json({ error: 'Event not found' }, { status: 404 });
         }
 
-        const managerAccess = data.status === 'draft' || data.visibility === 'invite_only'
+        const eventHost = Array.isArray(data.host) ? data.host[0] : data.host;
+        const managerAccess = data.status === 'draft' || data.visibility === 'invite_only' || eventHost?.status === 'suspended'
             ? await requireEventManager(slug)
             : { authorized: false };
+
+        if (eventHost?.status === 'suspended' && !managerAccess.authorized) {
+            return NextResponse.json({ error: 'This organization is currently unavailable.' }, { status: 404 });
+        }
 
         if (data.status === 'draft' && !managerAccess.authorized) {
             return NextResponse.json({ error: 'This event is still a draft.' }, { status: 403 });
