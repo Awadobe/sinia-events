@@ -15,32 +15,50 @@ export default function AuthConfirmPage() {
         const nextPath = requestedNext?.startsWith("/") && !requestedNext.startsWith("//")
             ? requestedNext
             : "/profile";
-        // The Supabase client library automatically detects the token in the URL hash
-        // and exchanges it for a session via onAuthStateChange
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-            (event, session) => {
-                if (event === "SIGNED_IN" && session) {
-                    router.replace(nextPath);
-                } else if (event === "TOKEN_REFRESHED") {
-                    router.replace(nextPath);
-                }
-            }
-        );
+        let active = true;
 
-        // Also check if user is already signed in (in case the event fired before we subscribed)
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) {
-                router.replace(nextPath);
+        async function confirmSession() {
+            const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+            const accessToken = hash.get("access_token");
+            const refreshToken = hash.get("refresh_token");
+            const authError = hash.get("error_description");
+
+            if (authError) {
+                if (active) setError(authError);
+                return;
             }
-        });
+
+            if (accessToken && refreshToken) {
+                const { error: sessionError } = await supabase.auth.setSession({
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                });
+                if (sessionError) {
+                    if (active) setError("This sign-in link is invalid or has expired. Please request a new invitation.");
+                    return;
+                }
+                if (active) router.replace(nextPath);
+                return;
+            }
+
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                if (active) router.replace(nextPath);
+                return;
+            }
+
+            if (active) setError("This sign-in link is incomplete or has expired. Please request a new invitation.");
+        }
+
+        confirmSession();
 
         // If nothing happens after 5 seconds, show error
         const timeout = setTimeout(() => {
-            setError("Authentication timed out. The magic link may have expired.");
+            if (active) setError("Authentication timed out. Please request a new invitation.");
         }, 5000);
 
         return () => {
-            subscription.unsubscribe();
+            active = false;
             clearTimeout(timeout);
         };
     }, [supabase, router]);
