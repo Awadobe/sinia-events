@@ -33,6 +33,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
 import type { RegistrationField } from "@/lib/registration-fields";
+import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
+import { emptyWeddingDetails, sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Theme Options ───── */
 const THEME_COLORS = [
@@ -116,6 +118,7 @@ export default function EditTabPage() {
     const [themeMode, setThemeMode] = useState("light");
     const [showTheme, setShowTheme] = useState(false);
     const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
+    const [weddingDetails, setWeddingDetails] = useState<WeddingDetails>(emptyWeddingDetails);
 
     useEffect(() => {
         async function load() {
@@ -147,6 +150,7 @@ export default function EditTabPage() {
             setThemeFont(event.theme_font || "standard");
             setThemeMode(event.theme_mode || "light");
             setRegistrationFields(Array.isArray(event.registration_fields) ? event.registration_fields : []);
+            setWeddingDetails(sanitizeWeddingDetails(event.wedding_details));
             setLoading(false);
         }
         load();
@@ -224,6 +228,7 @@ export default function EditTabPage() {
             theme_font: themeFont,
             theme_mode: themeMode,
             registration_fields: registrationFields,
+            wedding_details: weddingDetails,
         };
 
         const res = await fetch(`/api/events/${slug}`, {
@@ -485,6 +490,8 @@ export default function EditTabPage() {
                     <div className="rounded-2xl border border-black/5 bg-white shadow-sm px-5 py-4">
                         <Textarea placeholder="Add a description..." rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="border-none bg-transparent px-0 text-sm font-normal resize-none focus-visible:ring-0 placeholder:text-zinc-300 min-h-0 py-0 leading-relaxed" />
                     </div>
+
+                    {eventType.trim().toLowerCase() === "wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
 
                     <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendEventChangeEmail, sendNewHostEventEmail } from '@/lib/email';
 import { sanitizeRegistrationFields } from '@/lib/registration-fields';
+import { sanitizeWeddingDetails } from '@/lib/wedding-details';
 
 // Prevent Next.js from caching GET responses — ensures edits reflect immediately
 export const dynamic = 'force-dynamic';
@@ -123,13 +124,14 @@ export async function PUT(
             'location', 'is_virtual', 'virtual_link', 'image_url',
             'max_attendees', 'status', 'require_approval',
             'theme_style', 'theme_color', 'theme_font', 'theme_mode',
-            'registration_fields',
+            'registration_fields', 'wedding_details',
         ];
         const updatePayload: Record<string, unknown> = {};
         for (const key of allowedFields) {
             if (key in body) updatePayload[key] = body[key];
         }
         if ('registration_fields' in updatePayload) updatePayload.registration_fields = sanitizeRegistrationFields(updatePayload.registration_fields);
+        if ('wedding_details' in updatePayload) updatePayload.wedding_details = sanitizeWeddingDetails(updatePayload.wedding_details);
 
         // Use one database-side operation for the complete edit. This avoids
         // differences between migrated events and newly created events.

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { CalendarDays, Check, Loader2, MapPin, X } from "lucide-react";
 import { format } from "date-fns";
+import { sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 type Invitation = {
     email: string;
@@ -14,12 +15,14 @@ type Invitation = {
         date: string;
         location: string | null;
         event_type: string;
+        wedding_details: WeddingDetails | null;
         host: { name: string } | { name: string }[] | null;
     } | Array<{
         title: string;
         date: string;
         location: string | null;
         event_type: string;
+        wedding_details: WeddingDetails | null;
         host: { name: string } | { name: string }[] | null;
     }>;
 };
@@ -86,18 +89,27 @@ export default function InvitationPage() {
     const hostValue = Array.isArray(event.host) ? event.host[0] : event.host;
     const hostName = hostValue?.name || "Your host";
     const isWedding = event.event_type?.toLowerCase() === "wedding";
+    const wedding = sanitizeWeddingDetails(event.wedding_details);
+    const inviter = wedding.hosts || hostName;
 
     return (
         <main className="min-h-screen bg-[#fbf8f3] px-5 py-12 grid place-items-center">
             <section className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-xl shadow-stone-200/40">
                 <div className="bg-stone-900 px-8 py-7 text-center text-white"><p className="text-xs font-bold uppercase tracking-[0.28em]">{isWedding ? "Wedding invitation" : "Private invitation"}</p></div>
                 <div className="px-8 py-10 text-center">
-                    <p className="text-sm text-stone-500">{hostName} invites you to</p>
+                    <p className="text-sm text-stone-500">{inviter} invites you to</p>
                     <h1 className="mt-3 text-3xl font-semibold tracking-tight text-stone-900">{event.title}</h1>
+                    {isWedding && wedding.invitation_message && <p className="mx-auto mt-5 max-w-sm whitespace-pre-line text-sm italic leading-relaxed text-stone-600">{wedding.invitation_message}</p>}
                     <div className="mt-8 space-y-3 rounded-2xl bg-stone-50 p-5 text-left text-sm text-stone-600">
                         <p className="flex gap-3"><CalendarDays className="h-4 w-4 shrink-0" />{format(new Date(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
                         {event.location && <p className="flex gap-3"><MapPin className="h-4 w-4 shrink-0" />{event.location}</p>}
                     </div>
+                    {isWedding && (wedding.dress_code || wedding.directions || wedding.programme || wedding.allow_plus_one) && <div className="mt-4 space-y-3 rounded-2xl border border-rose-100 bg-rose-50/60 p-5 text-left text-sm text-stone-600">
+                        {wedding.dress_code && <p><strong className="text-stone-800">Dress code:</strong> {wedding.dress_code}</p>}
+                        {wedding.allow_plus_one && <p><strong className="text-stone-800">Guest:</strong> Your invitation includes one additional guest.</p>}
+                        {wedding.directions && <p className="whitespace-pre-line"><strong className="text-stone-800">Directions:</strong> {wedding.directions}</p>}
+                        {wedding.programme && <div><strong className="text-stone-800">Programme</strong><p className="mt-1 whitespace-pre-line">{wedding.programme}</p></div>}
+                    </div>}
                     <p className="mt-6 text-xs text-stone-400">This invitation is reserved for {invitation.email}.</p>
                     {declined ? (
                         <div className="mt-7 rounded-2xl bg-stone-50 p-5">

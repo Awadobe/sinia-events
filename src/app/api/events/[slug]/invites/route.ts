@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendInviteEmail } from '@/lib/email';
 import { requireEventManager } from '@/lib/auth';
+import { sanitizeWeddingDetails } from '@/lib/wedding-details';
 
 export const dynamic = 'force-dynamic';
 
@@ -154,7 +155,7 @@ export async function POST(
         // Get event
         const { data: event, error: eventError } = await supabaseAdmin
             .from('events')
-            .select('id, title, date, location, slug, event_type, host:hosts(name)')
+            .select('id, title, date, location, slug, event_type, wedding_details, host:hosts(name)')
             .eq('slug', slug)
             .single();
 
@@ -164,6 +165,7 @@ export async function POST(
 
         const eventHost = Array.isArray(event.host) ? event.host[0] : event.host;
         const organizerName = (eventHost as { name?: string } | null)?.name || 'the host';
+        const weddingDetails = sanitizeWeddingDetails(event.wedding_details);
 
         const results = { sent: 0, skipped: 0, errors: 0 };
 
@@ -226,6 +228,8 @@ export async function POST(
                 organizerName,
                 invitationToken: insertedInvite.invitation_token,
                 eventType: event.event_type,
+                weddingHosts: weddingDetails.hosts,
+                weddingMessage: weddingDetails.invitation_message,
             });
 
             if (emailResult.success) {

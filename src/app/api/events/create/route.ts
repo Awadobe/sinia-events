@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { findAvailableSlug, slugify } from '@/lib/slugs';
 import { sendNewHostEventEmail } from '@/lib/email';
 import { sanitizeRegistrationFields } from '@/lib/registration-fields';
+import { sanitizeWeddingDetails } from '@/lib/wedding-details';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
@@ -33,13 +34,14 @@ export async function POST(req: NextRequest) {
             'location', 'is_virtual', 'virtual_link', 'image_url',
             'max_attendees', 'status', 'slug', 'theme_style', 'theme_color',
             'theme_font', 'theme_mode', 'require_approval', 'visibility',
-            'registration_fields', 'host_id',
+            'registration_fields', 'host_id', 'wedding_details',
         ];
         const payload: Record<string, unknown> = {};
         for (const field of allowedFields) {
             if (field in rawPayload) payload[field] = rawPayload[field];
         }
         payload.registration_fields = sanitizeRegistrationFields(payload.registration_fields);
+        payload.wedding_details = sanitizeWeddingDetails(payload.wedding_details);
         if (typeof payload.visibility !== 'string' || !['public', 'unlisted', 'invite_only'].includes(payload.visibility)) payload.visibility = 'public';
         if (typeof payload.status !== 'string' || !['draft', 'published'].includes(payload.status)) payload.status = 'draft';
 

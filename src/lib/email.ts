@@ -420,6 +420,8 @@ interface SendInviteEmailProps {
   organizerName?: string;
   invitationToken?: string;
   eventType?: string;
+  weddingHosts?: string;
+  weddingMessage?: string;
 }
 
 export async function sendInviteEmail({
@@ -432,6 +434,8 @@ export async function sendInviteEmail({
   organizerName,
   invitationToken,
   eventType,
+  weddingHosts,
+  weddingMessage,
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
@@ -447,6 +451,14 @@ export async function sendInviteEmail({
   const firstName = attendeeName.split(' ')[0];
 
   const isWedding = eventType?.toLowerCase() === 'wedding';
+  const weddingHostLabel = weddingHosts?.trim() || organizerName || 'the couple';
+  const safeWeddingMessage = weddingMessage?.trim()
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;')
+    .replaceAll('\n', '<br />');
   const subject = isWedding ? `💍 You're invited to ${eventTitle}` : `🎉 You're invited to ${eventTitle}`;
 
   try {
@@ -475,7 +487,7 @@ export async function sendInviteEmail({
               <td style="padding: 20px 32px;">
                 <p style="margin: 0; font-size: 15px; color: #3f3f46; line-height: 1.6;">
                   ${isWedding
-                    ? `Dear ${firstName}, <strong>${organizerName || 'the couple'}</strong> warmly invites you to celebrate their wedding ceremony.`
+                    ? `Dear ${firstName}, <strong>${weddingHostLabel}</strong> warmly invites you to celebrate their wedding ceremony.${safeWeddingMessage ? `<br /><br />${safeWeddingMessage}` : ''}`
                     : `Hey ${firstName}! <strong>${organizerName || 'The host'}</strong> has personally invited you. We'd love to see you there!`}
                 </p>
               </td>

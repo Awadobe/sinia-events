@@ -16,11 +16,14 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import QRCode from "qrcode";
+import { sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ─────────────── types ─────────────── */
 interface EventData {
     id: string;
     title: string;
+    event_type?: string;
+    wedding_details?: WeddingDetails | null;
     slug: string;
     date: string;
     end_date?: string;
@@ -119,6 +122,8 @@ export default function TicketPage() {
     }, [slug, regId, invitationToken]);
 
     const accent = COLORS[event?.theme_color || "zinc"] || "#18181b";
+    const includesGuest = event?.event_type?.toLowerCase() === "wedding"
+        && sanitizeWeddingDetails(event.wedding_details).allow_plus_one;
 
     /* ─── Loading ─── */
     if (loading) {
@@ -245,6 +250,7 @@ export default function TicketPage() {
                                 <p className="text-xs text-zinc-400 mt-3">
                                     Ticket ID: <span className="font-mono text-zinc-500">{registration.id.slice(0, 8)}</span>
                                 </p>
+                                {includesGuest && <p className="mt-2 text-xs font-semibold text-rose-500">This invitation admits you and one guest.</p>}
                             </>
                         )}
                     </div>

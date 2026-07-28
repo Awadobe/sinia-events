@@ -12,7 +12,7 @@ const admin = createClient(
 async function findInvitation(token: string) {
     return admin
         .from("invites")
-        .select("id, email, name, status, event_id, event:events!inner(id, title, date, end_date, location, slug, image_url, event_type, status, max_attendees, host:hosts(name))")
+        .select("id, email, name, status, event_id, event:events!inner(id, title, date, end_date, location, slug, image_url, event_type, status, max_attendees, wedding_details, host:hosts(name))")
         .eq("invitation_token", token)
         .maybeSingle();
 }

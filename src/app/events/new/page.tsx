@@ -34,6 +34,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
 import type { RegistrationField } from "@/lib/registration-fields";
+import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
+import { emptyWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Event Categories with Default Covers ───── */
 const EVENT_CATEGORIES = [
@@ -216,6 +218,7 @@ export default function CreateEventPage() {
     const [startTime, setStartTime] = useState("16:00");
     const [endTime, setEndTime] = useState("17:00");
     const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
+    const [weddingDetails, setWeddingDetails] = useState<WeddingDetails>(emptyWeddingDetails);
 
     useEffect(() => {
         fetch("/api/hosts")
@@ -272,6 +275,7 @@ export default function CreateEventPage() {
             require_approval: formData.require_approval,
             visibility: formData.visibility,
             registration_fields: registrationFields,
+            wedding_details: weddingDetails,
             host_id: selectedHostId,
         };
         const submitData = new FormData();
@@ -292,6 +296,7 @@ export default function CreateEventPage() {
             setSubmitSuccess(false); setFormData(initialFormData);
             setCoverImage(null); setCoverFile(null); setCoverSource(null);
             setRegistrationFields([]);
+            setWeddingDetails(emptyWeddingDetails);
             const selectedHost = hosts.find((host) => host.id === selectedHostId);
             router.push(selectedHost
                 ? `/hosts/${selectedHost.slug}/events/${result.event.public_slug}`
@@ -460,6 +465,8 @@ export default function CreateEventPage() {
                             <div className="rounded-2xl shadow-sm px-5 py-4 transition-colors duration-300" style={{ ...theme.cardStyle, borderWidth: "1px", borderStyle: "solid" }}>
                                 <textarea id="description" placeholder="Add a description... Tell people what your event is about" rows={4} value={formData.description} onChange={(e) => updateField("description", e.target.value)} className="w-full border-none bg-transparent text-sm font-normal resize-none outline-none leading-relaxed" style={{ color: theme.palette.text, caretColor: theme.palette.accent }} />
                             </div>
+
+                            {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
 
                             <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

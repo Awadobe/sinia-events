@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { RegistrationAnswers, RegistrationField } from "@/lib/registration-fields";
+import { sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 import { resolveTheme } from "@/lib/theme";
 import {
@@ -59,6 +60,7 @@ type EventData = {
     theme_mode: string;
     require_approval: boolean;
     registration_fields: RegistrationField[];
+    wedding_details: WeddingDetails | null;
     organizer: OrganizerData | null;
     host: HostData | null;
 };
@@ -741,6 +743,21 @@ export default function PublicEventPage() {
                                 </p>
                             </div>
                         )}
+
+                        {event.event_type?.toLowerCase() === "wedding" && (() => {
+                            const wedding = sanitizeWeddingDetails(event.wedding_details);
+                            if (!wedding.hosts && !wedding.invitation_message && !wedding.dress_code && !wedding.directions && !wedding.programme) return null;
+                            return <section className="rounded-2xl border p-5" style={{ borderColor: theme.isDark ? "rgba(255,255,255,0.1)" : "#ffe4e6", backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : "#fff7f8" }}>
+                                <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textMuted }}>Wedding details</p>
+                                {wedding.hosts && <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.text }}>{wedding.hosts}</h2>}
+                                {wedding.invitation_message && <p className="mt-3 whitespace-pre-line text-sm italic leading-relaxed" style={{ color: theme.textMuted }}>{wedding.invitation_message}</p>}
+                                <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2" style={{ color: theme.textMuted }}>
+                                    {wedding.dress_code && <p><strong style={{ color: theme.text }}>Dress code</strong><br />{wedding.dress_code}</p>}
+                                    {wedding.directions && <p className="whitespace-pre-line"><strong style={{ color: theme.text }}>Directions</strong><br />{wedding.directions}</p>}
+                                </div>
+                                {wedding.programme && <div className="mt-4 border-t pt-4" style={{ borderColor: theme.isDark ? "rgba(255,255,255,0.08)" : "#ffe4e6" }}><strong className="text-sm" style={{ color: theme.text }}>Programme</strong><p className="mt-2 whitespace-pre-line text-sm leading-relaxed" style={{ color: theme.textMuted }}>{wedding.programme}</p></div>}
+                            </section>;
+                        })()}
 
                         {/* Tag */}
                         {event.event_type && (
