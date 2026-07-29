@@ -99,6 +99,12 @@ export default async function HomePage() {
             >
               Organizations
             </Link>
+            <Link
+              href="/venues"
+              className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors hidden sm:block"
+            >
+              Venues
+            </Link>
             <a
               href="#upcoming-events"
               className="text-sm font-medium text-zinc-600 hover:text-zinc-900 transition-colors hidden lg:block"
