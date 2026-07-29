@@ -61,10 +61,10 @@ const eventOptions = [
 ];
 
 const occasions = [
-  { name: "Wedding", description: "Halls, gardens, beaches and reception spaces", icon: Heart, color: "bg-rose-100 text-rose-700" },
-  { name: "Birthday", description: "Flexible spaces for intimate or large celebrations", icon: Cake, color: "bg-amber-100 text-amber-700" },
-  { name: "Corporate event", description: "Professional spaces for teams and company events", icon: BriefcaseBusiness, color: "bg-sky-100 text-sky-700" },
-  { name: "Conference", description: "Auditoriums and rooms with presentation facilities", icon: Presentation, color: "bg-violet-100 text-violet-700" },
+  { name: "Wedding", description: "Halls, gardens, beaches and reception spaces", icon: Heart },
+  { name: "Birthday", description: "Flexible spaces for intimate or large celebrations", icon: Cake },
+  { name: "Corporate event", description: "Professional spaces for teams and company events", icon: BriefcaseBusiness },
+  { name: "Conference", description: "Auditoriums and rooms with presentation facilities", icon: Presentation },
 ];
 
 const frequentlyAskedQuestions = [
@@ -141,28 +141,23 @@ export default async function VenuesPage({
   }));
 
   return (
-    <div className="min-h-screen bg-[#f6f3ed]">
-      <header className="border-b border-black/5 bg-white/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
-          <Link href="/" className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900">
-            <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-xs font-bold text-white">
+    <div className="venuefind-page min-h-screen bg-[#faf6f2]">
+      <header className="h-[76px] border-b border-[#ebe5de] bg-white">
+        <div className="mx-auto flex h-full max-w-[1440px] items-center justify-between px-5 sm:px-10 lg:px-20">
+          <Link href="/" className="flex items-center gap-3 text-lg font-semibold text-[#18231d]">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff5e36] text-sm font-bold text-white">
               R
             </span>
             Radius
           </Link>
-          <nav className="flex items-center gap-4 sm:gap-6">
-            <Link href="/" className="text-sm font-medium text-zinc-500 transition hover:text-zinc-900">
-              Events
-            </Link>
-            <Link
-              href="/organizations"
-              className="hidden text-sm font-medium text-zinc-500 transition hover:text-zinc-900 sm:block"
-            >
-              Organizations
-            </Link>
+          <nav className="flex items-center gap-5 lg:gap-8">
+            <a href="#venue-catalogue" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] md:block">Discover</a>
+            <a href="#occasions" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">Occasions</a>
+            <a href="#how-it-works" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">How it works</a>
+            <a href="#venue-owners" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">For venue owners</a>
             <Link
               href="/venues/new"
-              className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
+              className="rounded-full border border-[#ff5e36] px-5 py-2.5 text-sm font-semibold text-[#ff5e36] transition hover:bg-[#ff5e36] hover:text-white"
             >
               List a venue
             </Link>
@@ -171,51 +166,57 @@ export default async function VenuesPage({
       </header>
 
       <main>
-        <section className="relative overflow-hidden border-b border-orange-100 bg-gradient-to-br from-[#fff6ec] via-[#fbfaf7] to-[#eef5ef]">
-          <div className="absolute -right-20 -top-24 h-72 w-72 rounded-full bg-orange-200/35 blur-3xl" />
-          <div className="absolute -bottom-32 left-1/4 h-72 w-72 rounded-full bg-emerald-200/25 blur-3xl" />
-          <div className="relative mx-auto max-w-6xl px-5 py-14 sm:py-20">
-            <div className="grid gap-10 lg:grid-cols-[1fr_430px] lg:items-center">
+        <section className="relative mx-4 my-5 min-h-[calc(100svh-116px)] overflow-hidden rounded-[26px] bg-[#eadfce] sm:mx-8 lg:mx-[5vw]">
+          <Image
+            src="/images/venuefind-hero.jpg"
+            alt="An elegant outdoor event venue"
+            fill
+            priority
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(250,246,242,0.95)_0%,rgba(250,246,242,0.82)_48%,rgba(250,246,242,0.36)_100%)]" />
+          <div className="relative mx-auto flex min-h-[calc(100svh-116px)] max-w-[1380px] items-center px-6 py-14 sm:px-10 lg:px-16">
+            <div className="grid w-full gap-12 lg:grid-cols-[1.15fr_.72fr] lg:items-center">
               <div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-orange-200 bg-white/70 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-700">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#ff5e36]/25 bg-white/70 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.18em] text-[#e84c27]">
                   <MapPin className="h-3.5 w-3.5" />
                   Venue discovery across Sierra Leone
                 </div>
-                <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-zinc-900 sm:text-6xl">
-                  Find a space that fits the moment.
+                <h1 className="venuefind-display mt-7 max-w-[760px] text-[clamp(3.25rem,6.7vw,5.4rem)] leading-[1.01] tracking-[-0.045em] text-[#18231d]">
+                  Find the space that makes <em className="font-normal text-[#1d4d4f]">the moment.</em>
                 </h1>
-                <p className="mt-5 max-w-2xl text-base leading-relaxed text-zinc-500 sm:text-lg">
-                  Compare practical venue details, understand the date status, and request
-                  confirmation before travelling to inspect a space.
+                <p className="mt-7 max-w-xl text-base leading-8 text-[#5f6b64] sm:text-lg">
+                  Beautiful spaces for weddings, celebrations, conferences and everything in
+                  between. Search clearly, compare confidently, and confirm before you visit.
                 </p>
-                <div className="mt-7 flex flex-wrap gap-4 text-xs font-semibold text-zinc-600">
+                <div className="mt-8 flex flex-wrap gap-5 text-xs font-semibold text-[#33453b]">
                   <span className="inline-flex items-center gap-1.5">
-                    <ShieldCheck className="h-4 w-4 text-emerald-600" /> Verified details
+                    <ShieldCheck className="h-4 w-4 text-[#ff5e36]" /> Verified details
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <CalendarCheck2 className="h-4 w-4 text-orange-600" /> Clear date status
+                    <CalendarCheck2 className="h-4 w-4 text-[#ff5e36]" /> Clear date status
                   </span>
                   <span className="inline-flex items-center gap-1.5">
-                    <Search className="h-4 w-4 text-violet-600" /> Free to search
+                    <Search className="h-4 w-4 text-[#ff5e36]" /> Free to search
                   </span>
                 </div>
               </div>
 
               <form
                 action="/venues"
-                className="rounded-[2rem] border border-black/5 bg-white p-5 shadow-[0_24px_60px_rgba(64,45,30,0.1)] sm:p-6"
+                className="rounded-[22px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(44,48,36,0.16)] backdrop-blur-sm sm:p-8"
               >
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e84c27]">
                   Start your search
                 </p>
-                <h2 className="mt-2 text-2xl font-semibold text-zinc-900">What are you planning?</h2>
-                <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                <h2 className="venuefind-display mt-2 text-[2rem] leading-tight text-[#18231d]">What are you planning?</h2>
+                <div className="mt-6 grid gap-4 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-zinc-600">Event type</span>
                     <select
                       name="event"
                       defaultValue={eventType}
-                      className="h-12 w-full rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none transition focus:border-orange-400"
+                      className="h-12 w-full rounded-lg border border-[#ded7cf] bg-white px-3 text-sm outline-none transition focus:border-[#ff5e36]"
                     >
                       <option value="">All event types</option>
                       {eventOptions.map((option) => (
@@ -229,7 +230,7 @@ export default async function VenuesPage({
                       name="area"
                       defaultValue={area}
                       placeholder="e.g. Aberdeen"
-                      className="h-12 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-orange-400"
+                      className="h-12 w-full rounded-lg border border-[#ded7cf] px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-[#ff5e36]"
                     />
                   </label>
                   <label>
@@ -240,11 +241,11 @@ export default async function VenuesPage({
                       min="1"
                       defaultValue={Number.isFinite(guestCount) ? guestCount : ""}
                       placeholder="e.g. 150"
-                      className="h-12 w-full rounded-xl border border-zinc-200 px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-orange-400"
+                      className="h-12 w-full rounded-lg border border-[#ded7cf] px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-[#ff5e36]"
                     />
                   </label>
                 </div>
-                <button className="mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#f06445] text-sm font-semibold text-white shadow-sm transition hover:bg-[#db5336]">
+                <button className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#ff5e36] text-sm font-semibold text-white shadow-sm transition hover:bg-[#e84c27]">
                   Find venues <ArrowRight className="h-4 w-4" />
                 </button>
               </form>
@@ -252,19 +253,19 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+        <section id="occasions" className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Explore by occasion</p>
-              <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-zinc-900">Whatever you are planning, start with the right kind of space.</h2>
+              <h2 className="venuefind-display mt-3 max-w-3xl text-4xl leading-tight tracking-[-0.025em] text-[#18231d] sm:text-5xl">Whatever you are planning, start with the right kind of space.</h2>
             </div>
             <a href="#venue-catalogue" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900">See the catalogue <ArrowRight className="h-4 w-4" /></a>
           </div>
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {occasions.map((occasion) => (
-              <Link key={occasion.name} href={`/venues?event=${encodeURIComponent(occasion.name)}`} className="group rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-[0_8px_24px_rgba(60,40,20,0.04)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(60,40,20,0.09)]">
-                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${occasion.color}`}><occasion.icon className="h-5 w-5" /></span>
-                <h3 className="mt-5 font-semibold text-zinc-900">{occasion.name}s</h3>
+              <Link key={occasion.name} href={`/venues?event=${encodeURIComponent(occasion.name)}`} className="group rounded-[18px] border border-[#ebe5de] bg-white p-6 transition hover:-translate-y-1 hover:border-[#ff5e36]/40 hover:shadow-[0_18px_40px_rgba(53,42,32,0.08)]">
+                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0df] text-[#e84c27]"><occasion.icon className="h-5 w-5" /></span>
+                <h3 className="venuefind-display mt-6 text-2xl text-[#18231d]">{occasion.name}s</h3>
                 <p className="mt-2 min-h-10 text-sm leading-relaxed text-zinc-500">{occasion.description}</p>
                 <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-orange-700">Explore spaces <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
               </Link>
@@ -272,14 +273,14 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section id="venue-catalogue" className="border-y border-black/5 bg-white/45">
-          <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+        <section id="venue-catalogue" className="border-y border-[#ebe5de] bg-white">
+          <div className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
                 Venue catalogue
               </p>
-              <h2 className="mt-2 text-2xl font-semibold text-zinc-900">
+              <h2 className="venuefind-display mt-2 text-4xl text-[#18231d] sm:text-5xl">
                 {eventType || area || guestCount
                   ? `${venues.length} matching venue${venues.length === 1 ? "" : "s"}`
                   : "Spaces worth discovering"}
@@ -300,7 +301,7 @@ export default async function VenuesPage({
                   <Link
                     key={venue.id}
                     href={`/venues/${venue.slug}`}
-                    className="group overflow-hidden rounded-[1.75rem] border border-black/5 bg-white shadow-[0_10px_30px_rgba(60,40,20,0.06)] transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(60,40,20,0.12)]"
+                    className="group overflow-hidden rounded-[18px] border border-[#ebe5de] bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(60,40,20,0.1)]"
                   >
                     <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 via-rose-100 to-emerald-100">
                       {cover ? (
@@ -342,7 +343,7 @@ export default async function VenuesPage({
                       </div>
                       <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
                         <span className="text-sm font-semibold text-zinc-700">{priceLabel(venue)}</span>
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100 transition group-hover:bg-zinc-900 group-hover:text-white">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0df] text-[#e84c27] transition group-hover:bg-[#ff5e36] group-hover:text-white">
                           <ArrowRight className="h-4 w-4" />
                         </span>
                       </div>
@@ -380,10 +381,10 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-6xl gap-8 px-5 py-14 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+        <section className="mx-auto grid max-w-[1380px] gap-12 px-5 py-20 sm:px-10 sm:py-24 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:px-16">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Availability without guesswork</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">Know what the date status really means.</h2>
+            <h2 className="venuefind-display mt-3 text-4xl leading-tight tracking-[-0.025em] text-[#18231d] sm:text-5xl">Know what the date status really means.</h2>
             <p className="mt-4 max-w-xl leading-relaxed text-zinc-500">Radius does not place a green tick on old information. We show when a date needs a fresh answer and remind you that availability is not the same as a reservation.</p>
             <div className="mt-6 rounded-2xl border border-orange-100 bg-orange-50 p-4 text-sm leading-relaxed text-orange-900">
               <strong>Why this matters:</strong> many venues also receive bookings through WhatsApp, phone calls and physical visits. A fresh confirmation helps prevent wasted journeys.
@@ -405,31 +406,31 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section className="bg-zinc-900 text-white">
-          <div className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-300">Simple from search to inspection</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Find it. Confirm it. Go and see it.</h2>
+        <section id="how-it-works" className="border-y border-[#ebe5de] bg-[#f7f1e9]">
+          <div className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e84c27]">Simple from search to inspection</p>
+            <h2 className="venuefind-display mt-3 text-4xl tracking-[-0.025em] text-[#18231d] sm:text-5xl">Find it. Confirm it. Go and see it.</h2>
             <div className="mt-9 grid gap-5 md:grid-cols-3">
               {[
                 { number: "01", title: "Describe the occasion", text: "Share the event type, preferred area, expected guests, and the practical things the venue must provide.", icon: Search },
                 { number: "02", title: "Compare useful details", text: "Review photographs, layouts, facilities, packages, rules, prices, and honest date information.", icon: Eye },
                 { number: "03", title: "Confirm and inspect", text: "Send an enquiry, receive a fresh answer, and arrange an inspection before making a final commitment.", icon: MessageCircle },
               ].map((item) => (
-                <article key={item.number} className="rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-6">
-                  <div className="flex items-center justify-between"><span className="text-sm font-bold text-orange-300">{item.number}</span><item.icon className="h-5 w-5 text-white/50" /></div>
-                  <h3 className="mt-8 text-xl font-semibold">{item.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-white/60">{item.text}</p>
+                <article key={item.number} className="rounded-[18px] border border-[#e3d8cb] bg-white p-7">
+                  <div className="flex items-center justify-between"><span className="text-sm font-bold text-[#ff5e36]">{item.number}</span><item.icon className="h-5 w-5 text-[#1d4d4f]" /></div>
+                  <h3 className="venuefind-display mt-10 text-2xl text-[#18231d]">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-[#5f6b64]">{item.text}</p>
                 </article>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
-          <div className="overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-[#f06445] via-[#ef785d] to-[#8b5cf6] p-7 text-white shadow-[0_25px_70px_rgba(116,55,40,0.2)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+        <section id="venue-owners" className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
+          <div className="overflow-hidden rounded-[26px] bg-[#ff5e36] p-8 text-white shadow-[0_25px_70px_rgba(232,76,39,0.18)] sm:p-12 lg:flex lg:items-center lg:justify-between lg:gap-10">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur"><BadgeCheck className="h-3.5 w-3.5" /> For venue owners and managers</div>
-              <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Turn your space into someone’s perfect occasion.</h2>
+              <h2 className="venuefind-display mt-4 text-4xl leading-tight tracking-[-0.025em] sm:text-5xl">Turn your space into someone’s perfect occasion.</h2>
               <p className="mt-4 max-w-xl leading-relaxed text-white/75">Create one structured profile for your venue, show what it genuinely provides, manage date information, and receive clearer enquiries from people planning events.</p>
             </div>
             <Link href="/venues/new" className="mt-7 inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-zinc-900 shadow-lg transition hover:bg-orange-50 lg:mt-0">List your venue <ArrowRight className="h-4 w-4" /></Link>
@@ -440,7 +441,7 @@ export default async function VenuesPage({
           <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
             <div className="text-center">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Frequently asked questions</p>
-              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900">Before you start searching</h2>
+              <h2 className="venuefind-display mt-3 text-4xl tracking-[-0.025em] text-[#18231d] sm:text-5xl">Before you start searching</h2>
               <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-500">Clear answers about venue discovery, confirmation, and listing a space on Radius.</p>
             </div>
             <div className="mt-8 divide-y divide-zinc-100 rounded-[1.75rem] border border-zinc-200 bg-[#faf9f7] px-5 sm:px-7">
@@ -457,10 +458,10 @@ export default async function VenuesPage({
           </div>
         </section>
       </main>
-      <footer className="border-t border-black/5 bg-[#f6f3ed]">
-        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
-          <div><Link href="/" className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-xs font-bold text-white">R</span>Radius</Link><p className="mt-2 text-xs text-zinc-400">Events, communities, and venue discovery across Sierra Leone.</p></div>
-          <nav className="flex flex-wrap gap-5 text-sm font-medium text-zinc-500"><Link href="/">Events</Link><Link href="/organizations">Organizations</Link><a href="#venue-catalogue">Find a venue</a><Link href="/venues/new">List a venue</Link></nav>
+      <footer className="bg-[#173f41] text-white">
+        <div className="mx-auto flex max-w-[1380px] flex-col gap-7 px-5 py-12 sm:flex-row sm:items-center sm:justify-between sm:px-10 lg:px-16">
+          <div><Link href="/" className="flex items-center gap-2.5 text-base font-semibold text-white"><span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#ff5e36] text-xs font-bold text-white">R</span>Radius</Link><p className="mt-3 text-xs text-white/55">Events, communities, and venue discovery across Sierra Leone.</p></div>
+          <nav className="flex flex-wrap gap-5 text-sm font-medium text-white/65"><Link href="/">Events</Link><Link href="/organizations">Organizations</Link><a href="#venue-catalogue">Find a venue</a><Link href="/venues/new">List a venue</Link></nav>
         </div>
       </footer>
     </div>
