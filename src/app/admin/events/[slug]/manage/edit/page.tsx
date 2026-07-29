@@ -228,7 +228,7 @@ export default function EditTabPage() {
             theme_font: themeFont,
             theme_mode: themeMode,
             registration_fields: registrationFields,
-            wedding_details: weddingDetails,
+            wedding_details: eventType.trim().toLowerCase() === "wedding" ? { ...weddingDetails, hosts: title } : weddingDetails,
         };
 
         const res = await fetch(`/api/events/${slug}`, {

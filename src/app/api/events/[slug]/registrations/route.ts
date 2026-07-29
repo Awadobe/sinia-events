@@ -45,6 +45,16 @@ export async function GET(
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        const { data: invitations } = await supabaseAdmin
+            .from('invites')
+            .select('email, party_size')
+            .eq('event_id', event.id);
+        const partySizes = new Map((invitations || []).map((invitation) => [invitation.email.toLowerCase(), invitation.party_size || 1]));
+        const registrationsWithPartySize = (registrations || []).map((registration) => ({
+            ...registration,
+            party_size: partySizes.get(registration.email.toLowerCase()) || 1,
+        }));
+
         // Get counts by status
         const confirmed = registrations?.filter(r => r.status === 'confirmed').length || 0;
         const pending = registrations?.filter(r => r.status === 'pending').length || 0;
@@ -65,7 +75,7 @@ export async function GET(
         }
 
         const visibleRegistrations = access.isCheckInStaff
-            ? (registrations || []).map((registration) => ({
+            ? registrationsWithPartySize.map((registration) => ({
                 id: registration.id,
                 name: registration.name,
                 email: registration.email,
@@ -73,8 +83,9 @@ export async function GET(
                 checked_in: registration.checked_in,
                 checked_in_at: registration.checked_in_at,
                 created_at: registration.created_at,
+                party_size: registration.party_size,
             }))
-            : registrations || [];
+            : registrationsWithPartySize;
 
         return NextResponse.json({
             registrations: visibleRegistrations,

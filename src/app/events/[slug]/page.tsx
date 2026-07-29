@@ -746,7 +746,7 @@ export default function PublicEventPage() {
 
                         {event.event_type?.toLowerCase() === "wedding" && (() => {
                             const wedding = sanitizeWeddingDetails(event.wedding_details);
-                            if (!wedding.hosts && !wedding.invitation_message && !wedding.dress_code && !wedding.directions && !wedding.programme) return null;
+                            if (!wedding.hosts && !wedding.invitation_message && !wedding.dress_code && !wedding.directions && !wedding.ceremony.enabled && !wedding.reception.enabled) return null;
                             return <section className="rounded-2xl border p-5" style={{ borderColor: theme.isDark ? "rgba(255,255,255,0.1)" : "#ffe4e6", backgroundColor: theme.isDark ? "rgba(255,255,255,0.04)" : "#fff7f8" }}>
                                 <p className="text-xs font-bold uppercase tracking-[0.2em]" style={{ color: theme.textMuted }}>Wedding details</p>
                                 {wedding.hosts && <h2 className="mt-2 text-xl font-semibold" style={{ color: theme.text }}>{wedding.hosts}</h2>}
@@ -755,7 +755,10 @@ export default function PublicEventPage() {
                                     {wedding.dress_code && <p><strong style={{ color: theme.text }}>Dress code</strong><br />{wedding.dress_code}</p>}
                                     {wedding.directions && <p className="whitespace-pre-line"><strong style={{ color: theme.text }}>Directions</strong><br />{wedding.directions}</p>}
                                 </div>
-                                {wedding.programme && <div className="mt-4 border-t pt-4" style={{ borderColor: theme.isDark ? "rgba(255,255,255,0.08)" : "#ffe4e6" }}><strong className="text-sm" style={{ color: theme.text }}>Programme</strong><p className="mt-2 whitespace-pre-line text-sm leading-relaxed" style={{ color: theme.textMuted }}>{wedding.programme}</p></div>}
+                                {(wedding.ceremony.enabled || wedding.reception.enabled) && <div className="mt-4 grid gap-3 border-t pt-4 sm:grid-cols-2" style={{ borderColor: theme.isDark ? "rgba(255,255,255,0.08)" : "#ffe4e6" }}>
+                                    {wedding.ceremony.enabled && <p className="text-sm" style={{ color: theme.textMuted }}><strong style={{ color: theme.text }}>Ceremony</strong><br />{[wedding.ceremony.time, wedding.ceremony.location].filter(Boolean).join(" · ")}</p>}
+                                    {wedding.reception.enabled && <p className="text-sm" style={{ color: theme.textMuted }}><strong style={{ color: theme.text }}>Reception</strong><br />{[wedding.reception.time, wedding.reception.location].filter(Boolean).join(" · ")}</p>}
+                                </div>}
                             </section>;
                         })()}
 

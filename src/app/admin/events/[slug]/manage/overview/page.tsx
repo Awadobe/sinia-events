@@ -9,8 +9,9 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 type InviteStats = { total: number; awaiting: number; accepted: number; declined: number; checkedIn: number };
-type Invite = { id: string; email: string; name: string | null; status: string; sent_at: string; accepted_at: string | null };
+type Invite = { id: string; email: string; name: string | null; status: string; party_size: number; sent_at: string; accepted_at: string | null };
 type Suggestion = { name: string; email: string; phone?: string; eventTitle: string; eventDate: string; guestCount: number };
+type DraftInvite = { email: string; name: string; party_size: number };
 type PastEvent = { id: string; title: string; date: string };
 
 type Stats = {
@@ -38,6 +39,7 @@ type EventData = {
     location: string | null;
     slug: string;
     status: string;
+    event_type: string;
     organizer?: {
         org_name?: string;
         name?: string;
@@ -60,8 +62,10 @@ export default function OverviewPage() {
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
     const [pastEvents, setPastEvents] = useState<PastEvent[]>([]);
     const [inviteTab, setInviteTab] = useState<'suggestions' | 'emails'>('suggestions');
-    const [selectedEmails, setSelectedEmails] = useState<{ email: string; name: string }[]>([]);
-    const [manualEmails, setManualEmails] = useState('');
+    const [selectedEmails, setSelectedEmails] = useState<DraftInvite[]>([]);
+    const [manualName, setManualName] = useState('');
+    const [manualEmail, setManualEmail] = useState('');
+    const [manualPartySize, setManualPartySize] = useState(1);
     const [searchQuery, setSearchQuery] = useState('');
     const [sendingInvites, setSendingInvites] = useState(false);
 
@@ -107,23 +111,12 @@ export default function OverviewPage() {
         setSelectedEmails(prev => {
             const exists = prev.some(e => e.email === s.email);
             if (exists) return prev.filter(e => e.email !== s.email);
-            return [...prev, { email: s.email, name: s.name }];
+            return [...prev, { email: s.email, name: s.name, party_size: 1 }];
         });
     };
 
     const sendInvites = async () => {
-        const emails: { email: string; name?: string }[] = [...selectedEmails];
-
-        // Parse manual emails
-        if (manualEmails.trim()) {
-            const lines = manualEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
-            for (const line of lines) {
-                const emailMatch = line.match(/([\w.-]+@[\w.-]+\.[\w]+)/i);
-                if (emailMatch) {
-                    emails.push({ email: emailMatch[1], name: line.replace(emailMatch[1], '').trim() || undefined });
-                }
-            }
-        }
+        const emails = [...selectedEmails];
 
         if (emails.length === 0) {
             toast.error('No emails to send invites to');
@@ -146,7 +139,9 @@ export default function OverviewPage() {
                 }
                 setShowInviteModal(false);
                 setSelectedEmails([]);
-                setManualEmails('');
+                setManualName('');
+                setManualEmail('');
+                setManualPartySize(1);
                 await loadInvites();
             } else {
                 toast.error(data.error || 'Failed to send invites');
@@ -155,6 +150,26 @@ export default function OverviewPage() {
             toast.error('Failed to send invites');
         }
         setSendingInvites(false);
+    };
+
+    const addManualInvite = () => {
+        const email = manualEmail.trim().toLowerCase();
+        if (!email || !email.includes("@")) {
+            toast.error("Enter a valid email address.");
+            return;
+        }
+        if (selectedEmails.some((entry) => entry.email === email)) {
+            toast.error("That email is already in this invitation list.");
+            return;
+        }
+        setSelectedEmails((current) => [...current, {
+            email,
+            name: manualName.trim() || email.split("@")[0],
+            party_size: event?.event_type?.toLowerCase() === "wedding" ? manualPartySize : 1,
+        }]);
+        setManualName("");
+        setManualEmail("");
+        setManualPartySize(1);
     };
 
     const filteredSuggestions = suggestions.filter(s =>
@@ -530,6 +545,7 @@ export default function OverviewPage() {
                                         <div className="min-w-0 flex-1">
                                             <span className="text-sm font-medium text-zinc-900">{inv.name || inv.email.split('@')[0]}</span>
                                             <span className="text-xs text-zinc-400 ml-2">{inv.email}</span>
+                                            {event?.event_type?.toLowerCase() === "wedding" && <span className="ml-2 text-[10px] font-semibold text-rose-500">Admits {inv.party_size || 1}</span>}
                                         </div>
                                         <span className={cn(
                                             "rounded-full px-2 py-1 text-[9px] font-bold uppercase",
@@ -561,7 +577,7 @@ export default function OverviewPage() {
                                     </span>
                                 )}
                                 <button
-                                    onClick={() => { setShowInviteModal(false); setSelectedEmails([]); setManualEmails(''); setSearchQuery(''); }}
+                                    onClick={() => { setShowInviteModal(false); setSelectedEmails([]); setManualName(''); setManualEmail(''); setSearchQuery(''); }}
                                     className="text-zinc-400 hover:text-zinc-600 transition-colors"
                                 >
                                     <X className="h-5 w-5" />
@@ -677,35 +693,47 @@ export default function OverviewPage() {
                                     </>
                                 ) : (
                                     /* Enter Emails tab */
-                                    <div className="p-5 flex-1 flex flex-col">
-                                        <p className="text-xs font-medium text-zinc-500 mb-2">
-                                            Enter email addresses (one per line or comma-separated)
-                                        </p>
-                                        <textarea
-                                            value={manualEmails}
-                                            onChange={e => setManualEmails(e.target.value)}
-                                            placeholder={"john@example.com\njane@example.com\nmark@example.com"}
-                                            className="flex-1 w-full rounded-xl border border-zinc-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-300 min-h-[200px]"
-                                        />
-                                        <p className="text-[11px] text-zinc-400 mt-2">
-                                            Tip: Already registered or previously invited emails will be skipped automatically.
-                                        </p>
+                                    <div className="flex-1 overflow-y-auto p-5">
+                                        <p className="text-xs font-semibold text-zinc-600">Create one invitation</p>
+                                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                                            <input value={manualName} onChange={(event) => setManualName(event.target.value)} placeholder={event?.event_type?.toLowerCase() === "wedding" ? "Names on invitation" : "Guest name"} className="rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-300" />
+                                            <input type="email" value={manualEmail} onChange={(event) => setManualEmail(event.target.value)} placeholder="Email address" className="rounded-xl border border-zinc-200 px-3 py-2.5 text-sm outline-none focus:border-indigo-300" />
+                                        </div>
+                                        <div className="mt-3 flex items-end gap-3">
+                                            {event?.event_type?.toLowerCase() === "wedding" && <label className="text-xs font-semibold text-zinc-500">This invitation admits
+                                                <select value={manualPartySize} onChange={(event) => setManualPartySize(Number(event.target.value))} className="mt-1 block rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-700">
+                                                    {[1, 2, 3, 4, 5].map((size) => <option key={size} value={size}>{size} {size === 1 ? "person" : "people"}</option>)}
+                                                </select>
+                                            </label>}
+                                            <button type="button" onClick={addManualInvite} className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-bold text-white">Add invitation</button>
+                                        </div>
+                                        {selectedEmails.length > 0 && <div className="mt-5 space-y-2 border-t border-zinc-100 pt-4">
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Invitations ready</p>
+                                            {selectedEmails.map((entry) => <div key={entry.email} className="flex items-center gap-3 rounded-xl bg-zinc-50 px-3 py-2.5">
+                                                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-zinc-700">{entry.name}</p><p className="truncate text-xs text-zinc-400">{entry.email}</p></div>
+                                                {event?.event_type?.toLowerCase() === "wedding" && <select value={entry.party_size} onChange={(event) => setSelectedEmails((current) => current.map((item) => item.email === entry.email ? { ...item, party_size: Number(event.target.value) } : item))} className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs">
+                                                    {[1, 2, 3, 4, 5].map((size) => <option key={size} value={size}>Admits {size}</option>)}
+                                                </select>}
+                                                <button type="button" onClick={() => setSelectedEmails((current) => current.filter((item) => item.email !== entry.email))} className="text-zinc-300 hover:text-red-500"><X className="h-4 w-4" /></button>
+                                            </div>)}
+                                        </div>}
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Footer */}
-                        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50">
+                        <div className="flex flex-wrap items-center justify-end gap-3 px-6 py-4 border-t border-zinc-100 bg-zinc-50/50">
+                            <p className="mr-auto text-xs font-semibold text-zinc-500">{selectedEmails.length} invitation{selectedEmails.length === 1 ? "" : "s"} · {selectedEmails.reduce((total, entry) => total + entry.party_size, 0)} people</p>
                             <button
-                                onClick={() => { setShowInviteModal(false); setSelectedEmails([]); setManualEmails(''); }}
+                                onClick={() => { setShowInviteModal(false); setSelectedEmails([]); setManualName(''); setManualEmail(''); }}
                                 className="px-4 py-2.5 text-sm font-medium text-zinc-500 hover:text-zinc-700 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={sendInvites}
-                                disabled={sendingInvites || (selectedEmails.length === 0 && !manualEmails.trim())}
+                                disabled={sendingInvites || selectedEmails.length === 0}
                                 className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                             >
                                 {sendingInvites ? (

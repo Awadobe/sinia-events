@@ -422,6 +422,7 @@ interface SendInviteEmailProps {
   eventType?: string;
   weddingHosts?: string;
   weddingMessage?: string;
+  partySize?: number;
 }
 
 export async function sendInviteEmail({
@@ -436,6 +437,7 @@ export async function sendInviteEmail({
   eventType,
   weddingHosts,
   weddingMessage,
+  partySize = 1,
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
@@ -490,6 +492,7 @@ export async function sendInviteEmail({
                     ? `Dear ${firstName}, <strong>${weddingHostLabel}</strong> warmly invites you to celebrate their wedding ceremony.${safeWeddingMessage ? `<br /><br />${safeWeddingMessage}` : ''}`
                     : `Hey ${firstName}! <strong>${organizerName || 'The host'}</strong> has personally invited you. We'd love to see you there!`}
                 </p>
+                ${isWedding ? `<p style="margin: 14px 0 0; font-size: 13px; font-weight: 700; color: #be123c;">This invitation admits ${partySize} ${partySize === 1 ? 'person' : 'people'}.</p>` : ''}
               </td>
             </tr>
 

@@ -172,6 +172,7 @@ export async function POST(
         for (const entry of emails) {
             const email = entry.email?.trim().toLowerCase();
             if (!email) continue;
+            const partySize = Math.min(5, Math.max(1, Number.parseInt(String(entry.party_size || 1), 10) || 1));
 
             // Check if already invited
             const { data: existing } = await supabaseAdmin
@@ -207,6 +208,7 @@ export async function POST(
                     email,
                     name: entry.name || null,
                     status: 'sent',
+                    party_size: event.event_type?.toLowerCase() === 'wedding' ? partySize : 1,
                 })
                 .select('invitation_token')
                 .single();
@@ -230,6 +232,7 @@ export async function POST(
                 eventType: event.event_type,
                 weddingHosts: weddingDetails.hosts,
                 weddingMessage: weddingDetails.invitation_message,
+                partySize: event.event_type?.toLowerCase() === 'wedding' ? partySize : 1,
             });
 
             if (emailResult.success) {

@@ -12,7 +12,7 @@ const admin = createClient(
 async function findInvitation(token: string) {
     return admin
         .from("invites")
-        .select("id, email, name, status, event_id, event:events!inner(id, title, date, end_date, location, slug, image_url, event_type, status, max_attendees, wedding_details, host:hosts(name))")
+        .select("id, email, name, status, party_size, event_id, event:events!inner(id, title, date, end_date, location, slug, image_url, event_type, status, max_attendees, wedding_details, host:hosts(name))")
         .eq("invitation_token", token)
         .maybeSingle();
 }
@@ -51,16 +51,22 @@ export async function POST(request: Request, { params }: { params: { token: stri
     }
 
     let registrationId = existing?.id;
+    if (event.max_attendees && existing?.status !== "confirmed") {
+        const [{ data: activeRegistrations }, { data: eventInvites }] = await Promise.all([
+            admin.from("registrations").select("email").eq("event_id", event.id).neq("status", "cancelled"),
+            admin.from("invites").select("email, party_size").eq("event_id", event.id),
+        ]);
+        const sizes = new Map((eventInvites || []).map((item) => [item.email.toLowerCase(), item.party_size || 1]));
+        const occupiedPlaces = (activeRegistrations || []).reduce((total, item) => total + (sizes.get(item.email.toLowerCase()) || 1), 0);
+        if (occupiedPlaces + (invitation.party_size || 1) > event.max_attendees) {
+            return NextResponse.json({ error: "There are not enough remaining places for this invitation." }, { status: 409 });
+        }
+    }
     if (registrationId) {
         if (existing?.status !== "confirmed") {
             await admin.from("registrations").update({ status: "confirmed" }).eq("id", registrationId);
         }
     } else {
-        if (event.max_attendees) {
-            const { count } = await admin.from("registrations").select("*", { count: "exact", head: true }).eq("event_id", event.id).neq("status", "cancelled");
-            if ((count || 0) >= event.max_attendees) return NextResponse.json({ error: "This event has reached capacity." }, { status: 409 });
-        }
-
         const guestName = invitation.name?.trim() || invitation.email.split("@")[0];
         const { data: registration, error: registrationError } = await admin
             .from("registrations")

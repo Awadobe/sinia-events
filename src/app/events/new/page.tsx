@@ -275,7 +275,7 @@ export default function CreateEventPage() {
             require_approval: formData.require_approval,
             visibility: formData.visibility,
             registration_fields: registrationFields,
-            wedding_details: weddingDetails,
+            wedding_details: formData.event_type === "Wedding" ? { ...weddingDetails, hosts: formData.title } : weddingDetails,
             host_id: selectedHostId,
         };
         const submitData = new FormData();
@@ -425,7 +425,7 @@ export default function CreateEventPage() {
                             </div>
 
                             <div>
-                                <input id="title" type="text" placeholder="Event Name" value={formData.title} onChange={(e) => updateField("title", e.target.value)} className="w-full border-none bg-transparent text-3xl sm:text-4xl font-semibold tracking-tight outline-none transition-colors duration-300" style={{ color: theme.palette.text, lineHeight: 1.2, caretColor: theme.palette.accent }} />
+                                <input id="title" type="text" placeholder={formData.event_type === "Wedding" ? "Names of the couple" : "Event Name"} value={formData.title} onChange={(e) => updateField("title", e.target.value)} className="w-full border-none bg-transparent text-3xl sm:text-4xl font-semibold tracking-tight outline-none transition-colors duration-300" style={{ color: theme.palette.text, lineHeight: 1.2, caretColor: theme.palette.accent }} />
                                 {eventUrlPreview && (
                                     <div className="mt-2 text-xs" style={theme.textMuted}>
                                         <span>Your event link: </span>

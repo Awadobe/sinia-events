@@ -18,6 +18,7 @@ type Registration = {
     checked_in_at: string | null;
     created_at: string;
     custom_answers: RegistrationAnswers;
+    party_size: number;
 };
 
 export default function GuestsPage() {
@@ -83,10 +84,11 @@ export default function GuestsPage() {
     };
 
     const exportCSV = () => {
-        const headers = ["Name", "Email", "Phone", "Status", "Checked In", "Registered", ...registrationFields.map((field) => field.label)];
+        const headers = ["Name", "Email", "Party Size", "Phone", "Status", "Checked In", "Registered", ...registrationFields.map((field) => field.label)];
         const rows = filteredGuests.map(r => [
             r.name,
             r.email,
+            r.party_size || 1,
             r.phone || "",
             r.status,
             r.checked_in ? "Yes" : "No",
@@ -208,6 +210,7 @@ export default function GuestsPage() {
                                                         {reg.name}
                                                     </button>
                                                     <div className="text-xs text-zinc-400">{reg.email}</div>
+                                                    {(reg.party_size || 1) > 1 && <div className="mt-1 text-[11px] font-semibold text-rose-500">Invitation admits {reg.party_size} people</div>}
                                                     {registrationFields.length > 0 && <div className="mt-2 max-w-md space-y-1">{registrationFields.map((field) => { const answer = reg.custom_answers?.[field.id]; if (answer === undefined || answer === "" || (Array.isArray(answer) && !answer.length)) return null; return <p key={field.id} className="text-[11px] leading-relaxed text-zinc-500"><span className="font-semibold text-zinc-600">{field.label}:</span> {Array.isArray(answer) ? answer.join(", ") : answer === true ? "Yes" : String(answer)}</p>; })}</div>}
                                                 </div>
                                             </div>

@@ -10,6 +10,7 @@ type Invitation = {
     email: string;
     name: string | null;
     status: string;
+    party_size: number;
     event: {
         title: string;
         date: string;
@@ -98,19 +99,21 @@ export default function InvitationPage() {
                 <div className="bg-stone-900 px-8 py-7 text-center text-white"><p className="text-xs font-bold uppercase tracking-[0.28em]">{isWedding ? "Wedding invitation" : "Private invitation"}</p></div>
                 <div className="px-8 py-10 text-center">
                     <p className="text-sm text-stone-500">{inviter} invites you to</p>
+                    {isWedding && invitation.name && <p className="mt-3 text-lg font-semibold text-rose-700">{invitation.name}</p>}
                     <h1 className="mt-3 text-3xl font-semibold tracking-tight text-stone-900">{event.title}</h1>
                     {isWedding && wedding.invitation_message && <p className="mx-auto mt-5 max-w-sm whitespace-pre-line text-sm italic leading-relaxed text-stone-600">{wedding.invitation_message}</p>}
                     <div className="mt-8 space-y-3 rounded-2xl bg-stone-50 p-5 text-left text-sm text-stone-600">
                         <p className="flex gap-3"><CalendarDays className="h-4 w-4 shrink-0" />{format(new Date(event.date), "EEEE, MMMM d, yyyy 'at' h:mm a")}</p>
                         {event.location && <p className="flex gap-3"><MapPin className="h-4 w-4 shrink-0" />{event.location}</p>}
                     </div>
-                    {isWedding && (wedding.dress_code || wedding.directions || wedding.programme || wedding.allow_plus_one) && <div className="mt-4 space-y-3 rounded-2xl border border-rose-100 bg-rose-50/60 p-5 text-left text-sm text-stone-600">
+                    {isWedding && (wedding.dress_code || wedding.directions || wedding.ceremony.enabled || wedding.reception.enabled) && <div className="mt-4 space-y-3 rounded-2xl border border-rose-100 bg-rose-50/60 p-5 text-left text-sm text-stone-600">
                         {wedding.dress_code && <p><strong className="text-stone-800">Dress code:</strong> {wedding.dress_code}</p>}
-                        {wedding.allow_plus_one && <p><strong className="text-stone-800">Guest:</strong> Your invitation includes one additional guest.</p>}
+                        {wedding.ceremony.enabled && <p><strong className="text-stone-800">Ceremony:</strong> {[wedding.ceremony.time, wedding.ceremony.location].filter(Boolean).join(" · ")}</p>}
+                        {wedding.reception.enabled && <p><strong className="text-stone-800">Reception:</strong> {[wedding.reception.time, wedding.reception.location].filter(Boolean).join(" · ")}</p>}
                         {wedding.directions && <p className="whitespace-pre-line"><strong className="text-stone-800">Directions:</strong> {wedding.directions}</p>}
-                        {wedding.programme && <div><strong className="text-stone-800">Programme</strong><p className="mt-1 whitespace-pre-line">{wedding.programme}</p></div>}
                     </div>}
                     <p className="mt-6 text-xs text-stone-400">This invitation is reserved for {invitation.email}.</p>
+                    {isWedding && <p className="mt-2 text-sm font-semibold text-rose-600">Admits {invitation.party_size || 1} {(invitation.party_size || 1) === 1 ? "person" : "people"}</p>}
                     {declined ? (
                         <div className="mt-7 rounded-2xl bg-stone-50 p-5">
                             <X className="mx-auto h-7 w-7 text-stone-400" />

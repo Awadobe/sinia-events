@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import QRCode from "qrcode";
-import { sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
+import type { WeddingDetails } from "@/lib/wedding-details";
 
 /* ─────────────── types ─────────────── */
 interface EventData {
@@ -67,6 +67,7 @@ export default function TicketPage() {
     const [event, setEvent] = useState<EventData | null>(null);
     const [registration, setRegistration] = useState<RegistrationData | null>(null);
     const [qrDataUrl, setQrDataUrl] = useState<string>("");
+    const [partySize, setPartySize] = useState(1);
     const [error, setError] = useState<string>("");
 
     useEffect(() => {
@@ -84,6 +85,7 @@ export default function TicketPage() {
                 if (!evRes.ok) { setError("Event not found."); setLoading(false); return; }
                 const evData = await evRes.json();
                 setEvent(evData.event);
+                setPartySize(evData.invitation_party_size || 1);
 
                 // Fetch only the ticket referenced by this private registration ID.
                 const regRes = await fetch(`/api/events/${slug}/registration?id=${encodeURIComponent(ticketId)}&t=${Date.now()}`);
@@ -122,8 +124,7 @@ export default function TicketPage() {
     }, [slug, regId, invitationToken]);
 
     const accent = COLORS[event?.theme_color || "zinc"] || "#18181b";
-    const includesGuest = event?.event_type?.toLowerCase() === "wedding"
-        && sanitizeWeddingDetails(event.wedding_details).allow_plus_one;
+    const isWeddingParty = event?.event_type?.toLowerCase() === "wedding" && partySize > 1;
 
     /* ─── Loading ─── */
     if (loading) {
@@ -250,7 +251,7 @@ export default function TicketPage() {
                                 <p className="text-xs text-zinc-400 mt-3">
                                     Ticket ID: <span className="font-mono text-zinc-500">{registration.id.slice(0, 8)}</span>
                                 </p>
-                                {includesGuest && <p className="mt-2 text-xs font-semibold text-rose-500">This invitation admits you and one guest.</p>}
+                                {isWeddingParty && <p className="mt-2 text-xs font-semibold text-rose-500">This invitation admits {partySize} people.</p>}
                             </>
                         )}
                     </div>

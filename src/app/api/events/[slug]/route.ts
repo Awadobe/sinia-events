@@ -47,11 +47,11 @@ export async function GET(
             return NextResponse.json({ error: 'This event is still a draft.' }, { status: 403 });
         }
 
-        let invitation: { id: string; email: string; status: string } | null = null;
+        let invitation: { id: string; email: string; status: string; party_size: number } | null = null;
         if (data.visibility === 'invite_only') {
             const token = req.nextUrl.searchParams.get('invite');
             const { data: matchedInvitation } = token
-                ? await supabaseAdmin.from('invites').select('id, email, status').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
+                ? await supabaseAdmin.from('invites').select('id, email, status, party_size').eq('event_id', data.id).eq('invitation_token', token).maybeSingle()
                 : { data: null };
             invitation = matchedInvitation;
             if (!managerAccess.authorized && !invitation) {
@@ -87,6 +87,7 @@ export async function GET(
             attendee_count: confirmedCount ?? 0,
             confirmed_count: confirmedCount ?? 0,
             invitation_registration_id: invitationRegistrationId,
+            invitation_party_size: invitation?.party_size || 1,
         }, { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } });
     } catch (err) {
         console.error('❌ Unexpected error:', err);
