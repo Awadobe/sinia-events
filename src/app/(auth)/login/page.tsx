@@ -19,7 +19,7 @@ export default function UserLoginPage() {
     const router = useRouter();
     const getNextPath = () => {
         const requestedNext = new URLSearchParams(window.location.search).get("next");
-        return requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/organizer";
+        return requestedNext?.startsWith("/") && !requestedNext.startsWith("//") ? requestedNext : "/profile";
     };
 
     // Check if user is already signed in (e.g. redirected here after magic link)
