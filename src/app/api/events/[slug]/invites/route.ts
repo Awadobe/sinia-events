@@ -233,6 +233,7 @@ export async function POST(
                 weddingHosts: weddingDetails.hosts,
                 weddingMessage: weddingDetails.invitation_message,
                 partySize: event.event_type?.toLowerCase() === 'wedding' ? partySize : 1,
+                weddingAccent: weddingDetails.invitation_design.accent,
             });
 
             if (emailResult.success) {

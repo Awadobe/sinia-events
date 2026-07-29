@@ -34,6 +34,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
 import type { RegistrationField } from "@/lib/registration-fields";
 import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
+import { WeddingInvitationPreview } from "@/components/wedding-invitation-preview";
 import { emptyWeddingDetails, sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Theme Options ───── */
@@ -281,6 +282,13 @@ export default function EditTabPage() {
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        ) : eventType.trim().toLowerCase() === "wedding" ? (
+                            <div className="relative aspect-[4/5]">
+                                <WeddingInvitationPreview title={title} details={weddingDetails} />
+                                <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-zinc-700 shadow-md backdrop-blur">
+                                    Upload your own design
+                                </button>
                             </div>
                         ) : (
                             <button type="button" onClick={() => fileInputRef.current?.click()} className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 text-zinc-300 hover:text-zinc-500 transition-colors">

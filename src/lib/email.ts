@@ -423,6 +423,7 @@ interface SendInviteEmailProps {
   weddingHosts?: string;
   weddingMessage?: string;
   partySize?: number;
+  weddingAccent?: string;
 }
 
 export async function sendInviteEmail({
@@ -438,6 +439,7 @@ export async function sendInviteEmail({
   weddingHosts,
   weddingMessage,
   partySize = 1,
+  weddingAccent,
 }: SendInviteEmailProps) {
   if (!process.env.RESEND_API_KEY) {
     console.warn('⚠️ RESEND_API_KEY is not set. Skipping invite.');
@@ -453,6 +455,7 @@ export async function sendInviteEmail({
   const firstName = attendeeName.split(' ')[0];
 
   const isWedding = eventType?.toLowerCase() === 'wedding';
+  const inviteAccent = isWedding && weddingAccent ? weddingAccent : '#6366f1';
   const weddingHostLabel = weddingHosts?.trim() || organizerName || 'the couple';
   const safeWeddingMessage = weddingMessage?.trim()
     .replaceAll('&', '&amp;')
@@ -515,7 +518,7 @@ export async function sendInviteEmail({
             <!-- CTA Button -->
             <tr>
               <td style="padding: 0 32px 12px;">
-                <a href="${eventUrl}" style="display: block; background-color: #6366f1; color: #ffffff; text-decoration: none; text-align: center; padding: 16px 24px; border-radius: 12px; font-size: 15px; font-weight: 700;">
+                <a href="${eventUrl}" style="display: block; background-color: ${inviteAccent}; color: #ffffff; text-decoration: none; text-align: center; padding: 16px 24px; border-radius: 12px; font-size: 15px; font-weight: 700;">
                   Accept Invitation →
                 </a>
               </td>

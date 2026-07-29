@@ -35,6 +35,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { RegistrationFieldBuilder } from "@/components/registration-field-builder";
 import type { RegistrationField } from "@/lib/registration-fields";
 import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
+import { WeddingInvitationPreview } from "@/components/wedding-invitation-preview";
 import { emptyWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Event Categories with Default Covers ───── */
@@ -331,6 +332,13 @@ export default function CreateEventPage() {
                                                 <button type="button" onClick={removeCover} className="rounded-xl bg-white/20 backdrop-blur-md text-white py-2.5 px-3 hover:bg-white/30 transition-colors"><X className="h-3.5 w-3.5" /></button>
                                             </div>
                                         </div>
+                                    </div>
+                                ) : activeCategory.id === "Wedding" ? (
+                                    <div className="relative aspect-[4/5]">
+                                        <WeddingInvitationPreview title={formData.title} details={weddingDetails} />
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-zinc-700 shadow-md backdrop-blur">
+                                            Upload your own design
+                                        </button>
                                     </div>
                                 ) : (
                                     <button type="button" onClick={() => fileInputRef.current?.click()} className="flex aspect-[4/5] w-full flex-col items-center justify-center gap-3 transition-colors hover:opacity-70" style={theme.textMuted}>

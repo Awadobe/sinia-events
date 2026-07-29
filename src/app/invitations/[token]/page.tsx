@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { CalendarDays, Check, Loader2, MapPin, X } from "lucide-react";
 import { format } from "date-fns";
 import { sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
+import Image from "next/image";
+import { WeddingInvitationPreview } from "@/components/wedding-invitation-preview";
 
 type Invitation = {
     email: string;
@@ -16,6 +18,7 @@ type Invitation = {
         date: string;
         location: string | null;
         event_type: string;
+        image_url: string | null;
         wedding_details: WeddingDetails | null;
         host: { name: string } | { name: string }[] | null;
     } | Array<{
@@ -23,6 +26,7 @@ type Invitation = {
         date: string;
         location: string | null;
         event_type: string;
+        image_url: string | null;
         wedding_details: WeddingDetails | null;
         host: { name: string } | { name: string }[] | null;
     }>;
@@ -92,11 +96,12 @@ export default function InvitationPage() {
     const isWedding = event.event_type?.toLowerCase() === "wedding";
     const wedding = sanitizeWeddingDetails(event.wedding_details);
     const inviter = wedding.hosts || hostName;
+    const design = wedding.invitation_design;
 
     return (
-        <main className="min-h-screen bg-[#fbf8f3] px-5 py-12 grid place-items-center">
+        <main className="min-h-screen px-5 py-12 grid place-items-center" style={{ backgroundColor: isWedding ? design.background : "#fbf8f3" }}>
             <section className="w-full max-w-lg overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-xl shadow-stone-200/40">
-                <div className="bg-stone-900 px-8 py-7 text-center text-white"><p className="text-xs font-bold uppercase tracking-[0.28em]">{isWedding ? "Wedding invitation" : "Private invitation"}</p></div>
+                {isWedding ? event.image_url ? <div className="relative aspect-[16/9]"><Image src={event.image_url} alt={`${event.title} invitation`} fill className="object-cover" unoptimized /></div> : <div className="aspect-[16/8]"><WeddingInvitationPreview title={event.title} details={wedding} /></div> : <div className="bg-stone-900 px-8 py-7 text-center text-white"><p className="text-xs font-bold uppercase tracking-[0.28em]">Private invitation</p></div>}
                 <div className="px-8 py-10 text-center">
                     <p className="text-sm text-stone-500">{inviter} invites you to</p>
                     {isWedding && invitation.name && <p className="mt-3 text-lg font-semibold text-rose-700">{invitation.name}</p>}
@@ -119,7 +124,7 @@ export default function InvitationPage() {
                             <X className="mx-auto h-7 w-7 text-stone-400" />
                             <p className="mt-2 font-semibold text-stone-800">Invitation declined</p>
                             <p className="mt-1 text-xs text-stone-500">The host will see your response. If your plans change, you can still accept below.</p>
-                            <button onClick={accept} disabled={responding !== null} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-stone-900 px-4 py-3 text-sm font-bold text-white disabled:opacity-60">
+                            <button onClick={accept} disabled={responding !== null} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60" style={{ backgroundColor: isWedding ? design.accent : "#1c1917" }}>
                                 {responding === "accept" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                                 Accept instead
                             </button>
@@ -130,7 +135,7 @@ export default function InvitationPage() {
                                 {responding === "decline" ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                                 Decline
                             </button>
-                            <button onClick={accept} disabled={responding !== null} className="flex items-center justify-center gap-2 rounded-2xl bg-stone-900 px-5 py-4 text-sm font-bold text-white disabled:opacity-60">
+                            <button onClick={accept} disabled={responding !== null} className="flex items-center justify-center gap-2 rounded-2xl px-5 py-4 text-sm font-bold text-white disabled:opacity-60" style={{ backgroundColor: isWedding ? design.accent : "#1c1917" }}>
                                 {responding === "accept" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                                 {invitation.status === "accepted" ? "View my ticket" : "Accept invitation"}
                             </button>
