@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendEventChangeEmail, sendNewHostEventEmail } from '@/lib/email';
 import { sanitizeRegistrationFields } from '@/lib/registration-fields';
 import { sanitizeWeddingDetails } from '@/lib/wedding-details';
+import { sanitizeWeddingInvitations } from '@/lib/wedding-invitations';
 
 // Prevent Next.js from caching GET responses — ensures edits reflect immediately
 export const dynamic = 'force-dynamic';
@@ -109,6 +110,7 @@ export async function PUT(
 
         const { slug } = params;
         const body = await req.json();
+        const weddingInvitations = sanitizeWeddingInvitations(body.wedding_invitations);
         const { data: previousEvent } = await supabaseAdmin
             .from('events')
             .select('id, status, title, date, end_date, location, is_virtual, virtual_link')
@@ -177,6 +179,36 @@ export async function PUT(
             if (JSON.stringify(savedFields) !== JSON.stringify(expectedFields)) {
                 console.error('❌ Registration questions did not persist for event:', updatedEvent.id);
                 return NextResponse.json({ error: 'The registration questions did not persist. Please try saving again.' }, { status: 500 });
+            }
+        }
+
+        if (verifiedEvent.event_type?.toLowerCase() === 'wedding' && 'wedding_invitations' in body) {
+            const incomingIds = weddingInvitations.map((invitation) => invitation.id);
+            if (incomingIds.length > 0) {
+                const { data: protectedInvitations } = await supabaseAdmin
+                    .from('invites')
+                    .select('id, status')
+                    .eq('event_id', verifiedEvent.id)
+                    .in('id', incomingIds)
+                    .neq('status', 'draft');
+                if (protectedInvitations?.length) {
+                    return NextResponse.json({ error: 'Sent invitations cannot be changed from the event editor.' }, { status: 409 });
+                }
+            }
+            let deleteDrafts = supabaseAdmin.from('invites').delete().eq('event_id', verifiedEvent.id).eq('status', 'draft');
+            if (incomingIds.length > 0) deleteDrafts = deleteDrafts.not('id', 'in', `(${incomingIds.join(',')})`);
+            const { error: deleteError } = await deleteDrafts;
+            if (deleteError) return NextResponse.json({ error: `Could not update wedding invitations: ${deleteError.message}` }, { status: 500 });
+            if (weddingInvitations.length > 0) {
+                const { error: invitationError } = await supabaseAdmin.from('invites').upsert(weddingInvitations.map((invitation) => ({
+                    id: invitation.id,
+                    event_id: verifiedEvent.id,
+                    name: invitation.name,
+                    email: invitation.email || null,
+                    party_size: invitation.party_size,
+                    status: 'draft',
+                })), { onConflict: 'id' });
+                if (invitationError) return NextResponse.json({ error: `Could not save wedding invitations: ${invitationError.message}` }, { status: 500 });
             }
         }
 

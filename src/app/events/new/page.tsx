@@ -36,6 +36,8 @@ import { RegistrationFieldBuilder } from "@/components/registration-field-builde
 import type { RegistrationField } from "@/lib/registration-fields";
 import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
 import { WeddingInvitationPreview } from "@/components/wedding-invitation-preview";
+import { WeddingGuestListBuilder } from "@/components/wedding-guest-list-builder";
+import type { WeddingInvitationDraft } from "@/lib/wedding-invitations";
 import { emptyWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Event Categories with Default Covers ───── */
@@ -220,6 +222,7 @@ export default function CreateEventPage() {
     const [endTime, setEndTime] = useState("17:00");
     const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
     const [weddingDetails, setWeddingDetails] = useState<WeddingDetails>(emptyWeddingDetails);
+    const [weddingInvitations, setWeddingInvitations] = useState<WeddingInvitationDraft[]>([]);
 
     useEffect(() => {
         fetch("/api/hosts")
@@ -277,6 +280,7 @@ export default function CreateEventPage() {
             visibility: formData.visibility,
             registration_fields: registrationFields,
             wedding_details: weddingDetails,
+            wedding_invitations: weddingInvitations,
             host_id: selectedHostId,
         };
         const submitData = new FormData();
@@ -298,6 +302,7 @@ export default function CreateEventPage() {
             setCoverImage(null); setCoverFile(null); setCoverSource(null);
             setRegistrationFields([]);
             setWeddingDetails(emptyWeddingDetails);
+            setWeddingInvitations([]);
             const selectedHost = hosts.find((host) => host.id === selectedHostId);
             router.push(selectedHost
                 ? `/hosts/${selectedHost.slug}/events/${result.event.public_slug}`
@@ -479,6 +484,7 @@ export default function CreateEventPage() {
                             </div>
 
                             {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
+                            {formData.event_type === "Wedding" && <WeddingGuestListBuilder invitations={weddingInvitations} onChange={setWeddingInvitations} capacity={formData.max_attendees} />}
 
                             <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

@@ -4,6 +4,7 @@ import { findAvailableSlug, slugify } from '@/lib/slugs';
 import { sendNewHostEventEmail } from '@/lib/email';
 import { sanitizeRegistrationFields } from '@/lib/registration-fields';
 import { sanitizeWeddingDetails } from '@/lib/wedding-details';
+import { sanitizeWeddingInvitations } from '@/lib/wedding-invitations';
 export const dynamic = 'force-dynamic';
 
 const supabaseAdmin = createClient(
@@ -29,6 +30,7 @@ export async function POST(req: NextRequest) {
         }
 
         const rawPayload = JSON.parse(payloadJson);
+        const weddingInvitations = sanitizeWeddingInvitations(rawPayload.wedding_invitations);
         const allowedFields = [
             'title', 'description', 'event_type', 'date', 'end_date',
             'location', 'is_virtual', 'virtual_link', 'image_url',
@@ -146,6 +148,21 @@ export async function POST(req: NextRequest) {
         if (error) {
             console.error('❌ DB insert error:', error);
             return NextResponse.json({ error: error.message, code: error.code }, { status: 500 });
+        }
+
+        if (data.event_type?.toLowerCase() === 'wedding' && weddingInvitations.length > 0) {
+            const { error: invitationsError } = await supabaseAdmin.from('invites').insert(weddingInvitations.map((invitation) => ({
+                id: invitation.id,
+                event_id: data.id,
+                name: invitation.name,
+                email: invitation.email || null,
+                party_size: invitation.party_size,
+                status: 'draft',
+            })));
+            if (invitationsError) {
+                await supabaseAdmin.from('events').delete().eq('id', data.id);
+                return NextResponse.json({ error: `Could not save wedding invitations: ${invitationsError.message}` }, { status: 500 });
+            }
         }
 
         if (data.status === 'published' && data.visibility === 'public') {

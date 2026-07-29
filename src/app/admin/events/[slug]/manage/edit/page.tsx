@@ -35,6 +35,8 @@ import { RegistrationFieldBuilder } from "@/components/registration-field-builde
 import type { RegistrationField } from "@/lib/registration-fields";
 import { WeddingDetailsEditor } from "@/components/wedding-details-editor";
 import { WeddingInvitationPreview } from "@/components/wedding-invitation-preview";
+import { WeddingGuestListBuilder } from "@/components/wedding-guest-list-builder";
+import { sanitizeWeddingInvitations, type WeddingInvitationDraft } from "@/lib/wedding-invitations";
 import { emptyWeddingDetails, sanitizeWeddingDetails, type WeddingDetails } from "@/lib/wedding-details";
 
 /* ───── Theme Options ───── */
@@ -120,6 +122,7 @@ export default function EditTabPage() {
     const [showTheme, setShowTheme] = useState(false);
     const [registrationFields, setRegistrationFields] = useState<RegistrationField[]>([]);
     const [weddingDetails, setWeddingDetails] = useState<WeddingDetails>(emptyWeddingDetails);
+    const [weddingInvitations, setWeddingInvitations] = useState<WeddingInvitationDraft[]>([]);
 
     useEffect(() => {
         async function load() {
@@ -152,6 +155,13 @@ export default function EditTabPage() {
             setThemeMode(event.theme_mode || "light");
             setRegistrationFields(Array.isArray(event.registration_fields) ? event.registration_fields : []);
             setWeddingDetails(sanitizeWeddingDetails(event.wedding_details));
+            if (event.event_type?.toLowerCase() === "wedding") {
+                const inviteResponse = await fetch(`/api/events/${slug}/invites`);
+                if (inviteResponse.ok) {
+                    const inviteResult = await inviteResponse.json();
+                    setWeddingInvitations(sanitizeWeddingInvitations((inviteResult.invites || []).filter((invitation: { status: string }) => invitation.status === "draft")));
+                }
+            }
             setLoading(false);
         }
         load();
@@ -230,6 +240,7 @@ export default function EditTabPage() {
             theme_mode: themeMode,
             registration_fields: registrationFields,
             wedding_details: weddingDetails,
+            wedding_invitations: weddingInvitations,
         };
 
         const res = await fetch(`/api/events/${slug}`, {
@@ -504,6 +515,7 @@ export default function EditTabPage() {
                     </div>
 
                     {eventType.trim().toLowerCase() === "wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
+                    {eventType.trim().toLowerCase() === "wedding" && <WeddingGuestListBuilder invitations={weddingInvitations} onChange={setWeddingInvitations} capacity={maxAttendees} />}
 
                     <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

@@ -47,13 +47,17 @@ export async function GET(
         const accepted = invites?.filter(i => i.status === 'accepted').length || 0;
         const declined = invites?.filter(i => i.status === 'declined').length || 0;
         const awaiting = invites?.filter(i => i.status === 'sent').length || 0;
+        const draft = invites?.filter(i => i.status === 'draft').length || 0;
+        const totalPeople = (invites || []).reduce((sum, invite) => sum + (invite.party_size || 1), 0);
+        const acceptedPeople = (invites || []).filter((invite) => invite.status === 'accepted').reduce((sum, invite) => sum + (invite.party_size || 1), 0);
+        const awaitingPeople = (invites || []).filter((invite) => invite.status === 'sent').reduce((sum, invite) => sum + (invite.party_size || 1), 0);
         const { data: checkedInRegistrations } = await supabaseAdmin
             .from('registrations')
             .select('email')
             .eq('event_id', event.id)
             .eq('checked_in', true);
         const checkedInEmails = new Set((checkedInRegistrations || []).map((registration) => registration.email.toLowerCase()));
-        const checkedIn = (invites || []).filter((invite) => invite.status === 'accepted' && checkedInEmails.has(invite.email.toLowerCase())).length;
+        const checkedIn = (invites || []).filter((invite) => invite.status === 'accepted' && invite.email && checkedInEmails.has(invite.email.toLowerCase())).length;
 
         // Recently accepted
         const recentlyAccepted = invites
@@ -81,7 +85,7 @@ export async function GET(
             .eq('event_id', event.id);
 
         const currentEmails = new Set((currentRegs || []).map(r => r.email.toLowerCase()));
-        const invitedEmails = new Set((invites || []).map(i => i.email.toLowerCase()));
+        const invitedEmails = new Set((invites || []).flatMap(i => i.email ? [i.email.toLowerCase()] : []));
 
         if (orgEvents && orgEvents.length > 0) {
             for (const orgEvent of orgEvents) {
@@ -122,7 +126,7 @@ export async function GET(
 
         return NextResponse.json({
             invites: invites || [],
-            stats: { total, awaiting, accepted, declined, checkedIn },
+            stats: { total, draft, awaiting, accepted, declined, checkedIn, totalPeople, acceptedPeople, awaitingPeople },
             recentlyAccepted,
             suggestions,
             pastEvents,
@@ -172,15 +176,17 @@ export async function POST(
         for (const entry of emails) {
             const email = entry.email?.trim().toLowerCase();
             if (!email) continue;
-            const partySize = Math.min(5, Math.max(1, Number.parseInt(String(entry.party_size || 1), 10) || 1));
+            const partySize = Math.min(20, Math.max(1, Number.parseInt(String(entry.party_size || 1), 10) || 1));
+            const draftId = typeof entry.id === 'string' ? entry.id : null;
 
             // Check if already invited
-            const { data: existing } = await supabaseAdmin
+            let existingQuery = supabaseAdmin
                 .from('invites')
                 .select('id')
                 .eq('event_id', event.id)
-                .eq('email', email)
-                .single();
+                .eq('email', email);
+            if (draftId) existingQuery = existingQuery.neq('id', draftId);
+            const { data: existing } = await existingQuery.maybeSingle();
 
             if (existing) {
                 results.skipped++;
@@ -200,20 +206,19 @@ export async function POST(
                 continue;
             }
 
-            // Insert invite record
-            const { data: insertedInvite, error: insertError } = await supabaseAdmin
-                .from('invites')
-                .insert({
-                    event_id: event.id,
-                    email,
-                    name: entry.name || null,
-                    status: 'sent',
-                    party_size: event.event_type?.toLowerCase() === 'wedding' ? partySize : 1,
-                })
-                .select('invitation_token')
-                .single();
+            const invitePayload = {
+                email,
+                name: entry.name || null,
+                status: 'sent',
+                sent_at: new Date().toISOString(),
+                party_size: event.event_type?.toLowerCase() === 'wedding' ? Math.min(20, partySize) : 1,
+            };
+            const inviteMutation = draftId
+                ? supabaseAdmin.from('invites').update(invitePayload).eq('id', draftId).eq('event_id', event.id).eq('status', 'draft')
+                : supabaseAdmin.from('invites').insert({ ...invitePayload, event_id: event.id });
+            const { data: insertedInvite, error: insertError } = await inviteMutation.select('id, invitation_token').maybeSingle();
 
-            if (insertError) {
+            if (insertError || !insertedInvite) {
                 console.error('❌ Invite insert error:', insertError);
                 results.errors++;
                 continue;
@@ -243,9 +248,9 @@ export async function POST(
                 // it also lets the organizer retry after email is configured.
                 await supabaseAdmin
                     .from('invites')
-                    .delete()
-                    .eq('event_id', event.id)
-                    .eq('email', email);
+                    .update({ status: draftId ? 'draft' : 'sent' })
+                    .eq('id', insertedInvite.id);
+                if (!draftId) await supabaseAdmin.from('invites').delete().eq('id', insertedInvite.id);
                 results.errors++;
             }
         }

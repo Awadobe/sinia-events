@@ -9,10 +9,10 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { WeddingDetails } from "@/lib/wedding-details";
 
-type InviteStats = { total: number; awaiting: number; accepted: number; declined: number; checkedIn: number };
-type Invite = { id: string; email: string; name: string | null; status: string; party_size: number; sent_at: string; accepted_at: string | null };
+type InviteStats = { total: number; draft: number; awaiting: number; accepted: number; declined: number; checkedIn: number; totalPeople: number; acceptedPeople: number; awaitingPeople: number };
+type Invite = { id: string; email: string | null; name: string | null; status: string; party_size: number; sent_at: string; accepted_at: string | null };
 type Suggestion = { name: string; email: string; phone?: string; eventTitle: string; eventDate: string; guestCount: number };
-type DraftInvite = { email: string; name: string; party_size: number };
+type DraftInvite = { id?: string; email: string; name: string; party_size: number };
 type PastEvent = { id: string; title: string; date: string };
 
 type Stats = {
@@ -58,7 +58,7 @@ export default function OverviewPage() {
     const [loading, setLoading] = useState(true);
 
     // Invites state
-    const [inviteStats, setInviteStats] = useState<InviteStats>({ total: 0, awaiting: 0, accepted: 0, declined: 0, checkedIn: 0 });
+    const [inviteStats, setInviteStats] = useState<InviteStats>({ total: 0, draft: 0, awaiting: 0, accepted: 0, declined: 0, checkedIn: 0, totalPeople: 0, acceptedPeople: 0, awaitingPeople: 0 });
     const [inviteResponses, setInviteResponses] = useState<Invite[]>([]);
     const [showInviteModal, setShowInviteModal] = useState(false);
     const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -498,7 +498,12 @@ export default function OverviewPage() {
                         <p className="text-sm text-zinc-400 mt-0.5">Invite subscribers, contacts and past guests via email.</p>
                     </div>
                     <button
-                        onClick={() => { setInviteTab(event?.event_type?.toLowerCase() === "wedding" ? "emails" : "suggestions"); setShowInviteModal(true); }}
+                        onClick={() => {
+                            const isWedding = event?.event_type?.toLowerCase() === "wedding";
+                            setInviteTab(isWedding ? "emails" : "suggestions");
+                            if (isWedding) setSelectedEmails(inviteResponses.filter((invite) => invite.status === "draft").map((invite) => ({ id: invite.id, email: invite.email || "", name: invite.name || "", party_size: invite.party_size || 1 })));
+                            setShowInviteModal(true);
+                        }}
                         className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-sm"
                     >
                         <Plus className="h-3.5 w-3.5" />
@@ -516,6 +521,7 @@ export default function OverviewPage() {
                                     <span className="text-lg text-zinc-400 font-medium">/ {inviteStats.total}</span>
                                 </div>
                                 <p className="text-sm text-zinc-400 mt-0.5">Invites Accepted</p>
+                                {event?.event_type?.toLowerCase() === "wedding" && <p className="mt-1 text-xs font-semibold text-rose-500">{inviteStats.totalPeople} people across {inviteStats.total} invitations</p>}
                             </div>
                             <Link
                                 href={`/admin/events/${slug}/manage/guests`}
@@ -539,13 +545,13 @@ export default function OverviewPage() {
                             <p className="text-sm text-zinc-300 py-4 text-center">No invitations sent yet</p>
                         ) : (
                             <div className="space-y-2.5">
-                                {inviteResponses.slice(0, 5).map((inv) => (
+                                {inviteResponses.filter((invite) => invite.status !== "draft").slice(0, 5).map((inv) => (
                                     <div key={inv.id} className="flex items-center gap-3">
                                         <div className="h-7 w-7 rounded-full bg-amber-100 flex items-center justify-center text-[10px] font-bold text-amber-700 shrink-0">
-                                            {(inv.name || inv.email).charAt(0).toUpperCase()}
+                                            {(inv.name || inv.email || "?").charAt(0).toUpperCase()}
                                         </div>
                                         <div className="min-w-0 flex-1">
-                                            <span className="text-sm font-medium text-zinc-900">{inv.name || inv.email.split('@')[0]}</span>
+                                            <span className="text-sm font-medium text-zinc-900">{inv.name || inv.email?.split('@')[0] || "Guest"}</span>
                                             <span className="text-xs text-zinc-400 ml-2">{inv.email}</span>
                                             {event?.event_type?.toLowerCase() === "wedding" && <span className="ml-2 text-[10px] font-semibold text-rose-500">Admits {inv.party_size || 1}</span>}
                                         </div>
@@ -704,7 +710,7 @@ export default function OverviewPage() {
                                         <div className="mt-3 flex items-end gap-3">
                                             {event?.event_type?.toLowerCase() === "wedding" && <label className="text-xs font-semibold text-zinc-500">This invitation admits
                                                 <select value={manualPartySize} onChange={(event) => setManualPartySize(Number(event.target.value))} className="mt-1 block rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-sm text-zinc-700">
-                                                    {[1, 2, 3, 4, 5].map((size) => <option key={size} value={size}>{size} {size === 1 ? "person" : "people"}</option>)}
+                                                    {Array.from({ length: 20 }, (_, index) => index + 1).map((size) => <option key={size} value={size}>{size} {size === 1 ? "person" : "people"}</option>)}
                                                 </select>
                                             </label>}
                                             <button type="button" onClick={addManualInvite} className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-bold text-white">Add invitation</button>
@@ -712,9 +718,9 @@ export default function OverviewPage() {
                                         {selectedEmails.length > 0 && <div className="mt-5 space-y-2 border-t border-zinc-100 pt-4">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Invitations ready</p>
                                             {selectedEmails.map((entry) => <div key={entry.email} className="flex items-center gap-3 rounded-xl bg-zinc-50 px-3 py-2.5">
-                                                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-zinc-700">{event?.wedding_details?.hosts || event?.title} invite {entry.name}</p><p className="truncate text-xs text-zinc-400">{entry.email}</p></div>
+                                                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-zinc-700">{event?.wedding_details?.hosts || event?.title} invite {entry.name}</p><input type="email" value={entry.email} onChange={(event) => setSelectedEmails((current) => current.map((item) => item.id === entry.id && item.name === entry.name ? { ...item, email: event.target.value } : item))} placeholder="Add one household email" className="mt-1 w-full rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs text-zinc-600 outline-none focus:border-indigo-300" /></div>
                                                 {event?.event_type?.toLowerCase() === "wedding" && <select value={entry.party_size} onChange={(event) => setSelectedEmails((current) => current.map((item) => item.email === entry.email ? { ...item, party_size: Number(event.target.value) } : item))} className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs">
-                                                    {[1, 2, 3, 4, 5].map((size) => <option key={size} value={size}>Admits {size}</option>)}
+                                                    {Array.from({ length: 20 }, (_, index) => index + 1).map((size) => <option key={size} value={size}>Admits {size}</option>)}
                                                 </select>}
                                                 <button type="button" onClick={() => setSelectedEmails((current) => current.filter((item) => item.email !== entry.email))} className="text-zinc-300 hover:text-red-500"><X className="h-4 w-4" /></button>
                                             </div>)}
@@ -735,7 +741,7 @@ export default function OverviewPage() {
                             </button>
                             <button
                                 onClick={sendInvites}
-                                disabled={sendingInvites || selectedEmails.length === 0}
+                                disabled={sendingInvites || selectedEmails.length === 0 || selectedEmails.some((entry) => !entry.email.trim())}
                                 className="flex items-center gap-2 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                             >
                                 {sendingInvites ? (
