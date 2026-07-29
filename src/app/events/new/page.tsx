@@ -276,7 +276,7 @@ export default function CreateEventPage() {
             require_approval: formData.require_approval,
             visibility: formData.visibility,
             registration_fields: registrationFields,
-            wedding_details: formData.event_type === "Wedding" ? { ...weddingDetails, hosts: formData.title } : weddingDetails,
+            wedding_details: weddingDetails,
             host_id: selectedHostId,
         };
         const submitData = new FormData();
@@ -328,7 +328,7 @@ export default function CreateEventPage() {
                                         <Image src={coverImage} alt="Event cover" fill className="object-cover" unoptimized={coverSource === "upload"} />
                                         {activeCategory.id === "Wedding" && weddingDetails.invitation_design.image_mode === "photo" && <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/75 via-black/10 to-transparent p-8 pb-20 text-center text-white">
                                             <p className="text-[10px] font-bold uppercase tracking-[0.25em]">Wedding invitation</p>
-                                            <p className="mt-2 font-serif text-3xl italic">{formData.title || "Type the couple’s names"}</p>
+                                            <p className="mt-2 font-serif text-3xl italic">{weddingDetails.hosts || "Type the couple’s names"}</p>
                                         </div>}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
                                             <div className="flex w-full gap-2 p-4">
@@ -339,7 +339,7 @@ export default function CreateEventPage() {
                                     </div>
                                 ) : activeCategory.id === "Wedding" ? (
                                     <div className="relative aspect-[4/5]">
-                                        <WeddingInvitationPreview title={formData.title} details={weddingDetails} />
+                                        <WeddingInvitationPreview title={weddingDetails.hosts} details={weddingDetails} />
                                         <button type="button" onClick={() => fileInputRef.current?.click()} className="absolute bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-zinc-700 shadow-md backdrop-blur">
                                             Upload your own design
                                         </button>
@@ -478,7 +478,7 @@ export default function CreateEventPage() {
                                 <textarea id="description" placeholder="Add a description... Tell people what your event is about" rows={4} value={formData.description} onChange={(e) => updateField("description", e.target.value)} className="w-full border-none bg-transparent text-sm font-normal resize-none outline-none leading-relaxed" style={{ color: theme.palette.text, caretColor: theme.palette.accent }} />
                             </div>
 
-                            {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} title={formData.title} onTitleChange={(title) => updateField("title", title)} />}
+                            {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
 
                             <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

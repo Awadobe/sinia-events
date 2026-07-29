@@ -7,6 +7,7 @@ import { format, formatDistanceToNow, isPast, differenceInHours } from "date-fns
 import { Users, UserCheck, Clock, QrCode, ArrowRight, Loader2, Check, TrendingUp, BarChart3, Calendar, MapPin, User, CheckCircle2, Plus, X, Mail, Search, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import type { WeddingDetails } from "@/lib/wedding-details";
 
 type InviteStats = { total: number; awaiting: number; accepted: number; declined: number; checkedIn: number };
 type Invite = { id: string; email: string; name: string | null; status: string; party_size: number; sent_at: string; accepted_at: string | null };
@@ -40,6 +41,7 @@ type EventData = {
     slug: string;
     status: string;
     event_type: string;
+    wedding_details?: WeddingDetails;
     organizer?: {
         org_name?: string;
         name?: string;
@@ -496,7 +498,7 @@ export default function OverviewPage() {
                         <p className="text-sm text-zinc-400 mt-0.5">Invite subscribers, contacts and past guests via email.</p>
                     </div>
                     <button
-                        onClick={() => setShowInviteModal(true)}
+                        onClick={() => { setInviteTab(event?.event_type?.toLowerCase() === "wedding" ? "emails" : "suggestions"); setShowInviteModal(true); }}
                         className="flex items-center gap-1.5 rounded-xl border border-black/10 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition-colors shadow-sm"
                     >
                         <Plus className="h-3.5 w-3.5" />
@@ -569,7 +571,7 @@ export default function OverviewPage() {
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden">
                         {/* Header */}
                         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-                            <h2 className="text-lg font-bold text-zinc-900">Invite Guests</h2>
+                            <div><h2 className="text-lg font-bold text-zinc-900">{event?.event_type?.toLowerCase() === "wedding" ? "Create wedding invitations" : "Invite Guests"}</h2>{event?.event_type?.toLowerCase() === "wedding" && <p className="mt-0.5 text-xs text-zinc-400">Create one card per household using one email address.</p>}</div>
                             <div className="flex items-center gap-3">
                                 {selectedEmails.length > 0 && (
                                     <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
@@ -710,7 +712,7 @@ export default function OverviewPage() {
                                         {selectedEmails.length > 0 && <div className="mt-5 space-y-2 border-t border-zinc-100 pt-4">
                                             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Invitations ready</p>
                                             {selectedEmails.map((entry) => <div key={entry.email} className="flex items-center gap-3 rounded-xl bg-zinc-50 px-3 py-2.5">
-                                                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-zinc-700">{entry.name}</p><p className="truncate text-xs text-zinc-400">{entry.email}</p></div>
+                                                <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-zinc-700">{event?.wedding_details?.hosts || event?.title} invite {entry.name}</p><p className="truncate text-xs text-zinc-400">{entry.email}</p></div>
                                                 {event?.event_type?.toLowerCase() === "wedding" && <select value={entry.party_size} onChange={(event) => setSelectedEmails((current) => current.map((item) => item.email === entry.email ? { ...item, party_size: Number(event.target.value) } : item))} className="rounded-lg border border-zinc-200 bg-white px-2 py-1.5 text-xs">
                                                     {[1, 2, 3, 4, 5].map((size) => <option key={size} value={size}>Admits {size}</option>)}
                                                 </select>}

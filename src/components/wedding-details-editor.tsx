@@ -13,13 +13,9 @@ const DESIGN_PRESETS = [
 export function WeddingDetailsEditor({
     value,
     onChange,
-    title,
-    onTitleChange,
 }: {
     value: WeddingDetails;
     onChange: (value: WeddingDetails) => void;
-    title: string;
-    onTitleChange: (title: string) => void;
 }) {
     const update = <K extends keyof WeddingDetails>(key: K, next: WeddingDetails[K]) =>
         onChange({ ...value, [key]: next });
@@ -29,9 +25,9 @@ export function WeddingDetailsEditor({
         <p className="text-xs font-bold uppercase tracking-widest text-rose-500">Wedding invitation details</p>
         <p className="mt-1 text-xs leading-relaxed text-zinc-500">Build the card guests will see when they open their invitation.</p>
         <div className="mt-5 grid gap-4">
-            <label className="text-xs font-semibold text-zinc-600">Names shown on the invitation
-                <input className={`${input} mt-2 text-base font-semibold`} value={title} onChange={(event) => onTitleChange(event.target.value)} placeholder="e.g. Joshua & Mariam" />
-                <span className="mt-1 block text-[10px] font-normal text-zinc-400">This also becomes the wedding event name.</span>
+            <label className="text-xs font-semibold text-zinc-600">Couple or hosts giving the invitation
+                <input className={`${input} mt-2 text-base font-semibold`} value={value.hosts} onChange={(event) => update("hosts", event.target.value)} placeholder="e.g. Dan & Marian" />
+                <span className="mt-1 block text-[10px] font-normal text-zinc-400">Guest or household names and the number admitted are added separately when you send each invitation.</span>
             </label>
             <div>
                 <p className="text-xs font-semibold text-zinc-600">Invitation style</p>

@@ -4,10 +4,14 @@ export function WeddingInvitationPreview({
     title,
     details,
     compact = false,
+    recipientName,
+    partySize,
 }: {
     title: string;
     details: WeddingDetails;
     compact?: boolean;
+    recipientName?: string | null;
+    partySize?: number;
 }) {
     const design = details.invitation_design;
     const isClassic = design.template === "classic";
@@ -27,6 +31,11 @@ export function WeddingInvitationPreview({
         <h3 className={`relative leading-tight ${compact ? "text-xl" : "text-3xl"} ${isClassic ? "font-serif" : isModern ? "font-sans font-bold uppercase tracking-tight" : "font-serif italic"}`}>
             {title.trim() || "Type the couple’s names"}
         </h3>
+        {recipientName && <div className="relative mt-5">
+            <p className="text-[9px] font-bold uppercase tracking-[0.2em] opacity-60">warmly invite</p>
+            <p className={`${compact ? "mt-1 text-sm" : "mt-2 text-xl"} font-serif font-semibold`}>{recipientName}</p>
+            <p className="mt-1 text-[9px] font-bold uppercase tracking-[0.18em]" style={{ color: design.accent }}>Admits {partySize || 1}</p>
+        </div>}
         {details.invitation_message && <p className="relative mt-4 line-clamp-3 max-w-xs text-xs leading-relaxed opacity-70">{details.invitation_message}</p>}
         {(details.ceremony.time || details.reception.time) && <p className="relative mt-5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: design.accent }}>
             {details.ceremony.time || details.reception.time}
