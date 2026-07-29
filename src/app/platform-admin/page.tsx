@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { Building2, Calendar, ExternalLink, ShieldCheck, Users } from "lucide-react";
+import { Building2, Calendar, ExternalLink, MapPin, ShieldCheck, Users } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { OrganizationControls } from "./organization-controls";
+import { VenueControls } from "./venue-controls";
 
 export const dynamic = "force-dynamic";
 const admin = createAdminClient(process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co", process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder");
@@ -13,7 +14,7 @@ export default async function PlatformAdminPage() {
     if (!access.user) redirect("/login?next=/platform-admin");
     if (!access.authorized) redirect("/");
 
-    const [{ data: organizations }, { count: registrationCount }] = await Promise.all([
+    const [{ data: organizations }, { count: registrationCount }, { data: venues }] = await Promise.all([
         admin
             .from("hosts")
             .select("id, name, slug, description, status, created_at, events(id, title, slug, status), host_organizers(user_id)")
@@ -23,12 +24,18 @@ export default async function PlatformAdminPage() {
             .from("registrations")
             .select("*", { count: "exact", head: true })
             .neq("status", "cancelled"),
+        admin
+            .from("venues")
+            .select("id, name, slug, venue_type, area, status, verification_status, created_at, host:hosts(name)")
+            .order("created_at", { ascending: false }),
     ]);
 
     const organizationList = organizations || [];
     const eventCount = organizationList.reduce((total, organization) => total + organization.events.length, 0);
     const activeCount = organizationList.filter((organization) => organization.status === "active").length;
     const suspendedCount = organizationList.length - activeCount;
+    const venueList = venues || [];
+    const pendingVenues = venueList.filter((venue) => venue.status === "pending_review");
 
     return <div className="min-h-screen bg-[#faf9f7]"><header className="border-b border-black/5 bg-white"><div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4"><Link href="/" className="font-semibold text-zinc-900">Radius</Link><div className="flex items-center gap-4"><Link href="/organizer" className="text-sm text-zinc-500">Organizer account</Link><form action="/auth/signout" method="post"><button className="text-sm text-zinc-500">Log out</button></form></div></div></header><main className="mx-auto max-w-6xl px-5 py-10"><div className="flex items-start gap-3"><div className="rounded-xl bg-zinc-900 p-2.5 text-white"><ShieldCheck className="h-5 w-5" /></div><div><p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Platform administration</p><h1 className="mt-1 text-3xl font-semibold text-zinc-900">Platform overview</h1><p className="mt-2 text-sm text-zinc-500">Monitor activity and manage organizations from one place.</p></div></div>
 
@@ -39,6 +46,23 @@ export default async function PlatformAdminPage() {
                 { label: "Registrations", value: registrationCount || 0, detail: "Not cancelled", icon: Users },
                 { label: "Suspended", value: suspendedCount, detail: suspendedCount ? "Needs attention" : "None", icon: ShieldCheck },
             ].map((item) => <div key={item.label} className="rounded-2xl border border-black/5 bg-white p-5 shadow-sm"><div className="flex items-center justify-between"><p className="text-sm font-medium text-zinc-500">{item.label}</p><item.icon className="h-4 w-4 text-zinc-400" /></div><p className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900">{item.value}</p><p className="mt-1 text-xs text-zinc-400">{item.detail}</p></div>)}
+        </section>
+
+        <section className="mt-10">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+                <div><p className="text-xs font-bold uppercase tracking-widest text-orange-600">Venue review</p><h2 className="mt-1 text-xl font-semibold text-zinc-900">Venue submissions</h2><p className="mt-1 text-sm text-zinc-500">Review contact details and venue information before publishing.</p></div>
+                <span className="rounded-full bg-orange-100 px-3 py-1.5 text-xs font-bold text-orange-700">{pendingVenues.length} awaiting review</span>
+            </div>
+            <div className="mt-5 grid gap-4">
+                {venueList.map((venue) => {
+                    const hostValue = Array.isArray(venue.host) ? venue.host[0] : venue.host;
+                    return <article key={venue.id} className="rounded-3xl border border-black/5 bg-white p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-5">
+                        <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Building2 className="h-4 w-4 text-orange-500" /><h3 className="font-semibold text-zinc-900">{venue.name}</h3><span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider ${venue.status === "published" ? "bg-emerald-50 text-emerald-700" : venue.status === "rejected" || venue.status === "suspended" ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-700"}`}>{venue.status.replaceAll("_", " ")}</span></div><p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400"><span>{hostValue?.name || "Independent venue"}</span><span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{venue.area}</span><span>{venue.venue_type.replaceAll("_", " ")}</span></p></div>
+                        <div className="mt-4 flex items-center gap-2 sm:mt-0">{venue.status === "published" && <Link href={`/venues/${venue.slug}`} className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600"><ExternalLink className="h-3.5 w-3.5" /> View</Link>}<VenueControls venueId={venue.id} initialStatus={venue.status as "pending_review" | "published" | "suspended" | "rejected" | "draft"} /></div>
+                    </article>;
+                })}
+                {!venueList.length && <div className="rounded-3xl border border-dashed border-zinc-200 p-10 text-center text-sm text-zinc-400">No venue submissions yet.</div>}
+            </div>
         </section>
 
         {organizationList.length > 0 && <section className="mt-8 rounded-3xl bg-zinc-900 p-6 text-white"><div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Recent activity</p><h2 className="mt-1 text-xl font-semibold">Recently added organizations</h2></div><p className="text-xs text-zinc-400">Newest first</p></div><div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{organizationList.slice(0, 3).map((organization) => <Link key={organization.id} href={`/hosts/${organization.slug}`} className="rounded-2xl bg-white/10 p-4 transition hover:bg-white/15"><div className="flex items-center justify-between gap-3"><p className="truncate font-medium">{organization.name}</p><ExternalLink className="h-3.5 w-3.5 text-zinc-400" /></div><p className="mt-2 text-xs text-zinc-400">{organization.events.length} event{organization.events.length === 1 ? "" : "s"} · Added {new Intl.DateTimeFormat("en-SL", { day: "numeric", month: "short", year: "numeric" }).format(new Date(organization.created_at))}</p></Link>)}</div></section>}

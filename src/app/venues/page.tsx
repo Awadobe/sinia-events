@@ -121,7 +121,7 @@ export default async function VenuesPage({
               Organizations
             </Link>
             <Link
-              href="/login"
+              href="/venues/new"
               className="rounded-full bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-700"
             >
               List a venue
@@ -308,7 +308,7 @@ export default async function VenuesPage({
                     : "Venue profiles will appear here after their details and authorized managers have been reviewed."}
                 </p>
                 <Link
-                  href="/login"
+                  href="/venues/new"
                   className="mt-6 inline-flex items-center gap-2 rounded-full bg-zinc-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-zinc-700"
                 >
                   Submit a venue <ArrowRight className="h-4 w-4" />
@@ -321,4 +321,3 @@ export default async function VenuesPage({
     </div>
   );
 }
-
