@@ -463,12 +463,24 @@ export default function PublicEventPage() {
         ? "GMT (Sierra Leone)"
         : resolvedTimeZone.split("/").pop()?.replace(/_/g, " ") || "GMT";
 
-    const theme = resolveTheme({
+    const baseTheme = resolveTheme({
         color: event.theme_color,
         style: event.theme_style,
         font: event.theme_font,
         mode: event.theme_mode,
     });
+    const weddingDesign = event.event_type?.toLowerCase() === "wedding"
+        ? sanitizeWeddingDetails(event.wedding_details).invitation_design
+        : null;
+    const theme = weddingDesign ? {
+        ...baseTheme,
+        pageBackground: weddingDesign.background,
+        headerBackground: `${weddingDesign.background}ee`,
+        primary: weddingDesign.accent,
+        text: weddingDesign.text,
+        textMuted: `${weddingDesign.text}aa`,
+        cardBorder: `${weddingDesign.accent}30`,
+    } : baseTheme;
 
     return (
         <div className="min-h-screen" style={{ background: theme.pageBackground, fontFamily: theme.fontFamily }}>

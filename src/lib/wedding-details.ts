@@ -20,6 +20,7 @@ export type WeddingInvitationDesign = {
     background: string;
     accent: string;
     text: string;
+    image_mode: "photo" | "artwork";
 };
 
 export const defaultWeddingInvitationDesign: WeddingInvitationDesign = {
@@ -27,6 +28,7 @@ export const defaultWeddingInvitationDesign: WeddingInvitationDesign = {
     background: "#fff7f8",
     accent: "#be123c",
     text: "#292524",
+    image_mode: "photo",
 };
 
 const emptyScheduleItem: WeddingScheduleItem = { enabled: false, time: "", location: "" };
@@ -77,6 +79,7 @@ export function sanitizeWeddingDetails(value: unknown): WeddingDetails {
             background: color("background", defaultWeddingInvitationDesign.background),
             accent: color("accent", defaultWeddingInvitationDesign.accent),
             text: color("text", defaultWeddingInvitationDesign.text),
+            image_mode: designSource.image_mode === "artwork" ? "artwork" : "photo",
         },
     };
 }

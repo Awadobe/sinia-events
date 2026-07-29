@@ -326,6 +326,10 @@ export default function CreateEventPage() {
                                 {coverImage ? (
                                     <div className="group relative aspect-[4/5]">
                                         <Image src={coverImage} alt="Event cover" fill className="object-cover" unoptimized={coverSource === "upload"} />
+                                        {activeCategory.id === "Wedding" && weddingDetails.invitation_design.image_mode === "photo" && <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/75 via-black/10 to-transparent p-8 pb-20 text-center text-white">
+                                            <p className="text-[10px] font-bold uppercase tracking-[0.25em]">Wedding invitation</p>
+                                            <p className="mt-2 font-serif text-3xl italic">{formData.title || "Type the couple’s names"}</p>
+                                        </div>}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
                                             <div className="flex w-full gap-2 p-4">
                                                 <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 rounded-xl bg-white/20 backdrop-blur-md text-white text-sm font-medium py-2.5 px-4 hover:bg-white/30 transition-colors flex items-center justify-center gap-2"><Upload className="h-3.5 w-3.5" /> Change</button>
@@ -474,7 +478,7 @@ export default function CreateEventPage() {
                                 <textarea id="description" placeholder="Add a description... Tell people what your event is about" rows={4} value={formData.description} onChange={(e) => updateField("description", e.target.value)} className="w-full border-none bg-transparent text-sm font-normal resize-none outline-none leading-relaxed" style={{ color: theme.palette.text, caretColor: theme.palette.accent }} />
                             </div>
 
-                            {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
+                            {formData.event_type === "Wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} title={formData.title} onTitleChange={(title) => updateField("title", title)} />}
 
                             <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 

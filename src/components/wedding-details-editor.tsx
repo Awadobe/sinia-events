@@ -13,9 +13,13 @@ const DESIGN_PRESETS = [
 export function WeddingDetailsEditor({
     value,
     onChange,
+    title,
+    onTitleChange,
 }: {
     value: WeddingDetails;
     onChange: (value: WeddingDetails) => void;
+    title: string;
+    onTitleChange: (title: string) => void;
 }) {
     const update = <K extends keyof WeddingDetails>(key: K, next: WeddingDetails[K]) =>
         onChange({ ...value, [key]: next });
@@ -23,20 +27,32 @@ export function WeddingDetailsEditor({
 
     return <section className="rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-amber-50 p-5 shadow-sm">
         <p className="text-xs font-bold uppercase tracking-widest text-rose-500">Wedding invitation details</p>
-        <p className="mt-1 text-xs leading-relaxed text-zinc-500">The event name above will be used as the couple&apos;s names on the invitation.</p>
+        <p className="mt-1 text-xs leading-relaxed text-zinc-500">Build the card guests will see when they open their invitation.</p>
         <div className="mt-5 grid gap-4">
+            <label className="text-xs font-semibold text-zinc-600">Names shown on the invitation
+                <input className={`${input} mt-2 text-base font-semibold`} value={title} onChange={(event) => onTitleChange(event.target.value)} placeholder="e.g. Joshua & Mariam" />
+                <span className="mt-1 block text-[10px] font-normal text-zinc-400">This also becomes the wedding event name.</span>
+            </label>
             <div>
                 <p className="text-xs font-semibold text-zinc-600">Invitation style</p>
                 <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {DESIGN_PRESETS.map((preset) => <button
                         key={preset.id}
                         type="button"
-                        onClick={() => update("invitation_design", { template: preset.id, background: preset.background, accent: preset.accent, text: preset.text })}
+                        onClick={() => update("invitation_design", { ...value.invitation_design, template: preset.id, background: preset.background, accent: preset.accent, text: preset.text })}
                         className={`rounded-xl border p-2 text-left transition ${value.invitation_design.template === preset.id ? "border-rose-400 bg-white shadow-sm" : "border-rose-100 bg-white/70"}`}
                     >
-                        <div className="h-12 overflow-hidden rounded-lg"><WeddingInvitationPreview title="M & J" details={{ ...value, invitation_design: { template: preset.id, background: preset.background, accent: preset.accent, text: preset.text } }} compact /></div>
+                        <div className="h-12 overflow-hidden rounded-lg"><WeddingInvitationPreview title="M & J" details={{ ...value, invitation_design: { ...value.invitation_design, template: preset.id, background: preset.background, accent: preset.accent, text: preset.text } }} compact /></div>
                         <span className="mt-1.5 block text-[10px] font-bold text-zinc-600">{preset.label}</span>
                     </button>)}
+                </div>
+                <p className="mt-2 text-[10px] leading-relaxed text-zinc-400">Click any colour square to open the full colour picker and choose an exact shade.</p>
+            </div>
+            <div>
+                <p className="text-xs font-semibold text-zinc-600">Uploaded image</p>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => update("invitation_design", { ...value.invitation_design, image_mode: "photo" })} className={`rounded-xl border px-3 py-2.5 text-xs font-semibold ${value.invitation_design.image_mode === "photo" ? "border-rose-400 bg-white text-rose-700" : "border-rose-100 bg-white/60 text-zinc-500"}`}>Couple photo inside card</button>
+                    <button type="button" onClick={() => update("invitation_design", { ...value.invitation_design, image_mode: "artwork" })} className={`rounded-xl border px-3 py-2.5 text-xs font-semibold ${value.invitation_design.image_mode === "artwork" ? "border-rose-400 bg-white text-rose-700" : "border-rose-100 bg-white/60 text-zinc-500"}`}>Finished invitation artwork</button>
                 </div>
             </div>
             <div>

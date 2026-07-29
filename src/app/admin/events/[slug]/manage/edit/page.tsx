@@ -275,6 +275,10 @@ export default function EditTabPage() {
                         {coverImage ? (
                             <div className="group relative aspect-[4/5]">
                                 <Image src={coverImage} alt="Event cover" fill className="object-cover" unoptimized />
+                                {eventType.trim().toLowerCase() === "wedding" && weddingDetails.invitation_design.image_mode === "photo" && <div className="absolute inset-0 flex flex-col items-center justify-end bg-gradient-to-t from-black/75 via-black/10 to-transparent p-8 pb-20 text-center text-white">
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.25em]">Wedding invitation</p>
+                                    <p className="mt-2 font-serif text-3xl italic">{title || "Type the couple’s names"}</p>
+                                </div>}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end">
                                     <div className="flex w-full gap-2 p-4">
                                         <button type="button" onClick={() => fileInputRef.current?.click()} className="flex-1 rounded-xl bg-white/20 backdrop-blur-md text-white text-sm font-medium py-2.5 px-4 hover:bg-white/30 transition-colors flex items-center justify-center gap-2">
@@ -499,7 +503,7 @@ export default function EditTabPage() {
                         <Textarea placeholder="Add a description..." rows={4} value={description} onChange={(e) => setDescription(e.target.value)} className="border-none bg-transparent px-0 text-sm font-normal resize-none focus-visible:ring-0 placeholder:text-zinc-300 min-h-0 py-0 leading-relaxed" />
                     </div>
 
-                    {eventType.trim().toLowerCase() === "wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} />}
+                    {eventType.trim().toLowerCase() === "wedding" && <WeddingDetailsEditor value={weddingDetails} onChange={setWeddingDetails} title={title} onTitleChange={setTitle} />}
 
                     <RegistrationFieldBuilder fields={registrationFields} onChange={setRegistrationFields} />
 
