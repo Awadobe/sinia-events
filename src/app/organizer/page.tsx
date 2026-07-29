@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { Building2, Calendar, Compass, Plus, Settings, Ticket, Users, ScanLine, UserRoundCog, ArrowRight } from "lucide-react";
+import { Calendar, Plus, Settings, Users, ScanLine, UserRoundCog, ArrowRight } from "lucide-react";
 import { CreateOrganizationForm } from "./create-organization-form";
 
 export const dynamic = "force-dynamic";
@@ -76,6 +76,7 @@ export default async function OrganizerDashboard() {
     const hasAssignments = assignedEvents.length > 0;
     const dashboardLabel = isOrganizerOwner ? "Organizer Dashboard" : hasAssignments ? "Event Assignments" : "Radius Account";
     const dashboardTitle = isOrganizerOwner ? "Your hosts and events" : hasAssignments ? "Events assigned to you" : "What would you like to do?";
+    if (!isOrganizerOwner && !hasAssignments) redirect("/profile");
 
     return (
         <div className="min-h-screen bg-[#faf9f7]">
@@ -101,33 +102,6 @@ export default async function OrganizerDashboard() {
                         <Link href="/events/new" className="inline-flex items-center gap-2 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Create event</Link>
                     </div>}
                 </div>
-
-                {!isOrganizerOwner && !hasAssignments && (
-                    <section>
-                        <p className="max-w-2xl text-sm leading-relaxed text-zinc-500">This account has no event-team assignments yet. You can still attend events, host your own event, or submit a venue for Radius to review.</p>
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <Link href="/venues/new" className="group rounded-3xl border border-orange-100 bg-gradient-to-br from-orange-50 to-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-100 text-orange-700"><Building2 className="h-5 w-5" /></span>
-                                <h2 className="mt-4 font-semibold text-zinc-900">List a venue</h2>
-                                <p className="mt-1 text-sm leading-relaxed text-zinc-500">Submit a hall, garden, conference room, or other event space.</p>
-                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-orange-700">Start venue submission <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
-                            </Link>
-                            <Link href="/events/new" className="group rounded-3xl border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700"><Plus className="h-5 w-5" /></span>
-                                <h2 className="mt-4 font-semibold text-zinc-900">Create an event</h2>
-                                <p className="mt-1 text-sm leading-relaxed text-zinc-500">Host an event using your personal Radius account.</p>
-                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-violet-700">Create event <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
-                            </Link>
-                            <Link href="/profile" className="group rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><Ticket className="h-5 w-5" /></span>
-                                <h2 className="mt-4 font-semibold text-zinc-900">My tickets</h2>
-                                <p className="mt-1 text-sm leading-relaxed text-zinc-500">See events you registered for and open your tickets.</p>
-                                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700">Open profile <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
-                            </Link>
-                        </div>
-                        <Link href="/" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 hover:text-zinc-900"><Compass className="h-4 w-4" /> Browse public events</Link>
-                    </section>
-                )}
 
                 {assignedEvents.length > 0 && (
                     <section>

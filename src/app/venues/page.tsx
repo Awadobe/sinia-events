@@ -3,12 +3,22 @@ import Link from "next/link";
 import { createClient } from "@supabase/supabase-js";
 import {
   ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
   Building2,
+  Cake,
   CalendarCheck2,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  Heart,
   MapPin,
+  MessageCircle,
+  Presentation,
   Search,
   ShieldCheck,
   Users,
+  XCircle,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +58,36 @@ const eventOptions = [
   "Workshop",
   "Conference",
   "Private dinner",
+];
+
+const occasions = [
+  { name: "Wedding", description: "Halls, gardens, beaches and reception spaces", icon: Heart, color: "bg-rose-100 text-rose-700" },
+  { name: "Birthday", description: "Flexible spaces for intimate or large celebrations", icon: Cake, color: "bg-amber-100 text-amber-700" },
+  { name: "Corporate event", description: "Professional spaces for teams and company events", icon: BriefcaseBusiness, color: "bg-sky-100 text-sky-700" },
+  { name: "Conference", description: "Auditoriums and rooms with presentation facilities", icon: Presentation, color: "bg-violet-100 text-violet-700" },
+];
+
+const frequentlyAskedQuestions = [
+  {
+    question: "Does searching for a venue cost anything?",
+    answer: "No. Browsing venue profiles and sending an availability enquiry is free. A venue may charge for hire, packages, inspections, or optional services, and those costs should be explained before you commit.",
+  },
+  {
+    question: "Does “available” mean my date is booked?",
+    answer: "No. Available means the venue recently reported that the date was open. Your date is only secured after the venue confirms the request and you complete whatever reservation process it requires.",
+  },
+  {
+    question: "Why does a date sometimes say “confirmation required”?",
+    answer: "Venues can receive bookings by phone, WhatsApp, referrals, or walk-ins. Radius asks for a fresh answer when existing calendar information is missing or may be outdated.",
+  },
+  {
+    question: "Can I list a venue that belongs to my organization?",
+    answer: "Yes. Sign in, choose the organization or personal account responsible for the venue, complete the guided form, and send it for review. The listing stays private until Radius approves it.",
+  },
+  {
+    question: "Can I pay for and book a venue immediately?",
+    answer: "Not yet. The first version focuses on trustworthy discovery, date confirmation, and inspection enquiries. Instant booking and payments will only be added after the process has been tested with real venues.",
+  },
 ];
 
 function priceLabel(venue: Venue) {
@@ -213,6 +253,27 @@ export default async function VenuesPage({
         </section>
 
         <section className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Explore by occasion</p>
+              <h2 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-zinc-900">Whatever you are planning, start with the right kind of space.</h2>
+            </div>
+            <a href="#venue-catalogue" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900">See the catalogue <ArrowRight className="h-4 w-4" /></a>
+          </div>
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {occasions.map((occasion) => (
+              <Link key={occasion.name} href={`/venues?event=${encodeURIComponent(occasion.name)}`} className="group rounded-[1.5rem] border border-black/5 bg-white p-5 shadow-[0_8px_24px_rgba(60,40,20,0.04)] transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(60,40,20,0.09)]">
+                <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${occasion.color}`}><occasion.icon className="h-5 w-5" /></span>
+                <h3 className="mt-5 font-semibold text-zinc-900">{occasion.name}s</h3>
+                <p className="mt-2 min-h-10 text-sm leading-relaxed text-zinc-500">{occasion.description}</p>
+                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-orange-700">Explore spaces <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section id="venue-catalogue" className="border-y border-black/5 bg-white/45">
+          <div className="mx-auto max-w-6xl px-5 py-12 sm:py-16">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
@@ -316,8 +377,92 @@ export default async function VenuesPage({
               </div>
             </div>
           )}
+          </div>
+        </section>
+
+        <section className="mx-auto grid max-w-6xl gap-8 px-5 py-14 sm:py-20 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Availability without guesswork</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">Know what the date status really means.</h2>
+            <p className="mt-4 max-w-xl leading-relaxed text-zinc-500">Radius does not place a green tick on old information. We show when a date needs a fresh answer and remind you that availability is not the same as a reservation.</p>
+            <div className="mt-6 rounded-2xl border border-orange-100 bg-orange-50 p-4 text-sm leading-relaxed text-orange-900">
+              <strong>Why this matters:</strong> many venues also receive bookings through WhatsApp, phone calls and physical visits. A fresh confirmation helps prevent wasted journeys.
+            </div>
+          </div>
+          <div className="space-y-3">
+            <article className="flex gap-4 rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><CheckCircle2 className="h-5 w-5" /></span>
+              <div><h3 className="font-semibold text-zinc-900">Available — recently verified</h3><p className="mt-1 text-sm leading-relaxed text-zinc-500">An authorized venue contact recently reported the date as open. It must still be reserved.</p></div>
+            </article>
+            <article className="flex gap-4 rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-100 text-amber-700"><Clock3 className="h-5 w-5" /></span>
+              <div><h3 className="font-semibold text-zinc-900">Confirmation required</h3><p className="mt-1 text-sm leading-relaxed text-zinc-500">The information is missing, older, or waiting for a fresh response from the venue.</p></div>
+            </article>
+            <article className="flex gap-4 rounded-2xl border border-rose-100 bg-white p-5 shadow-sm">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700"><XCircle className="h-5 w-5" /></span>
+              <div><h3 className="font-semibold text-zinc-900">Booked or blocked</h3><p className="mt-1 text-sm leading-relaxed text-zinc-500">The venue has reported that the date cannot be selected.</p></div>
+            </article>
+          </div>
+        </section>
+
+        <section className="bg-zinc-900 text-white">
+          <div className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-300">Simple from search to inspection</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Find it. Confirm it. Go and see it.</h2>
+            <div className="mt-9 grid gap-5 md:grid-cols-3">
+              {[
+                { number: "01", title: "Describe the occasion", text: "Share the event type, preferred area, expected guests, and the practical things the venue must provide.", icon: Search },
+                { number: "02", title: "Compare useful details", text: "Review photographs, layouts, facilities, packages, rules, prices, and honest date information.", icon: Eye },
+                { number: "03", title: "Confirm and inspect", text: "Send an enquiry, receive a fresh answer, and arrange an inspection before making a final commitment.", icon: MessageCircle },
+              ].map((item) => (
+                <article key={item.number} className="rounded-[1.5rem] border border-white/10 bg-white/[0.06] p-6">
+                  <div className="flex items-center justify-between"><span className="text-sm font-bold text-orange-300">{item.number}</span><item.icon className="h-5 w-5 text-white/50" /></div>
+                  <h3 className="mt-8 text-xl font-semibold">{item.title}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-white/60">{item.text}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20">
+          <div className="overflow-hidden rounded-[2.25rem] bg-gradient-to-br from-[#f06445] via-[#ef785d] to-[#8b5cf6] p-7 text-white shadow-[0_25px_70px_rgba(116,55,40,0.2)] sm:p-10 lg:flex lg:items-center lg:justify-between lg:gap-10">
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] backdrop-blur"><BadgeCheck className="h-3.5 w-3.5" /> For venue owners and managers</div>
+              <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Turn your space into someone’s perfect occasion.</h2>
+              <p className="mt-4 max-w-xl leading-relaxed text-white/75">Create one structured profile for your venue, show what it genuinely provides, manage date information, and receive clearer enquiries from people planning events.</p>
+            </div>
+            <Link href="/venues/new" className="mt-7 inline-flex shrink-0 items-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-semibold text-zinc-900 shadow-lg transition hover:bg-orange-50 lg:mt-0">List your venue <ArrowRight className="h-4 w-4" /></Link>
+          </div>
+        </section>
+
+        <section className="border-t border-black/5 bg-white">
+          <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
+            <div className="text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Frequently asked questions</p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-900">Before you start searching</h2>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-zinc-500">Clear answers about venue discovery, confirmation, and listing a space on Radius.</p>
+            </div>
+            <div className="mt-8 divide-y divide-zinc-100 rounded-[1.75rem] border border-zinc-200 bg-[#faf9f7] px-5 sm:px-7">
+              {frequentlyAskedQuestions.map((item) => (
+                <details key={item.question} className="group py-5">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-5 font-semibold text-zinc-900">
+                    {item.question}
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white text-zinc-500 shadow-sm transition group-open:rotate-45">+</span>
+                  </summary>
+                  <p className="max-w-3xl pt-3 text-sm leading-relaxed text-zinc-500">{item.answer}</p>
+                </details>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
+      <footer className="border-t border-black/5 bg-[#f6f3ed]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-5 px-5 py-8 sm:flex-row sm:items-center sm:justify-between">
+          <div><Link href="/" className="flex items-center gap-2.5 text-sm font-semibold text-zinc-900"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-zinc-900 text-xs font-bold text-white">R</span>Radius</Link><p className="mt-2 text-xs text-zinc-400">Events, communities, and venue discovery across Sierra Leone.</p></div>
+          <nav className="flex flex-wrap gap-5 text-sm font-medium text-zinc-500"><Link href="/">Events</Link><Link href="/organizations">Organizations</Link><a href="#venue-catalogue">Find a venue</a><Link href="/venues/new">List a venue</Link></nav>
+        </div>
+      </footer>
     </div>
   );
 }
