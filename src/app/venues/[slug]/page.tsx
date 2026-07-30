@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
+import { VenueEnquiryCard } from "./venue-enquiry-card";
 
 export const dynamic = "force-dynamic";
 
@@ -65,7 +66,7 @@ export default async function VenueDetailPage({ params }: { params: { slug: stri
 
   if (!venue) notFound();
 
-  const [{ data: media }, { data: spaces }, { data: packages }, { data: availability }] =
+  const [{ data: media }, { data: spaces }, { data: packages }, { data: availability }, { data: addons }] =
     await Promise.all([
       admin
         .from("venue_media")
@@ -80,17 +81,23 @@ export default async function VenueDetailPage({ params }: { params: { slug: stri
         .eq("is_active", true),
       admin
         .from("venue_packages")
-        .select("id, name, description, price, price_basis, included_items")
+        .select("id, space_id, name, description, price, price_basis, included_items")
         .eq("venue_id", venue.id)
         .eq("is_active", true)
         .order("price"),
       admin
         .from("venue_availability")
-        .select("date, status, verified_at")
+        .select("date, status, time_slot, verified_at")
         .eq("venue_id", venue.id)
         .gte("date", new Date().toISOString().slice(0, 10))
         .order("date")
-        .limit(6),
+        .limit(730),
+      admin
+        .from("venue_addons")
+        .select("id, space_id, name, description, price, price_basis")
+        .eq("venue_id", venue.id)
+        .eq("is_active", true)
+        .order("price"),
     ]);
 
   const gallery = media || [];
@@ -246,21 +253,14 @@ export default async function VenueDetailPage({ params }: { params: { slug: stri
           </div>
 
           <aside className="space-y-4 lg:sticky lg:top-8 lg:self-start">
-            <div className="rounded-[19px] border border-[#ebe5de] bg-white p-7 shadow-[0_16px_40px_rgba(80,54,39,0.09)]">
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ff5e36]">Plan your occasion</p>
-              <h2 className="venuefind-display mt-2 text-4xl leading-tight tracking-[-0.025em] text-[#18231d]">Check your preferred date</h2>
-              <div className="mt-5 space-y-2">
-                {(availability || []).length ? availability?.map((item) => (
-                  <div key={item.date} className="flex items-center justify-between rounded-[10px] border border-[#ebe5de] bg-[#fffdfa] px-3 py-3 text-sm text-[#18231d]">
-                    <span>{new Date(`${item.date}T12:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-                    <span className="text-xs font-semibold text-[#e84c27]">{label(item.status)}</span>
-                  </div>
-                )) : <p className="rounded-[10px] bg-[#fff4d8] p-4 text-sm leading-relaxed text-[#74500d]">Choose a date when sending your enquiry. The venue will provide a fresh confirmation.</p>}
-              </div>
-              <button disabled className="mt-5 w-full cursor-not-allowed rounded-xl bg-[#ff5e36]/50 px-4 py-3 text-sm font-semibold text-white">
-                Availability enquiries coming soon
-              </button>
-            </div>
+            <VenueEnquiryCard
+              venueId={venue.id}
+              venueName={venue.name}
+              availability={(availability || []) as Parameters<typeof VenueEnquiryCard>[0]["availability"]}
+              spaces={(spaces || []).map((space) => ({ id: space.id, name: space.name }))}
+              packages={(packages || []) as Parameters<typeof VenueEnquiryCard>[0]["packages"]}
+              addons={(addons || []) as Parameters<typeof VenueEnquiryCard>[0]["addons"]}
+            />
 
             {venue.maximum_capacity && (
               <div className="flex items-center gap-3 rounded-[15px] border border-[#ebe5de] bg-white p-4">
