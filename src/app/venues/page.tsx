@@ -4,17 +4,13 @@ import { createClient } from "@supabase/supabase-js";
 import {
   ArrowRight,
   BadgeCheck,
-  BriefcaseBusiness,
   Building2,
-  Cake,
   CalendarCheck2,
   CheckCircle2,
   Clock3,
   Eye,
-  Heart,
   MapPin,
   MessageCircle,
-  Presentation,
   Search,
   ShieldCheck,
   Users,
@@ -61,10 +57,10 @@ const eventOptions = [
 ];
 
 const occasions = [
-  { name: "Wedding", description: "Halls, gardens, beaches and reception spaces", icon: Heart },
-  { name: "Birthday", description: "Flexible spaces for intimate or large celebrations", icon: Cake },
-  { name: "Corporate event", description: "Professional spaces for teams and company events", icon: BriefcaseBusiness },
-  { name: "Conference", description: "Auditoriums and rooms with presentation facilities", icon: Presentation },
+  { name: "Wedding", label: "Weddings", icon: "💍" },
+  { name: "Birthday", label: "Birthdays", icon: "🎂" },
+  { name: "Corporate event", label: "Corporate", icon: "🏢" },
+  { name: "Conference", label: "Conferences", icon: "🎤" },
 ];
 
 const frequentlyAskedQuestions = [
@@ -110,10 +106,11 @@ function venueTypeLabel(value: string) {
 export default async function VenuesPage({
   searchParams,
 }: {
-  searchParams?: { event?: string; area?: string; guests?: string };
+  searchParams?: { event?: string; area?: string; date?: string; guests?: string };
 }) {
   const eventType = searchParams?.event?.trim() || "";
   const area = searchParams?.area?.trim() || "";
+  const preferredDate = searchParams?.date?.trim() || "";
   const guestCount = Number.parseInt(searchParams?.guests || "", 10);
 
   let query = admin
@@ -204,13 +201,13 @@ export default async function VenuesPage({
 
               <form
                 action="/venues"
-                className="rounded-[22px] border border-white/70 bg-white/90 p-6 shadow-[0_24px_70px_rgba(44,48,36,0.16)] backdrop-blur-sm sm:p-8"
+                className="rounded-[22px] border border-[#ded7cf] bg-white/95 p-7 shadow-[0_24px_70px_rgba(44,48,36,0.16)] backdrop-blur-sm sm:p-9"
               >
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#e84c27]">
                   Start your search
                 </p>
                 <h2 className="venuefind-display mt-2 text-[2rem] leading-tight text-[#18231d]">What are you planning?</h2>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                <div className="mt-7 grid gap-5 sm:grid-cols-2">
                   <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-zinc-600">Event type</span>
                     <select
@@ -218,19 +215,33 @@ export default async function VenuesPage({
                       defaultValue={eventType}
                       className="h-12 w-full rounded-lg border border-[#ded7cf] bg-white px-3 text-sm outline-none transition focus:border-[#ff5e36]"
                     >
-                      <option value="">All event types</option>
+                      <option value="">Choose an event type</option>
                       {eventOptions.map((option) => (
                         <option key={option}>{option}</option>
                       ))}
                     </select>
                   </label>
-                  <label>
+                  <label className="sm:col-span-2">
                     <span className="mb-1.5 block text-xs font-semibold text-zinc-600">Preferred area</span>
-                    <input
+                    <select
                       name="area"
                       defaultValue={area}
-                      placeholder="e.g. Aberdeen"
-                      className="h-12 w-full rounded-lg border border-[#ded7cf] px-3 text-sm outline-none transition placeholder:text-zinc-300 focus:border-[#ff5e36]"
+                      className="h-12 w-full rounded-lg border border-[#ded7cf] bg-[#fffdfa] px-3 text-sm font-medium outline-none transition focus:border-[#ff5e36]"
+                    >
+                      <option value="">Anywhere in the Western Area</option>
+                      <option>Central Freetown</option>
+                      <option>East Freetown</option>
+                      <option>West Freetown</option>
+                      <option>Western Area Rural</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span className="mb-1.5 block text-xs font-semibold text-zinc-600">Preferred date</span>
+                    <input
+                      name="date"
+                      type="date"
+                      defaultValue={preferredDate}
+                      className="h-12 w-full rounded-lg border border-[#ded7cf] bg-[#fffdfa] px-3 text-sm font-medium outline-none transition focus:border-[#ff5e36]"
                     />
                   </label>
                   <label>
@@ -248,6 +259,9 @@ export default async function VenuesPage({
                 <button className="mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-[#ff5e36] text-sm font-semibold text-white shadow-sm transition hover:bg-[#e84c27]">
                   Find venues <ArrowRight className="h-4 w-4" />
                 </button>
+                <p className="mt-5 text-center text-xs text-[#5f6b64]">
+                  Searching is free. No account is required.
+                </p>
               </form>
             </div>
           </div>
@@ -257,17 +271,16 @@ export default async function VenuesPage({
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Explore by occasion</p>
-              <h2 className="venuefind-display mt-3 max-w-3xl text-4xl leading-tight tracking-[-0.025em] text-[#18231d] sm:text-5xl">Whatever you are planning, start with the right kind of space.</h2>
+              <h2 className="venuefind-display mt-3 max-w-3xl text-4xl leading-tight tracking-[-0.035em] text-[#18231d] sm:text-[3.4rem]">Whatever you&apos;re celebrating,<br />start here.</h2>
             </div>
             <a href="#venue-catalogue" className="inline-flex items-center gap-2 text-sm font-semibold text-zinc-600 hover:text-zinc-900">See the catalogue <ArrowRight className="h-4 w-4" /></a>
           </div>
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-10 grid gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
             {occasions.map((occasion) => (
-              <Link key={occasion.name} href={`/venues?event=${encodeURIComponent(occasion.name)}`} className="group rounded-[18px] border border-[#ebe5de] bg-white p-6 transition hover:-translate-y-1 hover:border-[#ff5e36]/40 hover:shadow-[0_18px_40px_rgba(53,42,32,0.08)]">
-                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#fff0df] text-[#e84c27]"><occasion.icon className="h-5 w-5" /></span>
-                <h3 className="venuefind-display mt-6 text-2xl text-[#18231d]">{occasion.name}s</h3>
-                <p className="mt-2 min-h-10 text-sm leading-relaxed text-zinc-500">{occasion.description}</p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-orange-700">Explore spaces <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-1" /></span>
+              <Link key={occasion.name} href={`/venues?event=${encodeURIComponent(occasion.name)}`} className="group flex min-h-[88px] items-center gap-3 rounded-[15px] border border-[#ead8bd] bg-white px-[18px] py-4 transition hover:-translate-y-1 hover:border-[#f5b82e] hover:shadow-[0_10px_26px_rgba(89,55,29,0.1)]">
+                <span className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#fff1d3] text-xl">{occasion.icon}</span>
+                <strong className="text-[15px] font-semibold text-[#18231d]">{occasion.label}</strong>
+                <span className="ml-auto flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-[#fff1d3] text-[#8d5d0a] transition group-hover:translate-x-0.5">→</span>
               </Link>
             ))}
           </div>
