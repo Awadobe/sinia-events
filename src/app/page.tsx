@@ -291,17 +291,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Upcoming Events — Searchable & Filterable */}
-      <section id="upcoming-events" className="mx-auto max-w-6xl px-4 sm:px-6 pb-16">
-        <div className="mb-8 flex items-center justify-between gap-4">
-          <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
-          <Link href="/organizations" className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900">
-            Browse by organization <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <EventsGrid events={upcomingEvents} userLocation={null} />
-      </section>
-
       {featuredVenues.length > 0 && (
         <section className="border-y border-[#ebe5de] bg-[#f7f1e9]">
           <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
@@ -342,6 +331,17 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Upcoming Events — Searchable & Filterable */}
+      <section id="upcoming-events" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <h2 className="text-xl font-semibold text-zinc-900">Upcoming Events</h2>
+          <Link href="/organizations" className="inline-flex items-center gap-1.5 text-sm font-medium text-zinc-500 transition-colors hover:text-zinc-900">
+            Browse by organization <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+        <EventsGrid events={upcomingEvents} userLocation={null} />
+      </section>
 
       {/* Past Events - Horizontal Scroll */}
       {pastEvents.length > 0 && (

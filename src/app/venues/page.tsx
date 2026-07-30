@@ -151,7 +151,6 @@ export default async function VenuesPage({
             <a href="#venue-catalogue" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] md:block">Discover</a>
             <a href="#occasions" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">Occasions</a>
             <a href="#how-it-works" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">How it works</a>
-            <a href="#venue-owners" className="hidden text-sm font-medium text-[#5f6b64] transition hover:text-[#ff5e36] lg:block">For venue owners</a>
             <Link
               href="/venues/new"
               className="rounded-full border border-[#ff5e36] px-5 py-2.5 text-sm font-semibold text-[#ff5e36] transition hover:bg-[#ff5e36] hover:text-white"
