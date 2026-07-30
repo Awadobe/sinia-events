@@ -42,6 +42,8 @@ export function VenueSubmissionForm({
   const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   const groupedAmenities = useMemo(() => {
     return amenities.reduce<Record<string, Amenity[]>>((groups, amenity) => {
       (groups[amenity.category] ||= []).push(amenity);
@@ -69,6 +71,30 @@ export function VenueSubmissionForm({
     if (coverPreview) URL.revokeObjectURL(coverPreview);
     setCoverFile(file);
     setCoverPreview(URL.createObjectURL(file));
+  }
+
+  function selectGallery(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files || []);
+    const accepted = files.filter(
+      (file) =>
+        ["image/jpeg", "image/png", "image/webp"].includes(file.type) &&
+        file.size <= 10 * 1024 * 1024
+    );
+    if (accepted.length !== files.length) {
+      toast.error("Some photographs were skipped. Use JPG, PNG, or WebP files under 10 MB.");
+    }
+    const availableSlots = Math.max(0, 8 - galleryFiles.length);
+    const additions = accepted.slice(0, availableSlots);
+    if (accepted.length > availableSlots) toast.error("You can add up to 8 gallery photographs.");
+    setGalleryFiles((current) => [...current, ...additions]);
+    setGalleryPreviews((current) => [...current, ...additions.map((file) => URL.createObjectURL(file))]);
+    event.target.value = "";
+  }
+
+  function removeGalleryPhoto(index: number) {
+    URL.revokeObjectURL(galleryPreviews[index]);
+    setGalleryFiles((current) => current.filter((_, itemIndex) => itemIndex !== index));
+    setGalleryPreviews((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
   function validateCurrentStep(form: HTMLFormElement) {
@@ -104,6 +130,7 @@ export function VenueSubmissionForm({
     values.set("event_types", JSON.stringify(selectedEvents));
     values.set("amenities", JSON.stringify(selectedAmenities));
     if (coverFile) values.set("cover", coverFile);
+    galleryFiles.forEach((file) => values.append("gallery", file));
 
     const response = await fetch("/api/venues", { method: "POST", body: values });
     const result = await response.json();
@@ -307,6 +334,44 @@ export function VenueSubmissionForm({
                 </button>
               </div>
             )}
+            <div className="mt-6">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <p className="text-sm font-semibold text-zinc-700">Venue gallery</p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Add up to 8 photographs showing the entrance, event spaces, facilities and surrounding area.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-zinc-400">{galleryFiles.length}/8 added</span>
+              </div>
+              <label className="mt-3 flex min-h-24 cursor-pointer items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-orange-200 bg-[#fffaf4] text-sm font-semibold text-orange-700 transition hover:border-orange-400 hover:bg-orange-50">
+                <ImagePlus className="h-5 w-5" /> Add gallery photographs
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={selectGallery}
+                  className="hidden"
+                />
+              </label>
+              {galleryPreviews.length > 0 && (
+                <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  {galleryPreviews.map((preview, index) => (
+                    <div key={preview} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-zinc-100">
+                      <Image src={preview} alt={`Venue gallery photograph ${index + 1}`} fill unoptimized className="object-cover" />
+                      <button
+                        type="button"
+                        aria-label={`Remove gallery photograph ${index + 1}`}
+                        onClick={() => removeGalleryPhoto(index)}
+                        className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-900/80 text-white"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             <label className="mt-6 flex items-start gap-3 rounded-2xl bg-emerald-50 p-4 text-sm leading-relaxed text-emerald-900">
               <input name="declaration" type="checkbox" required className="mt-1" />
               I confirm that I am authorized to represent this venue and that Radius may review the information and photograph before publication.
@@ -384,4 +449,3 @@ function Choice({ active, onClick, label }: { active: boolean; onClick: () => vo
     </button>
   );
 }
-

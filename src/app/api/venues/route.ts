@@ -49,12 +49,16 @@ export async function POST(request: NextRequest) {
   const eventTypes = stringArray(form.get("event_types"));
   const amenityKeys = stringArray(form.get("amenities"));
   const cover = form.get("cover");
+  const gallery = form.getAll("gallery").filter((item): item is File => item instanceof File && item.size > 0);
 
   if (!hostId || !name || !text(form, "venue_type") || !text(form, "area")) {
     return NextResponse.json({ error: "Complete the required venue details." }, { status: 400 });
   }
   if (!eventTypes.length) {
     return NextResponse.json({ error: "Choose at least one accepted event type." }, { status: 400 });
+  }
+  if (gallery.length > 8) {
+    return NextResponse.json({ error: "Add no more than 8 gallery photographs." }, { status: 400 });
   }
 
   const { data: membership } = await admin
@@ -162,12 +166,7 @@ export async function POST(request: NextRequest) {
     if (error) return rollback("Could not save the venue package.", error);
   }
 
-  if (cover instanceof File && cover.size > 0) {
-    if (!["image/jpeg", "image/png", "image/webp"].includes(cover.type) || cover.size > 10 * 1024 * 1024) {
-      return rollback("The cover photograph must be a JPG, PNG, or WebP under 10 MB.");
-    }
-    const extension = cover.name.split(".").pop()?.toLowerCase() || "jpg";
-    const filePath = `${venueId}/cover-${Date.now()}.${extension}`;
+  if ((cover instanceof File && cover.size > 0) || gallery.length > 0) {
     const { error: bucketError } = await admin.storage.createBucket("venue-media", {
       public: true,
       fileSizeLimit: 10 * 1024 * 1024,
@@ -176,6 +175,14 @@ export async function POST(request: NextRequest) {
     if (bucketError && !bucketError.message.toLowerCase().includes("already exists")) {
       return rollback("Could not prepare venue photograph storage.", bucketError);
     }
+  }
+
+  if (cover instanceof File && cover.size > 0) {
+    if (!["image/jpeg", "image/png", "image/webp"].includes(cover.type) || cover.size > 10 * 1024 * 1024) {
+      return rollback("The cover photograph must be a JPG, PNG, or WebP under 10 MB.");
+    }
+    const extension = cover.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filePath = `${venueId}/cover-${Date.now()}.${extension}`;
     const { error: uploadError } = await admin.storage
       .from("venue-media")
       .upload(filePath, Buffer.from(await cover.arrayBuffer()), { contentType: cover.type, upsert: true });
@@ -192,6 +199,31 @@ export async function POST(request: NextRequest) {
       display_order: 0,
     });
     if (mediaError) return rollback("Could not save the venue photograph.", mediaError);
+  }
+
+  for (let index = 0; index < gallery.length; index += 1) {
+    const photo = gallery[index];
+    if (!["image/jpeg", "image/png", "image/webp"].includes(photo.type) || photo.size > 10 * 1024 * 1024) {
+      return rollback(`Gallery photograph ${index + 1} must be a JPG, PNG, or WebP under 10 MB.`);
+    }
+    const extension = photo.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filePath = `${venueId}/gallery-${index + 1}-${Date.now()}.${extension}`;
+    const { error: uploadError } = await admin.storage
+      .from("venue-media")
+      .upload(filePath, Buffer.from(await photo.arrayBuffer()), { contentType: photo.type, upsert: true });
+    if (uploadError) return rollback(`Could not upload gallery photograph ${index + 1}.`, uploadError);
+    const {
+      data: { publicUrl },
+    } = admin.storage.from("venue-media").getPublicUrl(filePath);
+    const { error: mediaError } = await admin.from("venue_media").insert({
+      venue_id: venueId,
+      space_id: space.id,
+      url: publicUrl,
+      alt_text: `${venue.name} venue photograph ${index + 1}`,
+      is_cover: false,
+      display_order: index + 1,
+    });
+    if (mediaError) return rollback(`Could not save gallery photograph ${index + 1}.`, mediaError);
   }
 
   return NextResponse.json({ venue }, { status: 201 });

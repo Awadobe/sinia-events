@@ -20,10 +20,9 @@ export default function VenueSubmittedPage({ searchParams }: { searchParams?: { 
         </div>
         <div className="mt-7 flex flex-wrap justify-center gap-3">
           <Link href="/venues" className="rounded-full bg-zinc-900 px-5 py-3 text-sm font-semibold text-white">Browse venues</Link>
-          <Link href="/organizer" className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-5 py-3 text-sm font-semibold text-zinc-700"><Building2 className="h-4 w-4" /> Organizer account</Link>
+          <Link href="/venues/manage" className="inline-flex items-center gap-2 rounded-full border border-zinc-200 px-5 py-3 text-sm font-semibold text-zinc-700"><Building2 className="h-4 w-4" /> Manage venue listings</Link>
         </div>
       </main>
     </div>
   );
 }
-
