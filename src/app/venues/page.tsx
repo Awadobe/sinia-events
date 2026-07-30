@@ -115,9 +115,7 @@ export default async function VenuesPage({
 
   let query = admin
     .from("venues")
-    .select(
-      "id, name, slug, venue_type, short_description, area, city, maximum_capacity, starting_price, price_basis, verification_status, event_types, media:venue_media(url, alt_text, is_cover, display_order)"
-    )
+    .select("*")
     .eq("status", "published")
     .order("name");
 
@@ -130,11 +128,21 @@ export default async function VenuesPage({
   const { data, error } = await query;
   if (error) console.error("Venue catalogue fetch error:", error);
 
-  const venues = ((data || []) as Venue[]).map((venue) => ({
+  const venueRows = (data || []) as Array<Omit<Venue, "media">>;
+  const venueIds = venueRows.map((venue) => venue.id);
+  const { data: mediaRows, error: mediaError } = venueIds.length
+    ? await admin
+        .from("venue_media")
+        .select("venue_id, url, alt_text, is_cover, display_order")
+        .in("venue_id", venueIds)
+    : { data: [], error: null };
+  if (mediaError) console.error("Venue catalogue media fetch error:", mediaError);
+
+  const venues = venueRows.map((venue) => ({
     ...venue,
-    media: [...(venue.media || [])].sort(
-      (a, b) => Number(b.is_cover) - Number(a.is_cover) || a.display_order - b.display_order
-    ),
+    media: (mediaRows || [])
+      .filter((item) => item.venue_id === venue.id)
+      .sort((a, b) => Number(b.is_cover) - Number(a.is_cover) || a.display_order - b.display_order),
   }));
 
   return (
