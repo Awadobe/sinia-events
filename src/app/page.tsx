@@ -91,7 +91,7 @@ export default async function HomePage() {
             Radius
           </Link>
           <div className="flex items-center gap-4 sm:gap-6">
-            <div className="hidden md:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
+            <div className="hidden 2xl:flex text-xs font-semibold uppercase tracking-widest text-zinc-400">
               By Christex Foundation
             </div>
 
