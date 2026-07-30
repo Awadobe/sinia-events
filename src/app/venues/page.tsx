@@ -169,7 +169,7 @@ export default async function VenuesPage({
         </div>
       </header>
 
-      <main className="flex flex-col">
+      <main>
         <section className="relative mx-4 my-5 min-h-[calc(100svh-116px)] overflow-hidden rounded-[26px] bg-[#eadfce] sm:mx-8 lg:mx-[5vw]">
           <Image
             src="/images/venuefind-hero.jpg"
@@ -293,18 +293,23 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section id="venue-catalogue" className="order-1 border-y border-[#ebe5de] bg-white">
+        <section id="venue-catalogue" className="border-y border-[#ebe5de] bg-white">
           <div className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">
-                Venue catalogue
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff5e36]">
+                Featured in Freetown
               </p>
               <h2 className="venuefind-display mt-2 text-4xl text-[#18231d] sm:text-5xl">
                 {eventType || area || guestCount
                   ? `${venues.length} matching venue${venues.length === 1 ? "" : "s"}`
                   : "Spaces worth discovering"}
               </h2>
+              {!eventType && !area && !Number.isFinite(guestCount) && (
+                <p className="mt-3 text-sm leading-relaxed text-[#5f6b64]">
+                  Approved venue profiles with the practical details you need before arranging a visit.
+                </p>
+              )}
             </div>
             {(eventType || area || Number.isFinite(guestCount)) && (
               <Link href="/venues" className="text-sm font-semibold text-orange-700 hover:text-orange-900">
@@ -321,9 +326,9 @@ export default async function VenuesPage({
                   <Link
                     key={venue.id}
                     href={`/venues/${venue.slug}`}
-                    className="group overflow-hidden rounded-[18px] border border-[#ebe5de] bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(60,40,20,0.1)]"
+                    className="group max-w-[420px] overflow-hidden rounded-[18px] border border-[#ebe5de] bg-white transition duration-300 hover:-translate-y-1 hover:shadow-[0_18px_42px_rgba(60,40,20,0.1)]"
                   >
-                    <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-orange-100 via-rose-100 to-emerald-100">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#eee8e1]">
                       {cover ? (
                         <Image
                           src={cover.url}
@@ -338,12 +343,15 @@ export default async function VenuesPage({
                         </div>
                       )}
                       {venue.verification_status === "verified" && (
-                        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700 shadow-sm backdrop-blur">
-                          <ShieldCheck className="h-3.5 w-3.5" /> Verified
+                        <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-lg bg-white/95 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#1d4d4f] shadow-sm backdrop-blur">
+                          <ShieldCheck className="h-3.5 w-3.5" /> Verified venue
                         </span>
                       )}
+                      <span className="absolute bottom-4 left-4 rounded-full bg-[#fff0c7] px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-[#8a5700]">
+                        Confirmation required
+                      </span>
                     </div>
-                    <div className="p-5">
+                    <div className="p-6">
                       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-orange-600">
                         {venueTypeLabel(venue.venue_type)}
                       </p>
@@ -361,12 +369,12 @@ export default async function VenuesPage({
                           </span>
                         )}
                       </div>
-                      <div className="mt-5 flex items-center justify-between border-t border-zinc-100 pt-4">
+                      <div className="mt-5 flex items-center justify-between border-t border-[#ebe5de] pt-4">
                         <span className="text-sm font-semibold text-zinc-700">{priceLabel(venue)}</span>
-                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#fff0df] text-[#e84c27] transition group-hover:bg-[#ff5e36] group-hover:text-white">
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
                       </div>
+                      <span className="mt-5 flex h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#ff5e36] text-sm font-semibold text-white transition group-hover:bg-[#e84c27]">
+                        View details <ArrowRight className="h-4 w-4" />
+                      </span>
                     </div>
                   </Link>
                 );
@@ -457,7 +465,7 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section className="order-2 border-t border-black/5 bg-white">
+        <section className="border-t border-black/5 bg-white">
           <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
             <div className="text-center">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Frequently asked questions</p>
