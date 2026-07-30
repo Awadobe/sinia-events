@@ -27,6 +27,32 @@ const statusStyle: Record<string, string> = {
   closed: "bg-zinc-100 text-zinc-600",
 };
 
+type Enquiry = {
+  id: string;
+  requester_name: string;
+  requester_email: string | null;
+  requester_phone: string;
+  preferred_contact: string;
+  event_type: string;
+  event_date: string;
+  time_slot: string;
+  guest_count: number | null;
+  message: string | null;
+  status: string;
+  response_message: string | null;
+  alternative_date: string | null;
+  alternative_time_slot: string | null;
+  estimated_total: number | null;
+  created_at: string;
+  space: { name: string } | Array<{ name: string }> | null;
+  package: { name: string } | Array<{ name: string }> | null;
+  selected_addons: Array<{
+    quantity: number;
+    unit_price: number | null;
+    addon: { name: string } | Array<{ name: string }> | null;
+  }>;
+};
+
 export default async function VenueEnquiriesPage({ params }: { params: { venueId: string } }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,6 +69,7 @@ export default async function VenueEnquiriesPage({ params }: { params: { venueId
       .order("created_at", { ascending: false }),
   ]);
   if (!venue) notFound();
+  const venueEnquiries = (enquiries || []) as unknown as Enquiry[];
 
   return (
     <div className="venuefind-page min-h-screen bg-[#faf6f2]">
@@ -58,7 +85,7 @@ export default async function VenueEnquiriesPage({ params }: { params: { venueId
         <p className="mt-4 max-w-2xl text-sm leading-7 text-[#5f6b64]">Review each request, contact the person, and record a clear response. Confirming a booking blocks that date and time on the public calendar.</p>
 
         <div className="mt-9 space-y-5">
-          {(enquiries || []).map((enquiry: any) => {
+          {venueEnquiries.map((enquiry) => {
             const space = Array.isArray(enquiry.space) ? enquiry.space[0] : enquiry.space;
             const venuePackage = Array.isArray(enquiry.package) ? enquiry.package[0] : enquiry.package;
             return (
@@ -83,13 +110,20 @@ export default async function VenueEnquiriesPage({ params }: { params: { venueId
                     {enquiry.estimated_total && <span className="rounded-full border border-[#ebe5de] px-3 py-1.5">Estimate SLE {Number(enquiry.estimated_total).toLocaleString()}</span>}
                   </div>
                 )}
-                {enquiry.selected_addons?.length > 0 && <p className="mt-3 text-xs text-[#5f6b64]">Extras: {enquiry.selected_addons.map((selection: any) => selection.addon?.name).filter(Boolean).join(", ")}</p>}
+                {enquiry.selected_addons?.length > 0 && (
+                  <p className="mt-3 text-xs text-[#5f6b64]">
+                    Extras: {enquiry.selected_addons
+                      .map((selection) => Array.isArray(selection.addon) ? selection.addon[0]?.name : selection.addon?.name)
+                      .filter(Boolean)
+                      .join(", ")}
+                  </p>
+                )}
                 {enquiry.message && <p className="mt-4 rounded-xl border-l-4 border-[#ffd1c5] bg-[#fff8f4] p-4 text-sm leading-6 text-[#5f6b64]">{enquiry.message}</p>}
                 <EnquiryActions venueId={venue.id} enquiryId={enquiry.id} currentStatus={enquiry.status} />
               </article>
             );
           })}
-          {!enquiries?.length && (
+          {!venueEnquiries.length && (
             <div className="rounded-[20px] border border-dashed border-[#ead8bd] bg-white p-10 text-center">
               <Mail className="mx-auto h-9 w-9 text-[#ff5e36]" />
               <h2 className="venuefind-display mt-4 text-3xl text-[#18231d]">No enquiries yet</h2>
