@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Calendar, MapPin, ArrowRight, Clock, Sparkles } from "lucide-react";
+import { Calendar, MapPin, ArrowRight, Building2, Clock, Sparkles, Users } from "lucide-react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { EventsGrid } from "@/components/events-grid";
@@ -57,9 +57,31 @@ async function getPastEvents() {
   }));
 }
 
+async function getFeaturedVenues() {
+  const { data, error } = await supabaseAdmin
+    .from("venues")
+    .select("id, name, slug, venue_type, area, maximum_capacity, starting_price, price_basis, media:venue_media(url, alt_text, is_cover, display_order)")
+    .eq("status", "published")
+    .order("published_at", { ascending: false })
+    .limit(3);
+  if (error) {
+    console.error("Featured venues fetch error:", error);
+    return [];
+  }
+  return (data || []).map((venue) => ({
+    ...venue,
+    media: [...(venue.media || [])].sort(
+      (a, b) => Number(b.is_cover) - Number(a.is_cover) || a.display_order - b.display_order
+    ),
+  }));
+}
+
 export default async function HomePage() {
-  const upcomingEvents = await getUpcomingEvents();
-  const pastEventsRaw = await getPastEvents();
+  const [upcomingEvents, pastEventsRaw, featuredVenues] = await Promise.all([
+    getUpcomingEvents(),
+    getPastEvents(),
+    getFeaturedVenues(),
+  ]);
   const hasMorePastEvents = pastEventsRaw.length > 4;
   const pastEvents = pastEventsRaw.slice(0, 4);
 
@@ -279,6 +301,47 @@ export default async function HomePage() {
         </div>
         <EventsGrid events={upcomingEvents} userLocation={null} />
       </section>
+
+      {featuredVenues.length > 0 && (
+        <section className="border-y border-[#ebe5de] bg-[#f7f1e9]">
+          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-6 sm:py-20">
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#ff5e36]">Spaces on Radius</p>
+                <h2 className="mt-2 font-serif text-3xl tracking-[-0.025em] text-[#18231d] sm:text-4xl">Featured venues</h2>
+                <p className="mt-2 text-sm text-[#5f6b64]">Explore recently approved spaces for celebrations, meetings and conferences.</p>
+              </div>
+              <Link href="/venues" className="inline-flex items-center gap-2 text-sm font-semibold text-[#e84c27]">
+                Find all venues <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {featuredVenues.map((venue) => {
+                const cover = venue.media[0];
+                return (
+                  <Link key={venue.id} href={`/venues/${venue.slug}`} className="group overflow-hidden rounded-[18px] border border-[#ebe5de] bg-white transition hover:-translate-y-1 hover:shadow-[0_16px_35px_rgba(60,40,20,0.1)]">
+                    <div className="relative aspect-[16/10] overflow-hidden bg-[#eee8e1]">
+                      {cover ? (
+                        <Image src={cover.url} alt={cover.alt_text || venue.name} fill unoptimized className="object-cover transition duration-500 group-hover:scale-105" />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center"><Building2 className="h-10 w-10 text-[#d7c7b7]" /></div>
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#ff5e36]">{venue.venue_type.replaceAll("_", " ")}</p>
+                      <h3 className="mt-2 font-serif text-2xl text-[#18231d]">{venue.name}</h3>
+                      <div className="mt-3 flex flex-wrap gap-3 text-xs text-[#5f6b64]">
+                        <span className="inline-flex items-center gap-1"><MapPin className="h-3.5 w-3.5" /> {venue.area}</span>
+                        {venue.maximum_capacity && <span className="inline-flex items-center gap-1"><Users className="h-3.5 w-3.5" /> Up to {venue.maximum_capacity}</span>}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Past Events - Horizontal Scroll */}
       {pastEvents.length > 0 && (
