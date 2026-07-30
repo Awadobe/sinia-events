@@ -169,7 +169,7 @@ export default async function VenuesPage({
         </div>
       </header>
 
-      <main>
+      <main className="flex flex-col">
         <section className="relative mx-4 my-5 min-h-[calc(100svh-116px)] overflow-hidden rounded-[26px] bg-[#eadfce] sm:mx-8 lg:mx-[5vw]">
           <Image
             src="/images/venuefind-hero.jpg"
@@ -293,7 +293,7 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section id="venue-catalogue" className="border-y border-[#ebe5de] bg-white">
+        <section id="venue-catalogue" className="order-1 border-y border-[#ebe5de] bg-white">
           <div className="mx-auto max-w-[1380px] px-5 py-20 sm:px-10 sm:py-24 lg:px-16">
           <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -457,7 +457,7 @@ export default async function VenuesPage({
           </div>
         </section>
 
-        <section className="border-t border-black/5 bg-white">
+        <section className="order-2 border-t border-black/5 bg-white">
           <div className="mx-auto max-w-4xl px-5 py-14 sm:py-20">
             <div className="text-center">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Frequently asked questions</p>
