@@ -55,17 +55,18 @@ export function VenueSubmissionForm({
     update(values.includes(value) ? values.filter((item) => item !== value) : [...values, value]);
   }
 
-  function selectCover(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0] || null;
-    if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+  async function selectCover(event: ChangeEvent<HTMLInputElement>) {
+    const original = event.target.files?.[0] || null;
+    event.target.value = "";
+    if (!original) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(original.type)) {
       toast.error("Choose a JPG, PNG, or WebP photograph.");
-      event.target.value = "";
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("The photograph must be smaller than 10 MB.");
-      event.target.value = "";
+    const file = await preparePhoto(original);
+    if (!file) return;
+    if (file.size > 4 * 1024 * 1024) {
+      toast.error("This photograph is still too large after optimization. Please choose another.");
       return;
     }
     if (coverPreview) URL.revokeObjectURL(coverPreview);
@@ -73,22 +74,19 @@ export function VenueSubmissionForm({
     setCoverPreview(URL.createObjectURL(file));
   }
 
-  function selectGallery(event: ChangeEvent<HTMLInputElement>) {
+  async function selectGallery(event: ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files || []);
-    const accepted = files.filter(
-      (file) =>
-        ["image/jpeg", "image/png", "image/webp"].includes(file.type) &&
-        file.size <= 10 * 1024 * 1024
-    );
-    if (accepted.length !== files.length) {
-      toast.error("Some photographs were skipped. Use JPG, PNG, or WebP files under 10 MB.");
-    }
+    event.target.value = "";
+    const supported = files.filter((file) => ["image/jpeg", "image/png", "image/webp"].includes(file.type));
+    if (supported.length !== files.length) toast.error("Some files were skipped. Use JPG, PNG, or WebP photographs.");
+    const prepared = await Promise.all(supported.map(preparePhoto));
+    const accepted = prepared.filter((file): file is File => file instanceof File && file.size <= 4 * 1024 * 1024);
+    if (accepted.length !== supported.length) toast.error("Some photographs were too large to prepare and were skipped.");
     const availableSlots = Math.max(0, 8 - galleryFiles.length);
     const additions = accepted.slice(0, availableSlots);
     if (accepted.length > availableSlots) toast.error("You can add up to 8 gallery photographs.");
     setGalleryFiles((current) => [...current, ...additions]);
     setGalleryPreviews((current) => [...current, ...additions.map((file) => URL.createObjectURL(file))]);
-    event.target.value = "";
   }
 
   function removeGalleryPhoto(index: number) {
@@ -129,19 +127,39 @@ export function VenueSubmissionForm({
     const values = new FormData(event.currentTarget);
     values.set("event_types", JSON.stringify(selectedEvents));
     values.set("amenities", JSON.stringify(selectedAmenities));
-    if (coverFile) values.set("cover", coverFile);
-    galleryFiles.forEach((file) => values.append("gallery", file));
 
     const response = await fetch("/api/venues", { method: "POST", body: values });
     const result = await response.json();
-    setSubmitting(false);
 
     if (!response.ok) {
+      setSubmitting(false);
       toast.error(result.error || "The venue could not be submitted.");
       return;
     }
 
+    const photographs = [
+      ...(coverFile ? [{ file: coverFile, isCover: true }] : []),
+      ...galleryFiles.map((file) => ({ file, isCover: false })),
+    ];
+    let failedPhotographs = 0;
+    for (let index = 0; index < photographs.length; index += 1) {
+      const photograph = photographs[index];
+      const upload = new FormData();
+      upload.set("photo", photograph.file);
+      upload.set("is_cover", String(photograph.isCover));
+      upload.set("display_order", String(photograph.isCover ? 0 : index));
+      const uploadResponse = await fetch(`/api/venues/${result.venue.id}/photos`, {
+        method: "POST",
+        body: upload,
+      });
+      if (!uploadResponse.ok) failedPhotographs += 1;
+    }
+    setSubmitting(false);
+
     toast.success("Venue submitted for review.");
+    if (failedPhotographs > 0) {
+      toast.warning(`${failedPhotographs} photograph${failedPhotographs === 1 ? "" : "s"} could not be uploaded. Your venue application was still saved.`);
+    }
     router.push(`/venues/submitted?name=${encodeURIComponent(result.venue.name)}`);
   }
 
@@ -430,6 +448,26 @@ function Field({
       {children}
     </label>
   );
+}
+
+async function preparePhoto(file: File) {
+  if (file.size <= 2.5 * 1024 * 1024) return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+    if (!blob) return null;
+    return new File([blob], `${file.name.replace(/\.[^.]+$/, "")}.jpg`, { type: "image/jpeg" });
+  } catch {
+    return null;
+  }
 }
 
 function Choice({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
