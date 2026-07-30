@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
-import { Calendar, MapPin, ArrowRight, Clock, Sparkles } from "lucide-react";
+import { Building2, Calendar, CheckCircle2, Clock, Heart, MapPin, ArrowRight, Search, Sparkles, TicketCheck, Users } from "lucide-react";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { EventsGrid } from "@/components/events-grid";
@@ -180,18 +180,19 @@ export default async function HomePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Left: Text + CTAs */}
           <div className="max-w-xl">
+            <p className="mb-5 text-xs font-bold uppercase tracking-[0.2em] text-orange-600">Events, invitations and venues</p>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold tracking-tight text-zinc-900 leading-[1.1]">
-              Discover tech events. <br className="hidden sm:block" /> Learn and connect.
+              Everything you need to bring people together.
             </h1>
             <p className="mt-6 text-lg text-zinc-500 max-w-xl leading-relaxed">
-              Join community events in Sierra Leone and online. Register for workshops, meetups, and hackathons — or create your own and share them with the world.
+              Discover events, create memorable experiences, send private invitations, and find the right venue—all in one place.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href="#upcoming-events"
                 className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-zinc-800 transition-all hover:shadow-md"
               >
-                Explore Events
+                Explore events
                 <ArrowRight className="h-4 w-4" />
               </a>
               <Link
@@ -199,9 +200,12 @@ export default async function HomePage() {
                 className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-6 py-3 text-sm font-semibold text-zinc-700 shadow-sm hover:bg-zinc-50 transition-all hover:shadow-md"
               >
                 <Sparkles className="h-4 w-4" />
-                Create an Event
+                Create an event
               </Link>
             </div>
+            <Link href="/venues" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 transition hover:text-orange-600">
+              Looking for a place to host it? Find a venue <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
 
           {/* Right: Decorative Illustration (CSS-based floating cards) */}
@@ -217,8 +221,8 @@ export default async function HomePage() {
                     <Calendar className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-zinc-900">Tech Meetup</div>
-                    <div className="text-xs text-zinc-400">Freetown, SL</div>
+                    <div className="text-sm font-semibold text-zinc-900">Community event</div>
+                    <div className="text-xs text-zinc-400">Freetown & online</div>
                   </div>
                 </div>
                 <div className="h-24 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
@@ -232,15 +236,15 @@ export default async function HomePage() {
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-600 text-xs font-bold">15</div>
-                    <div className="text-xs text-zinc-600 font-medium">Hackathon</div>
+                    <div className="text-xs text-zinc-600 font-medium">Conference</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 text-xs font-bold">22</div>
-                    <div className="text-xs text-zinc-600 font-medium">Workshop</div>
+                    <div className="text-xs text-zinc-600 font-medium">Wedding</div>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="h-8 w-8 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 text-xs font-bold">28</div>
-                    <div className="text-xs text-zinc-600 font-medium">Bootcamp</div>
+                    <div className="text-xs text-zinc-600 font-medium">Workshop</div>
                   </div>
                 </div>
               </div>
@@ -255,8 +259,8 @@ export default async function HomePage() {
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-amber-400 to-yellow-500 border-2 border-white flex items-center justify-center text-white text-[10px] font-bold">+5</div>
                   </div>
                   <div>
-                    <div className="text-sm font-semibold text-zinc-900">Community</div>
-                    <div className="text-xs text-emerald-500 font-medium">Join 200+ members</div>
+                    <div className="text-sm font-semibold text-zinc-900">Guest list ready</div>
+                    <div className="text-xs text-emerald-500 font-medium">Invites and check-in</div>
                   </div>
                 </div>
               </div>
@@ -282,9 +286,39 @@ export default async function HomePage() {
         <EventsGrid events={upcomingEvents} userLocation={null} />
       </section>
 
+      <section className="border-y border-[#ebe5de] bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">One platform, from idea to arrival</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-zinc-900 sm:text-5xl">What can you do with Radius?</h2>
+            <p className="mt-4 text-base leading-7 text-zinc-500">Start as a visitor looking for something to attend, or use Radius to plan and run the occasion yourself.</p>
+          </div>
+          <div className="mt-10 grid gap-5 md:grid-cols-3">
+            <article className="rounded-[24px] border border-zinc-200 bg-[#faf9f7] p-7">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-100 text-sky-700"><Search className="h-5 w-5" /></span>
+              <h3 className="mt-6 text-xl font-semibold text-zinc-900">Discover and attend</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-500">Explore public events from different organizations, register, receive your ticket, and get timely reminders.</p>
+              <a href="#upcoming-events" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-800">See upcoming events <ArrowRight className="h-3.5 w-3.5" /></a>
+            </article>
+            <article className="rounded-[24px] border border-zinc-200 bg-[#faf9f7] p-7">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><TicketCheck className="h-5 w-5" /></span>
+              <h3 className="mt-6 text-xl font-semibold text-zinc-900">Create and manage</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-500">Publish events, collect registrations, add collaborators, invite guests, check people in, and export attendance reports.</p>
+              <Link href="/events/new" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-800">Create an event <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </article>
+            <article className="rounded-[24px] border border-zinc-200 bg-[#faf9f7] p-7">
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-100 text-rose-700"><Heart className="h-5 w-5" /></span>
+              <h3 className="mt-6 text-xl font-semibold text-zinc-900">Plan private occasions</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-500">Create guest-only weddings and celebrations, personalize invitations, manage households, and issue secure QR tickets.</p>
+              <Link href="/events/new" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-800">Plan a private occasion <ArrowRight className="h-3.5 w-3.5" /></Link>
+            </article>
+          </div>
+        </div>
+      </section>
+
       {/* Past Events - Horizontal Scroll */}
       {pastEvents.length > 0 && (
-        <section className="mx-auto max-w-6xl px-6 pb-24">
+        <section className="mx-auto max-w-6xl px-6 py-20">
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
               <h2 className="text-xl font-semibold text-zinc-900">Past Events</h2>
@@ -385,16 +419,62 @@ export default async function HomePage() {
         </section>
       )}
 
+      <section className="bg-[#173f41] text-white">
+        <div className="mx-auto grid max-w-6xl gap-10 px-6 py-20 sm:py-24 lg:grid-cols-[1fr_0.9fr] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ffb49f]">Find the setting for the moment</p>
+            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.04em] sm:text-5xl">Your event and its venue can start in the same place.</h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-white/65">Compare approved spaces, understand their facilities and capacity, check honest date information, and send an enquiry without creating an account.</p>
+            <Link href="/venues" className="mt-8 inline-flex items-center gap-2 rounded-full bg-[#ff5e36] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#ff7654]">
+              Find a venue <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              [Building2, "Approved venue profiles", "See photographs, spaces, facilities, rules and packages."],
+              [Calendar, "Clear date status", "Know whether a date is open, blocked, booked or needs confirmation."],
+              [Users, "Guest capacity", "Compare spaces based on the size and setup of your occasion."],
+              [CheckCircle2, "Approval before booking", "The venue confirms your request before anything is treated as reserved."],
+            ].map(([Icon, title, description]) => {
+              const CardIcon = Icon as typeof Building2;
+              return (
+                <article key={String(title)} className="rounded-[20px] border border-white/10 bg-white/[0.06] p-5">
+                  <CardIcon className="h-5 w-5 text-[#ffb49f]" />
+                  <h3 className="mt-4 text-sm font-semibold">{String(title)}</h3>
+                  <p className="mt-2 text-xs leading-5 text-white/55">{String(description)}</p>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 py-20 sm:py-24">
+        <div className="grid gap-8 rounded-[28px] border border-zinc-200 bg-white p-8 sm:p-12 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-600">Communities on Radius</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.035em] text-zinc-900">Follow the organizations creating experiences you care about.</h2>
+            <p className="mt-4 max-w-2xl text-sm leading-7 text-zinc-500">View an organization’s upcoming and past events, then subscribe so you can hear about what they organize next.</p>
+          </div>
+          <Link href="/organizations" className="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200 px-6 py-3 text-sm font-semibold text-zinc-800">
+            Browse organizations <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-black/5 bg-white py-12">
-        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="mx-auto max-w-6xl px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
-            <div className="h-6 w-6 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[10px] font-bold">CF</div>
-            <span className="text-sm font-semibold text-zinc-900">Christex Foundation</span>
+            <div className="h-7 w-7 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[10px] font-bold">R</div>
+            <div><span className="block text-sm font-semibold text-zinc-900">Radius</span><span className="text-[10px] uppercase tracking-wider text-zinc-400">By Christex Foundation</span></div>
           </div>
-          <p className="text-xs text-zinc-400">
-            Empowering the next generation of tech leaders in Sierra Leone.
-          </p>
+          <nav className="flex flex-wrap justify-center gap-5 text-xs font-medium text-zinc-500">
+            <a href="#upcoming-events">Events</a>
+            <Link href="/organizations">Organizations</Link>
+            <Link href="/venues">Find a venue</Link>
+            <Link href="/events/new">Create an event</Link>
+          </nav>
         </div>
       </footer>
     </div>
