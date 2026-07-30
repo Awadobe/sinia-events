@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, Eye, Inbox } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { AvailabilityManager } from "./availability-manager";
 
@@ -35,7 +35,10 @@ export default async function VenueManagementPage({ params }: { params: { venueI
       <header className="border-b border-[#ebe5de] bg-white">
         <div className="mx-auto flex min-h-[76px] max-w-[1380px] flex-wrap items-center justify-between gap-3 px-5 py-3 sm:px-10 lg:px-16">
           <Link href="/venues/manage" className="inline-flex items-center gap-2 text-sm font-medium text-[#5f6b64] hover:text-[#ff5e36]"><ArrowLeft className="h-4 w-4" /> Your venues</Link>
-          {venue.status === "published" && <Link href={`/venues/${venue.slug}`} className="inline-flex items-center gap-2 rounded-full border border-[#ebe5de] px-4 py-2 text-sm font-semibold text-[#46534c]"><Eye className="h-4 w-4" /> View public page</Link>}
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/venues/manage/${venue.id}/enquiries`} className="inline-flex items-center gap-2 rounded-full bg-[#173f41] px-4 py-2 text-sm font-semibold text-white"><Inbox className="h-4 w-4" /> Enquiries</Link>
+            {venue.status === "published" && <Link href={`/venues/${venue.slug}`} className="inline-flex items-center gap-2 rounded-full border border-[#ebe5de] px-4 py-2 text-sm font-semibold text-[#46534c]"><Eye className="h-4 w-4" /> View public page</Link>}
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-[1180px] px-5 py-12 sm:px-10 sm:py-16">
