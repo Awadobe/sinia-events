@@ -332,6 +332,17 @@ export function VenueSubmissionForm({
               <Field label="Contact email">
                 <input name="contact_email" type="email" autoComplete="email" className={inputClass} />
               </Field>
+              <Field label="YouTube venue-tour link" className="sm:col-span-2">
+                <input
+                  name="video_url"
+                  type="url"
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className={inputClass}
+                />
+                <span className="mt-1.5 block text-xs font-normal leading-relaxed text-zinc-500">
+                  Optional. Add a short public or unlisted YouTube walkthrough showing the entrance, event spaces and facilities.
+                </span>
+              </Field>
               <Field label="Cover photograph">
                 <label className="flex h-12 cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-orange-300 bg-orange-50 text-sm font-semibold text-orange-700 transition hover:bg-orange-100">
                   <ImagePlus className="h-4 w-4" /> Choose photograph

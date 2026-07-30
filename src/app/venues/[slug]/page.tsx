@@ -35,6 +35,26 @@ function venuePrice(venue: { starting_price: number | null; price_basis: string 
   return `From SLE ${Number(venue.starting_price).toLocaleString()}${suffix ? ` / ${suffix}` : ""}`;
 }
 
+function youtubeEmbedUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    let videoId = "";
+    if (url.hostname === "youtu.be") videoId = url.pathname.slice(1).split("/")[0];
+    if (["youtube.com", "www.youtube.com", "m.youtube.com"].includes(url.hostname)) {
+      if (url.pathname === "/watch") videoId = url.searchParams.get("v") || "";
+      if (url.pathname.startsWith("/shorts/") || url.pathname.startsWith("/embed/")) {
+        videoId = url.pathname.split("/")[2] || "";
+      }
+    }
+    return /^[a-zA-Z0-9_-]{6,20}$/.test(videoId)
+      ? `https://www.youtube-nocookie.com/embed/${videoId}`
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function VenueDetailPage({ params }: { params: { slug: string } }) {
   const { data: venue } = await admin
     .from("venues")
@@ -75,6 +95,7 @@ export default async function VenueDetailPage({ params }: { params: { slug: stri
 
   const gallery = media || [];
   const cover = gallery[0];
+  const venueVideo = youtubeEmbedUrl(venue.video_url);
 
   return (
     <div className="venuefind-page min-h-screen bg-[#faf6f2]">
@@ -153,6 +174,26 @@ export default async function VenueDetailPage({ params }: { params: { slug: stri
                 ))}
               </div>
             </section>
+
+            {venueVideo && (
+              <section className="border-b border-[#ebe5de] py-14">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#ff5e36]">Venue tour</p>
+                <h2 className="venuefind-display mt-3 text-4xl tracking-[-0.025em] text-[#18231d]">Experience the space before you visit</h2>
+                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#5f6b64]">
+                  Watch the venue walkthrough to understand its layout, atmosphere and facilities.
+                </p>
+                <div className="mt-7 aspect-video overflow-hidden rounded-[18px] border border-[#ebe5de] bg-[#18231d] shadow-[0_16px_40px_rgba(80,54,39,0.1)]">
+                  <iframe
+                    src={venueVideo}
+                    title={`${venue.name} venue tour`}
+                    className="h-full w-full"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              </section>
+            )}
 
             {spaces?.length ? (
               <section className="border-b border-[#ebe5de] py-14">

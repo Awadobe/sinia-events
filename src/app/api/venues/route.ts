@@ -34,6 +34,16 @@ function stringArray(value: FormDataEntryValue | null) {
   }
 }
 
+function validYouTubeUrl(value: string) {
+  if (!value) return true;
+  try {
+    const url = new URL(value);
+    return ["youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be"].includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const supabase = createClient();
   const {
@@ -50,6 +60,7 @@ export async function POST(request: NextRequest) {
   const amenityKeys = stringArray(form.get("amenities"));
   const cover = form.get("cover");
   const gallery = form.getAll("gallery").filter((item): item is File => item instanceof File && item.size > 0);
+  const videoUrl = text(form, "video_url");
 
   if (!hostId || !name || !text(form, "venue_type") || !text(form, "area")) {
     return NextResponse.json({ error: "Complete the required venue details." }, { status: 400 });
@@ -59,6 +70,9 @@ export async function POST(request: NextRequest) {
   }
   if (gallery.length > 8) {
     return NextResponse.json({ error: "Add no more than 8 gallery photographs." }, { status: 400 });
+  }
+  if (!validYouTubeUrl(videoUrl)) {
+    return NextResponse.json({ error: "Enter a valid YouTube venue-tour link." }, { status: 400 });
   }
 
   const { data: membership } = await admin
@@ -96,6 +110,7 @@ export async function POST(request: NextRequest) {
       contact_name: text(form, "contact_name"),
       contact_phone: text(form, "contact_phone"),
       contact_email: text(form, "contact_email") || user.email,
+      video_url: videoUrl || null,
       rules: lines(text(form, "rules")),
       additional_charges: lines(text(form, "additional_charges")),
       status: "pending_review",
