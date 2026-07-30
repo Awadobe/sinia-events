@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { addMonths, format, getDay, getDaysInMonth, isBefore, startOfDay, startOfMonth } from "date-fns";
 import { ArrowLeft, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 
@@ -56,6 +56,7 @@ export function VenueEnquiryCard({
 }) {
   const today = startOfDay(new Date());
   const [month, setMonth] = useState(startOfMonth(today));
+  const [liveAvailability, setLiveAvailability] = useState(availability);
   const [selectedDate, setSelectedDate] = useState("");
   const [timeSlot, setTimeSlot] = useState<(typeof timeSlots)[number][0]>("full_day");
   const [spaceId, setSpaceId] = useState(spaces.length === 1 ? spaces[0].id : "");
@@ -68,9 +69,23 @@ export function VenueEnquiryCard({
 
   const statusByDate = useMemo(() => {
     const map = new Map<string, Availability[]>();
-    availability.forEach((item) => map.set(item.date, [...(map.get(item.date) || []), item]));
+    liveAvailability.forEach((item) => map.set(item.date, [...(map.get(item.date) || []), item]));
     return map;
-  }, [availability]);
+  }, [liveAvailability]);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`/api/venues/${venueId}/availability/public`, { cache: "no-store" })
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Availability could not be refreshed.");
+        return response.json();
+      })
+      .then((result) => {
+        if (active && Array.isArray(result.availability)) setLiveAvailability(result.availability);
+      })
+      .catch((refreshError) => console.error(refreshError));
+    return () => { active = false; };
+  }, [venueId]);
 
   const visiblePackages = packages.filter((item) => !item.space_id || !spaceId || item.space_id === spaceId);
   const visibleAddons = addons.filter((item) => !item.space_id || !spaceId || item.space_id === spaceId);
@@ -86,6 +101,13 @@ export function VenueEnquiryCard({
     const date = new Date(month.getFullYear(), month.getMonth(), day);
     const key = format(date, "yyyy-MM-dd");
     const entries = statusByDate.get(key) || [];
+    if (timeSlot === "full_day") {
+      for (const unavailable of ["booked", "blocked", "held"] as const) {
+        if (entries.some((item) => item.status === unavailable)) return unavailable;
+      }
+      if (entries.some((item) => item.status === "available" && item.time_slot === "full_day")) return "available";
+      return "confirmation_required";
+    }
     const exact = entries.find((item) => item.time_slot === timeSlot);
     const fullDay = entries.find((item) => item.time_slot === "full_day");
     const entry = exact || fullDay;
