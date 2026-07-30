@@ -88,6 +88,9 @@ export default async function ManageVenuesPage() {
                   </div>
                 </div>
                 <div className="flex shrink-0 flex-wrap gap-2">
+                  <Link href={`/venues/manage/${venue.id}`} className="inline-flex items-center gap-2 rounded-full bg-[#ff5e36] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#e84c27]">
+                    Manage calendar <ArrowRight className="h-4 w-4" />
+                  </Link>
                   {venue.status === "published" ? (
                     <Link href={`/venues/${venue.slug}`} className="inline-flex items-center gap-2 rounded-full border border-[#ebe5de] px-4 py-2.5 text-sm font-semibold text-[#46534c] hover:border-[#ff5e36] hover:text-[#e84c27]">
                       <Eye className="h-4 w-4" /> View public page
