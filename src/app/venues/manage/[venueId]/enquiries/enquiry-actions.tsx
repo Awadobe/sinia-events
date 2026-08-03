@@ -45,6 +45,10 @@ export function EnquiryActions({
       return;
     }
     setStatus(result.enquiry.status);
+    if (!result.emailDelivered) {
+      toast.warning("The response was saved, but no email was delivered. Contact the requester by phone or WhatsApp.");
+      return;
+    }
     toast.success(
       nextStatus === "confirmed" ? "Booking confirmed and calendar updated." :
       nextStatus === "available" ? "Date marked available for this requester." :

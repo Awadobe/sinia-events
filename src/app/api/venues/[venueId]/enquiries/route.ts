@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { sendVenueEnquiryCreatedEmails } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest, { params }: { params: { venueId
 
   const { data: venue } = await admin
     .from("venues")
-    .select("id, maximum_capacity")
+    .select("id, name, slug, maximum_capacity, contact_email")
     .eq("id", params.venueId)
     .eq("status", "published")
     .maybeSingle();
@@ -155,5 +156,39 @@ export async function POST(request: NextRequest, { params }: { params: { venueId
     }
   }
 
-  return NextResponse.json({ reference: `VEN-${enquiry.id.slice(0, 8).toUpperCase()}` }, { status: 201 });
+  const reference = `VEN-${enquiry.id.slice(0, 8).toUpperCase()}`;
+  const { data: venueMembers } = await admin
+    .from("venue_members")
+    .select("email")
+    .eq("venue_id", venue.id)
+    .eq("status", "active");
+  const venueEmails = [venue.contact_email, ...(venueMembers || []).map((member) => member.email)]
+    .filter((email): email is string => Boolean(email));
+  const emailResult = await sendVenueEnquiryCreatedEmails({
+    venueEmails,
+    details: {
+      venueName: venue.name,
+      venueSlug: venue.slug,
+      requesterName,
+      requesterEmail: requesterEmail || null,
+      requesterPhone,
+      eventType,
+      eventDate,
+      timeSlot,
+      guestCount,
+      reference,
+    },
+  });
+  await admin
+    .from("venue_enquiries")
+    .update({
+      venue_notified_at: emailResult.venueDelivered ? new Date().toISOString() : null,
+      requester_notified_at: emailResult.requesterDelivered ? new Date().toISOString() : null,
+    })
+    .eq("id", enquiry.id);
+
+  return NextResponse.json({
+    reference,
+    requesterEmailDelivered: emailResult.requesterDelivered,
+  }, { status: 201 });
 }

@@ -596,3 +596,132 @@ export async function sendNewHostEventEmail({
     return { success: false, error };
   }
 }
+
+function escapeEmailText(value: string | null | undefined) {
+  return String(value || '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+type VenueEnquiryEmailDetails = {
+  venueName: string;
+  venueSlug: string;
+  requesterName: string;
+  requesterEmail?: string | null;
+  requesterPhone: string;
+  eventType: string;
+  eventDate: string;
+  timeSlot: string;
+  guestCount: number | null;
+  reference: string;
+};
+
+export async function sendVenueEnquiryCreatedEmails({
+  venueEmails,
+  details,
+}: {
+  venueEmails: string[];
+  details: VenueEnquiryEmailDetails;
+}) {
+  if (!process.env.RESEND_API_KEY) return { venueDelivered: false, requesterDelivered: false, skipped: true };
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const date = format(new Date(`${details.eventDate}T12:00:00`), 'EEEE, MMMM d, yyyy');
+  const venueUrl = `${appUrl}/venues/manage`;
+  const safe = {
+    venue: escapeEmailText(details.venueName),
+    requester: escapeEmailText(details.requesterName),
+    phone: escapeEmailText(details.requesterPhone),
+    eventType: escapeEmailText(details.eventType),
+    slot: escapeEmailText(details.timeSlot.replaceAll('_', ' ')),
+    reference: escapeEmailText(details.reference),
+  };
+
+  const uniqueVenueEmails = Array.from(new Set(venueEmails.map((email) => email.trim().toLowerCase()).filter(Boolean)));
+  const venueResults = await Promise.all(uniqueVenueEmails.map(async (toEmail) => {
+    try {
+      const { error } = await resend.emails.send({
+        from: `Radius <${fromEmail}>`,
+        to: [toEmail],
+        subject: `New venue enquiry for ${details.venueName}`,
+        html: `<div style="font-family:system-ui;max-width:560px;margin:0 auto;padding:32px;color:#18231d"><p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#ff5e36">NEW VENUE ENQUIRY</p><h1 style="font-size:26px">${safe.venue}</h1><p style="color:#5f6b64;line-height:1.6"><strong>${safe.requester}</strong> asked about hosting a ${safe.eventType} for ${details.guestCount || 'an unspecified number of'} guests.</p><div style="background:#faf6f2;border-radius:14px;padding:18px;margin:20px 0"><p style="margin:0 0 8px">📅 <strong>${date}</strong> · ${safe.slot}</p><p style="margin:0">☎️ ${safe.phone}</p></div><a href="${venueUrl}" style="display:block;background:#173f41;color:white;text-decoration:none;text-align:center;padding:14px;border-radius:11px;font-weight:700">Review enquiry</a><p style="font-size:11px;color:#a1a1aa;margin-top:22px">Reference: ${safe.reference}</p></div>`,
+      });
+      if (error) console.error('Venue enquiry team email failed:', error);
+      return !error;
+    } catch (error) {
+      console.error('Venue enquiry team email failed:', error);
+      return false;
+    }
+  }));
+
+  let requesterDelivered = false;
+  if (details.requesterEmail) {
+    try {
+      const { error } = await resend.emails.send({
+        from: `Radius <${fromEmail}>`,
+        to: [details.requesterEmail],
+        subject: `We received your enquiry for ${details.venueName}`,
+        html: `<div style="font-family:system-ui;max-width:560px;margin:0 auto;padding:32px;color:#18231d"><p style="font-size:12px;font-weight:700;letter-spacing:1px;color:#ff5e36">ENQUIRY RECEIVED</p><h1 style="font-size:26px">The venue will confirm your date.</h1><p style="color:#5f6b64;line-height:1.6">Hi ${safe.requester}, your request for <strong>${safe.venue}</strong> has been recorded. This is not a confirmed reservation yet.</p><div style="background:#faf6f2;border-radius:14px;padding:18px;margin:20px 0"><p style="margin:0 0 8px">📅 <strong>${date}</strong> · ${safe.slot}</p><p style="margin:0">👥 ${details.guestCount || 'Guest count not provided'}${details.guestCount ? ' guests' : ''}</p></div><p style="font-size:12px;color:#71717a">We will email you when the venue responds. Reference: <strong>${safe.reference}</strong></p></div>`,
+      });
+      requesterDelivered = !error;
+      if (error) console.error('Venue enquiry requester email failed:', error);
+    } catch (error) {
+      console.error('Venue enquiry requester email failed:', error);
+    }
+  }
+
+  return { venueDelivered: venueResults.some(Boolean), requesterDelivered };
+}
+
+export async function sendVenueEnquiryResponseEmail({
+  toEmail,
+  venueName,
+  requesterName,
+  eventDate,
+  timeSlot,
+  status,
+  responseMessage,
+  alternativeDate,
+  alternativeTimeSlot,
+  reference,
+}: {
+  toEmail: string;
+  venueName: string;
+  requesterName: string;
+  eventDate: string;
+  timeSlot: string;
+  status: string;
+  responseMessage?: string | null;
+  alternativeDate?: string | null;
+  alternativeTimeSlot?: string | null;
+  reference: string;
+}) {
+  if (!process.env.RESEND_API_KEY) return { success: false, skipped: true };
+  const fromEmail = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+  const requestedDate = format(new Date(`${eventDate}T12:00:00`), 'EEEE, MMMM d, yyyy');
+  const response: Record<string, { subject: string; heading: string; accent: string; explanation: string }> = {
+    available: { subject: 'Your preferred venue date is available', heading: 'The venue says your date is available.', accent: '#059669', explanation: 'Availability has been confirmed, but the venue has not marked this as a final booking yet.' },
+    confirmed: { subject: 'Your venue booking has been confirmed', heading: 'Your venue booking is confirmed.', accent: '#0f766e', explanation: 'The venue has reserved the selected date and time for your occasion.' },
+    rejected: { subject: 'Update about your venue enquiry', heading: 'The venue cannot accommodate this request.', accent: '#e11d48', explanation: 'You can return to Radius to explore another venue or send a request for another date.' },
+    proposed_alternative: { subject: 'The venue suggested another date', heading: 'The venue proposed an alternative.', accent: '#ea580c', explanation: 'Review the suggested option below and contact the venue if it works for you.' },
+  };
+  const copy = response[status] || { subject: 'Update about your venue enquiry', heading: 'Your venue enquiry has been updated.', accent: '#52525b', explanation: 'Please review the information below.' };
+  const alternative = alternativeDate
+    ? `${format(new Date(`${alternativeDate}T12:00:00`), 'EEEE, MMMM d, yyyy')} · ${escapeEmailText((alternativeTimeSlot || 'full_day').replaceAll('_', ' '))}`
+    : '';
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: `Radius <${fromEmail}>`,
+      to: [toEmail],
+      subject: `${copy.subject}: ${venueName}`,
+      html: `<div style="font-family:system-ui;max-width:560px;margin:0 auto;padding:32px;color:#18231d"><p style="font-size:12px;font-weight:700;letter-spacing:1px;color:${copy.accent}">VENUE ENQUIRY UPDATE</p><h1 style="font-size:26px">${copy.heading}</h1><p style="color:#5f6b64;line-height:1.6">Hi ${escapeEmailText(requesterName)}, ${copy.explanation}</p><div style="background:#faf6f2;border-radius:14px;padding:18px;margin:20px 0"><p style="margin:0 0 8px"><strong>${escapeEmailText(venueName)}</strong></p><p style="margin:0">Requested: ${requestedDate} · ${escapeEmailText(timeSlot.replaceAll('_', ' '))}</p>${alternative ? `<p style="margin:12px 0 0;color:#c2410c"><strong>Suggested: ${alternative}</strong></p>` : ''}</div>${responseMessage ? `<div style="border-left:4px solid ${copy.accent};padding:12px 16px;background:#fafafa;color:#52525b;line-height:1.6">${escapeEmailText(responseMessage)}</div>` : ''}<p style="font-size:11px;color:#a1a1aa;margin-top:22px">Reference: ${escapeEmailText(reference)}</p></div>`,
+    });
+    return error ? { success: false, error } : { success: true, data };
+  } catch (error) {
+    console.error('Venue enquiry response email failed:', error);
+    return { success: false, error };
+  }
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { sendVenueEnquiryResponseEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ export async function PATCH(
 
   const { data: enquiry } = await admin
     .from("venue_enquiries")
-    .select("id, venue_id, event_date, time_slot, space_id")
+    .select("id, venue_id, event_date, time_slot, space_id, requester_name, requester_email")
     .eq("id", params.enquiryId)
     .eq("venue_id", params.venueId)
     .maybeSingle();
@@ -88,5 +89,28 @@ export async function PATCH(
     }
   }
 
-  return NextResponse.json({ enquiry: updated });
+  let emailDelivered = false;
+  if (enquiry.requester_email) {
+    const { data: venue } = await admin.from("venues").select("name").eq("id", params.venueId).maybeSingle();
+    if (venue) {
+      const emailResult = await sendVenueEnquiryResponseEmail({
+        toEmail: enquiry.requester_email,
+        venueName: venue.name,
+        requesterName: enquiry.requester_name,
+        eventDate: enquiry.event_date,
+        timeSlot: enquiry.time_slot,
+        status,
+        responseMessage,
+        alternativeDate,
+        alternativeTimeSlot,
+        reference: `VEN-${enquiry.id.slice(0, 8).toUpperCase()}`,
+      });
+      emailDelivered = emailResult.success;
+      if (emailDelivered) {
+        await admin.from("venue_enquiries").update({ requester_notified_at: new Date().toISOString() }).eq("id", enquiry.id);
+      }
+    }
+  }
+
+  return NextResponse.json({ enquiry: updated, emailDelivered });
 }
