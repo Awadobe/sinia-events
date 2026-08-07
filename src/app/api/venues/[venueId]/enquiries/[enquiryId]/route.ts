@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { sendVenueEnquiryResponseEmail } from "@/lib/email";
+import { sendVenueEnquiryCreatedEmails, sendVenueEnquiryResponseEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -113,4 +113,67 @@ export async function PATCH(
   }
 
   return NextResponse.json({ enquiry: updated, emailDelivered });
+}
+
+export async function POST(
+  _: NextRequest,
+  { params }: { params: { venueId: string; enquiryId: string } }
+) {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Sign in to resend this email." }, { status: 401 });
+  const { data: allowed } = await supabase.rpc("can_manage_venue", { target_venue_id: params.venueId });
+  if (!allowed) return NextResponse.json({ error: "You cannot manage this venue." }, { status: 403 });
+
+  const [{ data: enquiry }, { data: venue }, { data: members }] = await Promise.all([
+    admin
+      .from("venue_enquiries")
+      .select("id, requester_name, requester_email, requester_phone, event_type, event_date, time_slot, guest_count, status, response_message, alternative_date, alternative_time_slot")
+      .eq("id", params.enquiryId)
+      .eq("venue_id", params.venueId)
+      .maybeSingle(),
+    admin.from("venues").select("name, slug, contact_email").eq("id", params.venueId).maybeSingle(),
+    admin.from("venue_members").select("email").eq("venue_id", params.venueId).eq("status", "active"),
+  ]);
+  if (!enquiry || !venue) return NextResponse.json({ error: "Enquiry not found." }, { status: 404 });
+  if (!enquiry.requester_email) return NextResponse.json({ error: "This requester did not provide an email address." }, { status: 400 });
+
+  const reference = `VEN-${enquiry.id.slice(0, 8).toUpperCase()}`;
+  let emailDelivered = false;
+  if (enquiry.status === "submitted") {
+    const result = await sendVenueEnquiryCreatedEmails({
+      venueEmails: [venue.contact_email, ...(members || []).map((member) => member.email)].filter((email): email is string => Boolean(email)),
+      details: {
+        venueName: venue.name,
+        venueSlug: venue.slug,
+        requesterName: enquiry.requester_name,
+        requesterEmail: enquiry.requester_email,
+        requesterPhone: enquiry.requester_phone,
+        eventType: enquiry.event_type,
+        eventDate: enquiry.event_date,
+        timeSlot: enquiry.time_slot,
+        guestCount: enquiry.guest_count,
+        reference,
+      },
+    });
+    emailDelivered = result.requesterDelivered;
+  } else {
+    const result = await sendVenueEnquiryResponseEmail({
+      toEmail: enquiry.requester_email,
+      venueName: venue.name,
+      requesterName: enquiry.requester_name,
+      eventDate: enquiry.event_date,
+      timeSlot: enquiry.time_slot,
+      status: enquiry.status,
+      responseMessage: enquiry.response_message,
+      alternativeDate: enquiry.alternative_date,
+      alternativeTimeSlot: enquiry.alternative_time_slot,
+      reference,
+    });
+    emailDelivered = result.success;
+  }
+  if (emailDelivered) {
+    await admin.from("venue_enquiries").update({ requester_notified_at: new Date().toISOString() }).eq("id", enquiry.id);
+  }
+  return NextResponse.json({ emailDelivered }, { status: emailDelivered ? 200 : 502 });
 }

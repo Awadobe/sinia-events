@@ -30,19 +30,27 @@ export default async function ManageVenuesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/venues/manage");
 
-  const { data: memberships } = await admin
-    .from("venue_members")
-    .select("venue_id")
-    .eq("user_id", user.id)
-    .eq("status", "active");
-  const venueIds = (memberships || []).map((membership) => membership.venue_id);
-  const { data: venues } = venueIds.length
+  const { data: platformAdmin } = await supabase.rpc("is_radius_platform_admin");
+  const { data: memberships } = platformAdmin
+    ? { data: [] }
+    : await admin
+        .from("venue_members")
+        .select("venue_id")
+        .or(`user_id.eq.${user.id}${user.email ? `,email.ilike.${user.email}` : ""}`)
+        .eq("status", "active");
+  const venueIds = Array.from(new Set((memberships || []).map((membership) => membership.venue_id)));
+  const { data: venues } = platformAdmin
     ? await admin
+        .from("venues")
+        .select("id, name, slug, area, city, venue_type, status, verification_status, updated_at")
+        .order("updated_at", { ascending: false })
+    : venueIds.length
+      ? await admin
         .from("venues")
         .select("id, name, slug, area, city, venue_type, status, verification_status, updated_at")
         .in("id", venueIds)
         .order("updated_at", { ascending: false })
-    : { data: [] };
+      : { data: [] };
 
   return (
     <div className="venuefind-page min-h-screen bg-[#faf6f2]">

@@ -43,6 +43,8 @@ type Enquiry = {
   alternative_date: string | null;
   alternative_time_slot: string | null;
   estimated_total: number | null;
+  venue_notified_at: string | null;
+  requester_notified_at: string | null;
   created_at: string;
   space: { name: string } | Array<{ name: string }> | null;
   package: { name: string } | Array<{ name: string }> | null;
@@ -64,7 +66,7 @@ export default async function VenueEnquiriesPage({ params }: { params: { venueId
     admin.from("venues").select("id, name").eq("id", params.venueId).maybeSingle(),
     admin
       .from("venue_enquiries")
-      .select("id, requester_name, requester_email, requester_phone, preferred_contact, event_type, event_date, time_slot, guest_count, message, status, response_message, alternative_date, alternative_time_slot, estimated_total, created_at, space:venue_spaces(name), package:venue_packages(name), selected_addons:venue_enquiry_addons(quantity, unit_price, addon:venue_addons(name))")
+      .select("id, requester_name, requester_email, requester_phone, preferred_contact, event_type, event_date, time_slot, guest_count, message, status, response_message, alternative_date, alternative_time_slot, estimated_total, venue_notified_at, requester_notified_at, created_at, space:venue_spaces(name), package:venue_packages(name), selected_addons:venue_enquiry_addons(quantity, unit_price, addon:venue_addons(name))")
       .eq("venue_id", params.venueId)
       .order("created_at", { ascending: false }),
   ]);
@@ -119,7 +121,16 @@ export default async function VenueEnquiriesPage({ params }: { params: { venueId
                   </p>
                 )}
                 {enquiry.message && <p className="mt-4 rounded-xl border-l-4 border-[#ffd1c5] bg-[#fff8f4] p-4 text-sm leading-6 text-[#5f6b64]">{enquiry.message}</p>}
-                <EnquiryActions venueId={venue.id} enquiryId={enquiry.id} currentStatus={enquiry.status} />
+                <EnquiryActions
+                  venueId={venue.id}
+                  enquiryId={enquiry.id}
+                  currentStatus={enquiry.status}
+                  initialMessage={enquiry.response_message || ""}
+                  initialAlternativeDate={enquiry.alternative_date || ""}
+                  initialAlternativeTimeSlot={enquiry.alternative_time_slot || "full_day"}
+                  requesterEmail={enquiry.requester_email}
+                  initialEmailDelivered={Boolean(enquiry.requester_notified_at)}
+                />
               </article>
             );
           })}

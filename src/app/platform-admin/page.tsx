@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
-import { Building2, Calendar, ExternalLink, FileText, MapPin, ShieldCheck, Users } from "lucide-react";
+import { Building2, Calendar, ExternalLink, FileText, Inbox, MapPin, ShieldCheck, Users } from "lucide-react";
 import { requireAdmin } from "@/lib/auth";
 import { OrganizationControls } from "./organization-controls";
 import { VenueControls } from "./venue-controls";
@@ -60,6 +60,7 @@ export default async function PlatformAdminPage() {
                         <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><Building2 className="h-4 w-4 text-orange-500" /><h3 className="font-semibold text-zinc-900">{venue.name}</h3><span className={`rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wider ${venue.status === "published" ? "bg-emerald-50 text-emerald-700" : venue.status === "rejected" || venue.status === "suspended" ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-700"}`}>{venue.status.replaceAll("_", " ")}</span></div><p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-400"><span>{hostValue?.name || "Independent venue"}</span><span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" />{venue.area}</span><span>{venue.venue_type.replaceAll("_", " ")}</span></p></div>
                         <div className="mt-4 flex items-center gap-2 sm:mt-0">
                             <Link href={`/platform-admin/venues/${venue.id}`} className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-3 py-2 text-xs font-semibold text-white"><FileText className="h-3.5 w-3.5" /> Review application</Link>
+                            <Link href={`/venues/manage/${venue.id}/enquiries`} className="inline-flex items-center gap-1.5 rounded-xl bg-orange-50 px-3 py-2 text-xs font-semibold text-orange-700"><Inbox className="h-3.5 w-3.5" /> Enquiries</Link>
                             {venue.status === "published" && <Link href={`/venues/${venue.slug}`} className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-100 px-3 py-2 text-xs font-semibold text-zinc-600"><ExternalLink className="h-3.5 w-3.5" /> View</Link>}
                             {venue.status !== "pending_review" && <VenueControls venueId={venue.id} initialStatus={venue.status as "pending_review" | "published" | "suspended" | "rejected" | "draft"} />}
                         </div>
